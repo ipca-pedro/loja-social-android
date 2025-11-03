@@ -1,4 +1,4 @@
-package com.example.loja_social // Certifique-se que o nome do pacote está correto
+package com.example.loja_social
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -12,48 +12,42 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
-    // 1. Obter a nossa instância da API
+    // Usamos a instância da API que já foi inicializada
     private val apiService = RetrofitInstance.api
+    private lateinit var tvResultados: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // 2. Ligar esta classe ao nosso ficheiro XML
         setContentView(R.layout.activity_main)
 
-        // 3. Encontrar o TextView que criámos no layout
-        val tvResultados = findViewById<TextView>(R.id.tv_resultados)
+        tvResultados = findViewById(R.id.tv_resultados)
 
-        // 4. Lançar uma Coroutine para fazer a chamada de rede
-        // lifecycleScope garante que a chamada é cancelada se o ecrã for destruído
+        // Vamos tentar buscar os beneficiários (rota protegida)
+        fetchProtectedData()
+    }
+
+    private fun fetchProtectedData() {
+        tvResultados.text = "A carregar dados protegidos (Beneficiários)..."
+
         lifecycleScope.launch {
             try {
-                // MUDANÇA AQUI: Recebemos o 'response' (o envelope)
+                // MUDAMOS para a thread de IO para a chamada de rede
                 val response = withContext(Dispatchers.IO) {
-                    apiService.getCampanhas()
+                    apiService.getBeneficiarios() // A CHAMADA PROTEGIDA!
                 }
 
-                // Agora, verificamos o 'response'
-                // 1. Vemos se a API disse 'success: true'
-                // 2. Acedemos à lista com 'response.data'
-                if (response.success && response.data.isNotEmpty()) {
-
-                    // Usamos 'response.data' para construir a lista de nomes
-                    val nomes = response.data.joinToString(separator = "\n") {
-                        "• ${it.nome}"
-                    }
-                    tvResultados.text = "Campanhas Ativas:\n\n$nomes"
-
-                } else if (response.success && response.data.isEmpty()) {
-                    tvResultados.text = "Nenhuma campanha encontrada."
+                // VOLTAMOS à thread Principal para atualizar a UI
+                if (response.success) {
+                    val nomes = response.data.joinToString("\n") { "• ${it.nomeCompleto}" }
+                    tvResultados.text = "Beneficiários Encontrados (Login OK!):\n\n$nomes"
                 } else {
-                    tvResultados.text = "A API retornou um erro."
+                    tvResultados.text = "A API negou o acesso (Login Falhou?)"
                 }
 
             } catch (e: Exception) {
-                // O erro original (JSON mal formatado, etc.) ainda pode acontecer
-                Log.e("MainActivity", "Erro ao buscar campanhas", e)
-                tvResultados.text = "Falha ao carregar dados: ${e.message}"
+                // Se falhar (ex: 401 Unauthorized, 403 Forbidden)
+                Log.e("MainActivity", "Erro ao buscar beneficiários", e)
+                tvResultados.text = "Falha ao carregar dados protegidos: ${e.message}"
             }
         }
     }
