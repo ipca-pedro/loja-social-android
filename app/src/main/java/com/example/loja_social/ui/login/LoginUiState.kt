@@ -1,4 +1,4 @@
-package com.example.loja_social.uilogin
+package com.example.loja_social.ui.login
 
 /**
  * Representa os diferentes estados possíveis da UI de Login.

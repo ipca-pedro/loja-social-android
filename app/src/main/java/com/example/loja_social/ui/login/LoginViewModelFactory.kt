@@ -1,8 +1,7 @@
-package com.example.loja_social.uilogin
+package com.example.loja_social.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import repository.LoginRepository
 import session.SessionManager
 
 class LoginViewModelFactory(

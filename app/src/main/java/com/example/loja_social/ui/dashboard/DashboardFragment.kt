@@ -1,11 +1,10 @@
-package com.example.loja_social.uidashboard
+package com.example.loja_social.ui.dashboard
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.example.loja_social.databinding.FragmentDashboardBinding
 
 class DashboardFragment : Fragment() {
 

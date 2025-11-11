@@ -1,22 +1,21 @@
-package com.example.loja_social.uientregas
+package com.example.loja_social.ui.stock
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.example.loja_social.databinding.FragmentEntregasBinding
 
-class EntregasFragment : Fragment() {
+class StockFragment : Fragment() {
 
-    private var _binding: FragmentEntregasBinding? = null
+    private var _binding: FragmentStockBinding? = null
     private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentEntregasBinding.inflate(inflater, container, false)
+        _binding = FragmentStockBinding.inflate(inflater, container, false)
         return binding.root
     }
 

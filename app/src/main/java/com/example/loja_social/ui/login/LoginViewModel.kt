@@ -1,13 +1,12 @@
-package com.example.loja_social.uilogin
+package com.example.loja_social.ui.login
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import repository.LoginRepository
-import session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import session.SessionManager
 import java.lang.Exception
 
 class LoginViewModel(

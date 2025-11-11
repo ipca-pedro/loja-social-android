@@ -1,6 +1,5 @@
-package com.example.loja_social.login
+package com.example.loja_social.ui.login
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
@@ -8,12 +7,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.loja_social.api.RetrofitInstance
-import com.example.loja_social.databinding.ActivityLoginBinding
-import com.example.loja_social.ui.main.MainActivity
-import kotlinx.coroutines.launch
-import com.example.loja_social.repository.LoginRepository
 import com.example.loja_social.SessionManager
+import com.example.loja_social.api.RetrofitInstance
+import com.example.loja_social.repository.LoginRepository
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
