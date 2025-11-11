@@ -7,26 +7,21 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import com.example.loja_social.data.api.RetrofitInstance
-import com.example.loja_social.data.repository.BeneficiarioRepository
+import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.databinding.FragmentBeneficiariosBinding
-import com.example.loja_social.ui.main.MainViewModel // Importa o ViewModel antigo
-import com.example.loja_social.ui.main.MainViewModelFactory // Importa a Factory antiga
+import com.example.loja_social.ui.main.MainViewModel
+import com.example.loja_social.ui.main.MainViewModelFactory
 import kotlinx.coroutines.launch
+import repository.BeneficiarioRepository 
 
-/**
- * Este Fragment vai usar o ViewModel que já tinhas feito
- * (que deveríamos renomear para BeneficiariosViewModel)
- */
 class BeneficiariosFragment : Fragment() {
 
     private var _binding: FragmentBeneficiariosBinding? = null
     private val binding get() = _binding!!
 
-    // Usar o ViewModel que já tinhas, mas agora ligado ao Fragment
     private val viewModel: MainViewModel by viewModels {
         val apiService = RetrofitInstance.api
-        val repository = BeneficiarioRepository(apiService)
+        val repository = BeneficiarioRepository(apiService) // ✅ CORRIGIDO
         MainViewModelFactory(repository)
     }
 
@@ -41,7 +36,6 @@ class BeneficiariosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Ligar o observador do ViewModel à TextView deste Fragment
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { novoTexto ->
                 binding.tvResultadosBeneficiarios.text = novoTexto

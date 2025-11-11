@@ -4,7 +4,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- ✅ Aplicação com ícone e nome atualizados -->
     <application
         android:name=".LojaSocialApp"
         android:allowBackup="true"
@@ -20,7 +19,7 @@
 
         <!-- Ecrã de Login (ponto de entrada) -->
         <activity
-            android:name="login.LoginActivity"
+            android:name="com.example.loja_social.ui.login.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -30,7 +29,7 @@
 
         <!-- Ecrã principal -->
         <activity
-            android:name="main.MainActivity"
+            android:name="com.example.loja_social.ui.main.MainActivity"
             android:exported="false" />
     </application>
 

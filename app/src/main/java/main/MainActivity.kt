@@ -1,4 +1,4 @@
-package com.example.loja_social.ui.main
+package main
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
