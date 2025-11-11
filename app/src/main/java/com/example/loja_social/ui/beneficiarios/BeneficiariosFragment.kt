@@ -9,7 +9,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.loja_social.api.RetrofitInstance
 import kotlinx.coroutines.launch
-import repository.BeneficiarioRepository
+import com.example.loja_social.repository.BeneficiarioRepository
 
 class BeneficiariosFragment : Fragment() {
 
@@ -18,7 +18,7 @@ class BeneficiariosFragment : Fragment() {
 
     private val viewModel: MainViewModel by viewModels {
         val apiService = RetrofitInstance.api
-        val repository = BeneficiarioRepository(apiService) // ✅ CORRIGIDO
+        val repository = BeneficiarioRepository(apiService)
         MainViewModelFactory(repository)
     }
 

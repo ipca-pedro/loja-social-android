@@ -3,6 +3,8 @@ package com.example.loja_social.ui.login
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.loja_social.SessionManager
+import com.example.loja_social.repository.LoginRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

@@ -1,4 +1,4 @@
-package repository
+package com.example.loja_social.repository
 
 import com.example.loja_social.api.ApiService
 import com.example.loja_social.api.BeneficiariosResponse
