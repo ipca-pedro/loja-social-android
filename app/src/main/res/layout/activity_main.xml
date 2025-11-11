@@ -9,7 +9,7 @@ e o 'container' a preencher o resto do espaço
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.main.MainActivity"> <!-- NOTA: Atualiza o context se moveu a MainActivity -->
+    tools:context="main.MainActivity"> <!-- NOTA: Atualiza o context se moveu a MainActivity -->
 
     <!--
     O 'ecrã' principal.

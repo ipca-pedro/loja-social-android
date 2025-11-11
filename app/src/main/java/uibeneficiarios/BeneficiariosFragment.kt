@@ -1,4 +1,4 @@
-package com.example.loja_social.ui.beneficiarios
+package com.example.loja_social.uibeneficiarios
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -12,7 +12,7 @@ import com.example.loja_social.databinding.FragmentBeneficiariosBinding
 import com.example.loja_social.ui.main.MainViewModel
 import com.example.loja_social.ui.main.MainViewModelFactory
 import kotlinx.coroutines.launch
-import repository.BeneficiarioRepository 
+import repository.BeneficiarioRepository
 
 class BeneficiariosFragment : Fragment() {
 

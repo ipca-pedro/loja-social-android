@@ -1,4 +1,4 @@
-package com.example.loja_social.ui.dashboard
+package com.example.loja_social.uidashboard
 
 import android.os.Bundle
 import android.view.LayoutInflater

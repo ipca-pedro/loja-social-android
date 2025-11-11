@@ -1,4 +1,4 @@
-package main
+package com.example.loja_social.main // <-- Garante que a pasta é 'ui/main'
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -17,7 +17,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // --- ESTA É A NOVA LÓGICA ---
+
 
         // 1. Encontrar o NavController
         // O NavHostFragment é o <FragmentContainerView> que definiste no XML
@@ -27,12 +27,8 @@ class MainActivity : AppCompatActivity() {
 
         // 2. Ligar o BottomNavigationView ao NavController
         // Esta linha mágica faz tudo:
-        // - Deteta cliques no menu (binding.bottomNavView)
-        // - Encontra o item de menu clicado (ex: @id/nav_beneficiarios)
-        // - Procura no nav_graph.xml por esse mesmo ID
-        // - Navega o navController para o Fragment correspondente (ex: BeneficiariosFragment)
         binding.bottomNavView.setupWithNavController(navController)
 
-        // --- FIM DA NOVA LÓGICA ---
+
     }
 }

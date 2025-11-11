@@ -1,8 +1,8 @@
-package com.example.loja_social.data.repository
+package com.example.loja_social.repository
 
-import com.example.loja_social.data.api.ApiService
-import com.example.loja_social.data.api.LoginRequest
-import com.example.loja_social.data.api.LoginResponse
+import com.example.loja_social.api.ApiService
+import com.example.loja_social.api.LoginRequest
+import com.example.loja_social.api.LoginResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

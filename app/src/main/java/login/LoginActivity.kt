@@ -1,4 +1,4 @@
-package com.example.loja_social.ui.login
+package com.example.loja_social.login
 
 import android.content.Intent
 import android.os.Bundle

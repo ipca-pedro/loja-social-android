@@ -1,4 +1,4 @@
-package com.example.loja_social.ui.login
+package com.example.loja_social.uilogin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

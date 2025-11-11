@@ -1,4 +1,4 @@
-package com.example.loja_social.ui.login
+package com.example.loja_social.uilogin
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
