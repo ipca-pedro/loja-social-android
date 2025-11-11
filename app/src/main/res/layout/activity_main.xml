@@ -1,18 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<!--
+Usar ConstraintLayout para posicionar facilmente o menu em baixo
+e o 'container' a preencher o resto do espaço
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    tools:context=".MainActivity">
+    tools:context=".ui.main.MainActivity"> <!-- NOTA: Atualiza o context se moveu a MainActivity -->
 
-    <TextView
-        android:id="@+id/tv_resultados"
-        android:layout_width="match_parent"
+    <!--
+    O 'ecrã' principal.
+    Este é o contentor que vai ser substituído pelos teus Fragments
+    (DashboardFragment, BeneficiariosFragment, etc.)
+    -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_host_fragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav_view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+
+    <!-- Ligação ao gráfico de navegação que vamos criar a seguir -->
+    app:defaultNavHost="true"
+    app:navGraph="@navigation/nav_graph" /> <!-- VAI DAR ERRO AQUI (normal) -->
+
+    <!-- A barra de navegação no fundo -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav_view"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="A carregar dados da API..."
-        android:textSize="16sp" />
+        android:background="?android:attr/windowBackground"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
 
-</ScrollView>
+    <!-- Ligação ao ficheiro de menu que criámos -->
+    app:menu="@menu/main_menu" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

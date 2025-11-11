@@ -20,7 +20,7 @@
 
         <!-- Ecrã de Login (ponto de entrada) -->
         <activity
-            android:name=".LoginActivity"
+            android:name="login.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -30,7 +30,7 @@
 
         <!-- Ecrã principal -->
         <activity
-            android:name=".MainActivity"
+            android:name="main.MainActivity"
             android:exported="false" />
     </application>
 
