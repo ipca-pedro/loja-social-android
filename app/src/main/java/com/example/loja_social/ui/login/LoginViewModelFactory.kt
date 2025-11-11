@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.loja_social.SessionManager
 import com.example.loja_social.repository.LoginRepository
-import session.SessionManager
+// import session.SessionManager <-- LINHA ERRADA REMOVIDA
 
 class LoginViewModelFactory(
     private val loginRepository: LoginRepository,

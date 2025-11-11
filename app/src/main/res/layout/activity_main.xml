@@ -9,12 +9,18 @@ e o 'container' a preencher o resto do espaço
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.main.MainActivity"> <!-- NOTA: Atualiza o context se moveu a MainActivity -->
+    tools:context=".ui.main.MainActivity"> <!-- NOTA: O teu context .ui.main.MainActivity está correto -->
 
     <!--
     O 'ecrã' principal.
     Este é o contentor que vai ser substituído pelos teus Fragments
     (DashboardFragment, BeneficiariosFragment, etc.)
+    -->
+
+    <!--
+    Ligação ao gráfico de navegação.
+    O erro que tinhas antes era porque os comentários
+    estavam DENTRO da tag. Movi-os para aqui para cima.
     -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
@@ -26,11 +32,11 @@ e o 'container' a preencher o resto do espaço
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
 
-    <!-- Ligação ao gráfico de navegação que vamos criar a seguir -->
-    app:defaultNavHost="true"
-    app:navGraph="@navigation/nav_graph" /> <!-- VAI DAR ERRO AQUI (normal) -->
+        app:defaultNavHost="true"
+        app:navGraph="@navigation/nav_graph" />
 
     <!-- A barra de navegação no fundo -->
+    <!-- Ligação ao ficheiro de menu que criámos (agora no sítio certo) -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav_view"
         android:layout_width="0dp"
@@ -40,7 +46,6 @@ e o 'container' a preencher o resto do espaço
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
 
-    <!-- Ligação ao ficheiro de menu que criámos -->
-    app:menu="@menu/main_menu" />
+        app:menu="@menu/main_menu" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

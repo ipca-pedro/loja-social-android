@@ -1,5 +1,6 @@
 package com.example.loja_social.ui.login
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
@@ -9,7 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.loja_social.SessionManager
 import com.example.loja_social.api.RetrofitInstance
+import com.example.loja_social.databinding.ActivityLoginBinding // <-- IMPORT ADICIONADO
 import com.example.loja_social.repository.LoginRepository
+import com.example.loja_social.ui.main.MainActivity // <-- IMPORT ADICIONADO
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -28,7 +31,8 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.etEmail.setText("admin@lojaipca.pt")
+        // EMAIL CORRIGIDO (lojasocial em vez de lojaipca)
+        binding.etEmail.setText("admin@lojasocial.pt")
         binding.etPassword.setText("password123")
 
         binding.btnLogin.setOnClickListener {
@@ -72,7 +76,6 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun navigateToMain() {
-        // ✅ CORRIGIDO (para o import da MainActivity)
         val intent = Intent(this@LoginActivity, MainActivity::class.java)
         startActivity(intent)
         finish()

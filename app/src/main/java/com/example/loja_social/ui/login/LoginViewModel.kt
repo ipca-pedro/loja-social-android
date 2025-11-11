@@ -8,7 +8,7 @@ import com.example.loja_social.repository.LoginRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import session.SessionManager
+// import session.SessionManager <-- LINHA ERRADA REMOVIDA
 import java.lang.Exception
 
 class LoginViewModel(
