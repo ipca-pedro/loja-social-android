@@ -8,6 +8,7 @@ import com.example.loja_social.repository.StockRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -39,14 +40,18 @@ class StockListViewModel(
         _allStockItems,
         _searchQuery,
         _filterType
-    ) { all, query, filter ->
+    ) { all: List<StockItem>, query: String, filter: String? ->
         val filtered = filterStockItems(all, query, filter)
         StockListUiState(
             isLoading = false,
             stockItems = filtered,
             errorMessage = null
         )
-    }
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = StockListUiState()
+    )
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
