@@ -3,6 +3,7 @@ package com.example.loja_social.repository
 import com.example.loja_social.api.ApiService
 import com.example.loja_social.api.BeneficiariosResponse
 import com.example.loja_social.api.BeneficiarioRequest
+import com.example.loja_social.api.FullSingleBeneficiarioResponse // <-- Import necessário para resolver o erro
 import com.example.loja_social.api.SingleBeneficiarioResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,11 +17,32 @@ class BeneficiarioRepository(private val apiService: ApiService) {
         }
     }
 
-    // [NOVO] Obtém um único beneficiário (não há endpoint, usamos a listagem como cache)
-    // Na API real, seria um GET /api/admin/beneficiarios/{id}, mas a nossa lista já tem todos os dados.
-    // Usaremos esta função para buscar o item no ViewModel de Detalhe.
-    // **NOTA:** Esta função vai ser implementada no ViewModel de Detalhe com a lista já carregada,
-    // mas a mantemos aqui para organizar futuros endpoints.
+    /**
+     * [NOVO] Obtém um único beneficiário (simulado usando a listagem completa, pois não há endpoint específico).
+     */
+    suspend fun getBeneficiario(beneficiarioId: String): FullSingleBeneficiarioResponse {
+        return withContext(Dispatchers.IO) {
+            // Primeiro, buscamos a lista completa (simulando a busca de um único item)
+            val response = apiService.getBeneficiarios()
+
+            if (response.success && response.data.isNotEmpty()) {
+                // Filtramos a lista para encontrar o beneficiário com o ID
+                val beneficiario = response.data.find { it.id == beneficiarioId }
+                if (beneficiario != null) {
+                    FullSingleBeneficiarioResponse(true, "Beneficiário carregado com sucesso.", beneficiario)
+                } else {
+                    FullSingleBeneficiarioResponse(false, "Beneficiário com ID '$beneficiarioId' não encontrado.", null)
+                }
+            } else {
+                // Erro ao carregar lista (ou lista vazia)
+                FullSingleBeneficiarioResponse(
+                    response.success,
+                    response.message ?: "Falha ao carregar lista de beneficiários da API.",
+                    null
+                )
+            }
+        }
+    }
 
     // [NOVO] Cria um novo beneficiário (POST)
     suspend fun createBeneficiario(request: BeneficiarioRequest): SingleBeneficiarioResponse {

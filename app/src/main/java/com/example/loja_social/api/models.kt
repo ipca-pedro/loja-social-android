@@ -76,6 +76,13 @@ data class BeneficiarioData(
     @SerializedName("estado") val estado: String
 )
 
+// [NOVO] Resposta para obter um único Beneficiário (usado no Repository para obter o objeto completo)
+data class FullSingleBeneficiarioResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: Beneficiario? // Contém o objeto Beneficiario completo
+)
+
 
 // --- Modelos de Admin: Inventário (RF3 & RF6) ---
 

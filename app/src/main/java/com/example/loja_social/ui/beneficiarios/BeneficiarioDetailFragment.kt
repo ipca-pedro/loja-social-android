@@ -79,7 +79,7 @@ class BeneficiarioDetailFragment : Fragment() {
                 // Exibe mensagens de sucesso ou erro
                 handleMessages(state)
             }
-        }\n
+        }
         // Observa o evento de navegação para fechar o fragmento
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.navigateBack.collect {
@@ -152,12 +152,20 @@ class BeneficiarioDetailFragment : Fragment() {
     }
 
     private fun clearForm() {
-        binding.etNomeCompleto.text.clear()
-        binding.etNumEstudante.text.clear()
-        binding.etEmail.text.clear()
-        binding.etNif.text.clear()
-        binding.etNotas.text.clear()
+        // 1. Limpa os campos de texto usando o método setText("")
+        binding.etNomeCompleto.setText("")
+        binding.etNumEstudante.setText("")
+        binding.etEmail.setText("")
+        binding.etNif.setText("")
+        binding.etNotas.setText("")
+
+        // 2. Limpa o campo dropdown (já está correto)
         binding.actvEstado.setText("", false)
+
+        // 3. Limpa a mensagem de sucesso/erro
+        binding.tvMessage.isVisible = false
+
+        // 4. Foco no primeiro campo
         binding.etNomeCompleto.requestFocus()
     }
 

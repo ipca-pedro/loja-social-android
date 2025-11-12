@@ -55,20 +55,28 @@ class AgendarEntregaFragment : Fragment() {
         binding.actvBeneficiario.setOnItemClickListener { parent, _, position, _ ->
             viewModel.clearMessages()
             val selectedItem = parent.getItemAtPosition(position).toString()
-            selectedBeneficiarioId = viewModel.uiState.value.beneficiarios.find {
-                "${it.nomeCompleto} (${it.numEstudante})" == selectedItem
+
+            // 1. CORREÇÃO DA LÓGICA DE PROCURA: Garante que o item é encontrado mesmo se 'numEstudante' for nulo.
+            // O termo de procura tem de ser idêntico à forma como a lista foi mapeada (com 'N/A' para nulos).
+            selectedBeneficiarioId = viewModel.uiState.value.beneficiarios.find { beneficiario ->
+                // Cria a string de comparação, usando "N/A" se numEstudante for null
+                val displayString = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})"
+                displayString == selectedItem
             }?.id
-            // Ativa o botão após a seleção
+
+            // 2. Ativa o botão após a seleção
             binding.btnAgendar.isEnabled = selectedBeneficiarioId != null
         }
 
         // Listener para o botão de agendamento
         binding.btnAgendar.setOnClickListener {
-            val nomeCompleto = binding.actvBeneficiario.text.toString().trim()
+            // Não precisamos de ler o nome completo, apenas a data.
             val dataAgendamento = binding.etDataAgendamento.text.toString().trim()
 
             if (selectedBeneficiarioId != null && dataAgendamento.isNotEmpty()) {
-                viewModel.agendarEntrega(nomeCompleto, dataAgendamento)
+                // 3. CORREÇÃO DA CHAMADA: Passa o ID diretamente para o ViewModel.
+                // O '!!' é seguro porque verificamos que selectedBeneficiarioId != null no 'if'.
+                viewModel.agendarEntrega(selectedBeneficiarioId!!, dataAgendamento)
             } else {
                 Toast.makeText(context, "Selecione um beneficiário e uma data.", Toast.LENGTH_SHORT).show()
             }
