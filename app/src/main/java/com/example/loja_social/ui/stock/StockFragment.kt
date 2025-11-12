@@ -1,5 +1,6 @@
 package com.example.loja_social.ui.stock
 
+import android.app.DatePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +19,7 @@ import com.example.loja_social.databinding.FragmentStockBinding
 import com.example.loja_social.repository.StockRepository
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class StockFragment : Fragment() {
 
@@ -92,6 +94,44 @@ class StockFragment : Fragment() {
             // Ativa o botão
             binding.btnAddStock.isEnabled = selectedProduto != null
         }
+
+        // Listener para o campo de data - abre DatePicker
+        binding.etDataValidade.setOnClickListener {
+            showDatePicker()
+        }
+
+        // Listener para o ícone de calendário
+        binding.tilDataValidade.setEndIconOnClickListener {
+            showDatePicker()
+        }
+    }
+
+    private fun showDatePicker() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            requireContext(),
+            { _, selectedYear, selectedMonth, selectedDay ->
+                // Formatar data como DD/MM/AAAA
+                val formattedDate = String.format(
+                    "%02d/%02d/%04d",
+                    selectedDay,
+                    selectedMonth + 1, // Month é 0-indexed
+                    selectedYear
+                )
+                binding.etDataValidade.setText(formattedDate)
+            },
+            year,
+            month,
+            day
+        )
+
+        // Definir data mínima como hoje
+        datePickerDialog.datePicker.minDate = calendar.timeInMillis
+        datePickerDialog.show()
     }
 
     private fun observeViewModel() {
@@ -107,22 +147,30 @@ class StockFragment : Fragment() {
 
                 // 2. Erro
                 if (state.errorMessage != null) {
-                    binding.tvMessage.text = state.errorMessage
-                    binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.estadoInativo))
-                    binding.tvMessage.isVisible = true
+                    binding.cardSuccess.isVisible = false
+                    binding.cardError.isVisible = true
+                    binding.tvErrorMessage.text = state.errorMessage
                     // Reativa o botão (verifica se há produto selecionado E se não está a carregar o formulário)
                     binding.btnAddStock.isEnabled = selectedProduto != null && !state.isFormLoading
                 }
 
                 // 3. Sucesso
                 else if (state.successMessage != null) {
-                    binding.tvMessage.text = state.successMessage
-                    binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.estadoAtivo))
-                    binding.tvMessage.isVisible = true
+                    binding.cardError.isVisible = false
+                    binding.cardSuccess.isVisible = true
+                    binding.tvSuccessMessage.text = state.successMessage
 
                     // Limpar formulário após sucesso
                     binding.etQuantidade.setText("")
                     binding.etDataValidade.setText("")
+                    selectedProduto = null
+                    binding.actvProduto.setText("")
+                    binding.actvCategoria.setText("")
+                    binding.btnAddStock.isEnabled = false
+                } else {
+                    // Sem mensagens
+                    binding.cardSuccess.isVisible = false
+                    binding.cardError.isVisible = false
                 }
 
                 // 4. Carregamento inicial de dados

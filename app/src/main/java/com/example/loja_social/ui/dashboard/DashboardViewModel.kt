@@ -61,4 +61,8 @@ class DashboardViewModel(
             }
         }
     }
+
+    fun refresh() {
+        fetchDashboardData()
+    }
 }

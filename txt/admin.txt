@@ -1,0 +1,309 @@
+const express = require('express');
+const pool = require('../db');
+const authenticateToken = require('../middleware/authMiddleware');
+const router = express.Router();
+
+// Aplicar middleware de autenticação a TODAS as rotas deste ficheiro
+router.use(authenticateToken);
+
+// ===== GESTÃO DE BENEFICIÁRIOS (RF2) =====
+
+// GET /api/beneficiarios - Listar todos os beneficiários
+router.get('/beneficiarios', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, nome_completo, num_estudante, nif, ano_curricular, 
+             curso, email, telefone, notas_adicionais, estado, data_registo
+      FROM beneficiarios 
+      ORDER BY nome_completo
+    `);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Erro ao listar beneficiários:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// POST /api/beneficiarios - Criar novo beneficiário
+router.post('/beneficiarios', async (req, res) => {
+  try {
+    const { nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, notas_adicionais } = req.body;
+    
+    if (!nome_completo || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nome e email são obrigatórios'
+      });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO beneficiarios (nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, notas_adicionais)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, nome_completo, num_estudante, estado
+    `, [nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, notas_adicionais]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Beneficiário criado com sucesso',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao criar beneficiário:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// PUT /api/beneficiarios/:id - Editar/Reativar beneficiário
+router.put('/beneficiarios/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, estado, notas_adicionais } = req.body;
+    
+    const result = await pool.query(`
+      UPDATE beneficiarios 
+      SET nome_completo = $1, num_estudante = $2, nif = $3, ano_curricular = $4,
+          curso = $5, email = $6, telefone = $7, estado = $8, notas_adicionais = $9
+      WHERE id = $10
+      RETURNING id, nome_completo, estado
+    `, [nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, estado, notas_adicionais, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Beneficiário não encontrado' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Beneficiário atualizado com sucesso',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar beneficiário:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// ===== GESTÃO DE INVENTÁRIO (RF3 & RF6) =====
+
+// POST /api/stock - Adicionar novo lote de stock
+router.post('/stock', async (req, res) => {
+  try {
+    const { produto_id, quantidade_inicial, data_validade, campanha_id } = req.body;
+    const colaborador_id = req.user.id;
+    
+    if (!produto_id || !quantidade_inicial) {
+      return res.status(400).json({ success: false, message: 'Produto e quantidade são obrigatórios' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO stock_items (produto_id, quantidade_inicial, quantidade_atual, data_validade, campanha_id, colaborador_id)
+      VALUES ($1, $2, $2, $3, $4, $5)
+      RETURNING id, quantidade_inicial, data_validade
+    `, [produto_id, quantidade_inicial, data_validade, campanha_id, colaborador_id]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Stock adicionado com sucesso',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao adicionar stock:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/produtos - Listar tipos de produto
+router.get('/produtos', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.id, p.nome, p.descricao, c.nome as categoria
+      FROM produtos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      ORDER BY c.nome, p.nome
+    `);
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro ao listar produtos:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/categorias - Listar categorias de produtos
+router.get('/categorias', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, nome FROM categorias ORDER BY nome');
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Erro ao listar categorias:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/stock - Listar stock agrupado por produto para Android
+router.get('/stock', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT p.id as produto_id, p.nome as produto, c.nome as categoria, SUM(s.quantidade_atual) as quantidade_total, COUNT(s.id) as lotes, MIN(s.data_validade) as validade_proxima FROM stock_items s JOIN produtos p ON s.produto_id = p.id LEFT JOIN categorias c ON p.categoria_id = c.id WHERE s.quantidade_atual > 0 GROUP BY p.id, p.nome, c.nome HAVING SUM(s.quantidade_atual) > 0 ORDER BY p.nome ASC');
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro ao listar stock:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// PUT /api/stock/:id - Editar lote de stock
+router.put('/stock/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantidade_atual, data_validade } = req.body;
+    
+    const result = await pool.query('UPDATE stock_items SET quantidade_atual = $1, data_validade = $2 WHERE id = $3 RETURNING id, quantidade_atual, data_validade', [quantidade_atual, data_validade, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Lote não encontrado' });
+    }
+
+    res.json({ success: true, message: 'Stock atualizado', data: result.rows[0] });
+  } catch (error) {
+    console.error('Erro ao atualizar stock:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// DELETE /api/stock/:id - Remover lote de stock
+router.delete('/stock/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query('DELETE FROM stock_items WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Lote não encontrado' });
+    }
+
+    res.json({ success: true, message: 'Lote removido com sucesso' });
+  } catch (error) {
+    console.error('Erro ao remover stock:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/alertas/validade - Produtos próximos do vencimento (RF6)
+router.get('/alertas/validade', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT s.id, p.nome as produto, s.quantidade_atual, s.data_validade, (s.data_validade - CURRENT_DATE) as dias_restantes FROM stock_items s JOIN produtos p ON s.produto_id = p.id WHERE s.data_validade IS NOT NULL AND s.data_validade <= CURRENT_DATE + INTERVAL \'30 days\' AND s.quantidade_atual > 0 ORDER BY s.data_validade ASC');
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro ao obter alertas de validade:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// ===== GESTÃO DE ENTREGAS (RF4) =====
+
+// POST /api/entregas - Agendar nova entrega
+router.post('/entregas', async (req, res) => {
+  try {
+    const { beneficiario_id, data_agendamento, itens } = req.body;
+    const colaborador_id = req.user.id;
+    
+    if (!beneficiario_id || !data_agendamento || !itens || itens.length === 0) {
+      return res.status(400).json({ success: false, message: 'Beneficiário, data e itens são obrigatórios' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const entregaResult = await client.query(`
+        INSERT INTO entregas (beneficiario_id, colaborador_id, data_agendamento)
+        VALUES ($1, $2, $3)
+        RETURNING id
+      `, [beneficiario_id, colaborador_id, data_agendamento]);
+      
+      const entrega_id = entregaResult.rows[0].id;
+      
+      for (const item of itens) {
+        await client.query(`
+          INSERT INTO detalhes_entrega (entrega_id, stock_item_id, quantidade_entregue) 
+          VALUES ($1, $2, $3)
+        `, [entrega_id, item.stock_item_id, item.quantidade_entregue]);
+      }
+      
+      await client.query('COMMIT');
+      
+      res.status(201).json({
+        success: true,
+        message: 'Entrega agendada com sucesso',
+        data: { id: entrega_id }
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Erro ao agendar entrega:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/entregas - Listar entregas
+router.get('/entregas', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT e.id, e.data_agendamento, e.estado, 
+             COALESCE(b.nome_completo, 'Beneficiário Removido') as beneficiario, 
+             b.num_estudante,
+             COALESCE(c.nome, 'Colaborador Removido') as colaborador
+      FROM entregas e
+      LEFT JOIN beneficiarios b ON e.beneficiario_id = b.id
+      LEFT JOIN colaboradores c ON e.colaborador_id = c.id
+      ORDER BY e.data_agendamento DESC
+    `);
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro ao listar entregas:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// PUT /api/entregas/:id/concluir - Concluir entrega
+router.put('/entregas/:id/concluir', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(`
+      UPDATE entregas 
+      SET estado = 'entregue'
+      WHERE id = $1 AND estado = 'agendada'
+      RETURNING id, estado
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Entrega não encontrada ou já concluída' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Entrega concluída com sucesso',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao concluir entrega:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+module.exports = router;

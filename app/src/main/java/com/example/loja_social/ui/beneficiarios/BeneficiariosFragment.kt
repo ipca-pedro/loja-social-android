@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.loja_social.R
+import com.example.loja_social.api.RetrofitHelper
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.databinding.FragmentBeneficiariosBinding
 import com.example.loja_social.repository.BeneficiarioRepository
@@ -26,7 +27,14 @@ class BeneficiariosFragment : Fragment() {
     }
 
     private val viewModel: BeneficiariosViewModel by viewModels {
-        val apiService = RetrofitInstance.api
+        // O RetrofitInstance já deve estar inicializado na Application (LojaSocialApp)
+        // Mas adicionamos proteção
+        val apiService = try {
+            RetrofitInstance.api
+        } catch (e: UninitializedPropertyAccessException) {
+            // Se não estiver inicializado, lançar erro - será tratado no onViewCreated
+            throw IllegalStateException("RetrofitInstance não inicializado. Deve ser inicializado na Application.", e)
+        }
         val repository = BeneficiarioRepository(apiService)
         BeneficiariosViewModelFactory(repository)
     }
@@ -42,12 +50,32 @@ class BeneficiariosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupRecyclerView()
-        observeViewModel()
+        try {
+            // Garantir que RetrofitInstance está inicializado
+            if (!RetrofitHelper.ensureInitialized(requireContext())) {
+                throw IllegalStateException("Não foi possível inicializar RetrofitInstance")
+            }
 
-        // Listener para o botão de adicionar
-        binding.fabAddBeneficiario.setOnClickListener {
-            navigateToDetail(null) // ID nulo para criar
+            setupRecyclerView()
+            observeViewModel()
+
+            // SwipeRefreshLayout
+            binding.swipeRefresh.setOnRefreshListener {
+                viewModel.fetchBeneficiarios()
+            }
+
+            // Listener para o botão de adicionar
+            binding.fabAddBeneficiario.setOnClickListener {
+                navigateToDetail(null) // ID nulo para criar
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("BeneficiariosFragment", "Erro no onViewCreated", e)
+            // Mostrar mensagem de erro ao utilizador
+            binding.cardError.isVisible = true
+            binding.tvErro.text = "Erro ao inicializar: ${e.message ?: "Erro desconhecido"}"
+            binding.rvBeneficiarios.isVisible = false
+            binding.emptyState.isVisible = false
+            binding.progressBar.isVisible = false
         }
     }
 
@@ -64,31 +92,53 @@ class BeneficiariosFragment : Fragment() {
     }
 
     private fun observeViewModel() {
+        // Observar loading state
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.isLoading.collect { isLoading ->
-                binding.progressBar.isVisible = isLoading
-                binding.rvBeneficiarios.isVisible = !isLoading
-                // O botão de adicionar só aparece depois do carregamento inicial
-                binding.fabAddBeneficiario.isVisible = !isLoading
+                binding.progressBar.isVisible = isLoading && !binding.swipeRefresh.isRefreshing
+                binding.swipeRefresh.isRefreshing = isLoading
             }
         }
 
+        // Observar lista de beneficiários
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { beneficiarios ->
-                beneficiarioAdapter.submitList(beneficiarios)
+                try {
+                    beneficiarioAdapter.submitList(beneficiarios)
+                    // Atualizar visibilidade baseado nos dados
+                    updateVisibility()
+                } catch (e: Exception) {
+                    android.util.Log.e("BeneficiariosFragment", "Erro ao atualizar lista", e)
+                    binding.cardError.isVisible = true
+                    binding.tvErro.text = "Erro ao carregar beneficiários: ${e.message}"
+                }
             }
         }
 
+        // Observar erros
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.errorMessage.collect { errorMsg ->
-                binding.tvErro.text = errorMsg
-                binding.tvErro.isVisible = errorMsg != null
-                // Esconde a lista e o botão se houver um erro
                 if (errorMsg != null) {
+                    binding.cardError.isVisible = true
+                    binding.tvErro.text = errorMsg
                     binding.rvBeneficiarios.isVisible = false
-                    binding.fabAddBeneficiario.isVisible = false
+                    binding.emptyState.isVisible = false
+                } else {
+                    binding.cardError.isVisible = false
+                    updateVisibility()
                 }
             }
+        }
+    }
+
+    private fun updateVisibility() {
+        val hasData = viewModel.uiState.value.isNotEmpty()
+        val hasError = viewModel.errorMessage.value != null
+        val isLoading = viewModel.isLoading.value
+
+        if (!isLoading && !hasError) {
+            binding.rvBeneficiarios.isVisible = hasData
+            binding.emptyState.isVisible = !hasData
         }
     }
 

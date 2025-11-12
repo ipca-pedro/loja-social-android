@@ -191,3 +191,74 @@ data class EntregaConcluidaData(
     @SerializedName("id") val id: String,
     @SerializedName("estado") val estado: String
 )
+
+// --- Wrapper Genérico de Resposta da API ---
+data class ApiResponse<T>(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: T?
+)
+
+// --- Modelos de Stock (GET /api/admin/stock) ---
+data class StockResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<StockItem>,
+    @SerializedName("message") val message: String?
+)
+
+data class StockItem(
+    @SerializedName("produto_id") val produtoId: Int,
+    @SerializedName("produto") val produto: String,
+    @SerializedName("categoria") val categoria: String?,
+    @SerializedName("quantidade_total") val quantidadeTotal: Int,
+    @SerializedName("lotes") val lotes: Int,
+    @SerializedName("validade_proxima") val validadeProxima: String?
+)
+
+// --- Modelos para PUT/DELETE Stock ---
+data class UpdateStockRequest(
+    @SerializedName("quantidade_atual") val quantidadeAtual: Int,
+    @SerializedName("data_validade") val dataValidade: String?
+)
+
+data class UpdateStockResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: StockItemData?
+)
+
+data class DeleteStockResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?
+)
+
+// --- Modelos Públicos ---
+data class StockSummaryResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<StockSummaryItem>,
+    @SerializedName("message") val message: String?
+)
+
+data class StockSummaryItem(
+    @SerializedName("categoria") val categoria: String?,
+    @SerializedName("produto") val produto: String?,
+    @SerializedName("disponibilidade") val disponibilidade: Int?,
+    @SerializedName("validade_proxima") val validadeProxima: String?
+)
+
+// --- Modelo de Contacto Público ---
+data class ContactoRequest(
+    @SerializedName("nome") val nome: String?,
+    @SerializedName("email") val email: String,
+    @SerializedName("mensagem") val mensagem: String
+)
+
+data class ContactoResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: ContactoData?
+)
+
+data class ContactoData(
+    @SerializedName("id") val id: Int
+)

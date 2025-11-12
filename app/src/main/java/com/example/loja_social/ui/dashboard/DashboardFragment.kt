@@ -36,14 +36,20 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // SwipeRefreshLayout
+        binding.swipeRefresh.setOnRefreshListener {
+            viewModel.refresh()
+        }
+
         // 2. Observar as mudanças do ViewModel
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { state ->
                 // Controlar visibilidade
-                binding.progressBar.isVisible = state.isLoading
+                binding.progressBar.isVisible = state.isLoading && !binding.swipeRefresh.isRefreshing
+                binding.swipeRefresh.isRefreshing = state.isLoading
                 binding.cardAlertas.isVisible = !state.isLoading && state.errorMessage == null
                 binding.cardEntregas.isVisible = !state.isLoading && state.errorMessage == null
-                binding.tvErro.isVisible = state.errorMessage != null
+                binding.cardError.isVisible = state.errorMessage != null
 
                 // Preencher dados
                 if (!state.isLoading && state.errorMessage == null) {
@@ -52,7 +58,9 @@ class DashboardFragment : Fragment() {
                 }
 
                 // Mostrar erro
-                binding.tvErro.text = state.errorMessage
+                if (state.errorMessage != null) {
+                    binding.tvErro.text = state.errorMessage
+                }
             }
         }
     }

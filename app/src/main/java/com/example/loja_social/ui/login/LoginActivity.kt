@@ -65,12 +65,12 @@ class LoginActivity : AppCompatActivity() {
             is LoginUiState.Idle -> {
                 binding.progressBar.visibility = View.GONE
                 binding.btnLogin.isEnabled = true
-                binding.tvErrorMessage.visibility = View.GONE
+                binding.cardError.visibility = View.GONE
             }
             is LoginUiState.Loading -> {
                 binding.progressBar.visibility = View.VISIBLE
                 binding.btnLogin.isEnabled = false
-                binding.tvErrorMessage.visibility = View.GONE
+                binding.cardError.visibility = View.GONE
             }
             is LoginUiState.Success -> {
                 binding.progressBar.visibility = View.GONE
@@ -80,7 +80,7 @@ class LoginActivity : AppCompatActivity() {
                 binding.progressBar.visibility = View.GONE
                 binding.btnLogin.isEnabled = true
                 binding.tvErrorMessage.text = state.message
-                binding.tvErrorMessage.visibility = View.VISIBLE
+                binding.cardError.visibility = View.VISIBLE
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.example.loja_social.api
 
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -8,20 +9,31 @@ import retrofit2.http.Path
 
 /**
  * Interface do Retrofit que define todos os endpoints da API.
+ * Todas as rotas retornam respostas padronizadas com {success, message, data}
  */
 interface ApiService {
 
-    // --- Rotas Públicas ---
+    // ===== ROTAS PÚBLICAS =====
+    
     @GET("api/public/campanhas")
     suspend fun getCampanhas(): CampanhasResponse
 
-    // --- Rota de Auth ---
+    @GET("api/public/stock-summary")
+    suspend fun getStockSummary(): StockSummaryResponse
+
+    @POST("api/public/contacto")
+    suspend fun enviarContacto(
+        @Body request: ContactoRequest
+    ): ContactoResponse
+
+    // ===== AUTENTICAÇÃO =====
+    
     @POST("api/auth/login")
     suspend fun login(
         @Body request: LoginRequest
     ): LoginResponse
 
-    // --- ROTAS DE ADMIN (PROTEGIDAS) ---
+    // ===== ROTAS DE ADMIN (PROTEGIDAS) =====
 
     // --- Gestão de Beneficiários (RF2) ---
     @GET("api/admin/beneficiarios")
@@ -45,10 +57,24 @@ interface ApiService {
     @GET("api/admin/produtos")
     suspend fun getProdutos(): ProdutosResponse
 
+    @GET("api/admin/stock")
+    suspend fun getStock(): StockResponse
+
     @POST("api/admin/stock")
     suspend fun addStock(
         @Body request: AddStockRequest
     ): AddStockResponse
+
+    @PUT("api/admin/stock/{id}")
+    suspend fun updateStock(
+        @Path("id") stockId: String,
+        @Body request: UpdateStockRequest
+    ): UpdateStockResponse
+
+    @DELETE("api/admin/stock/{id}")
+    suspend fun deleteStock(
+        @Path("id") stockId: String
+    ): DeleteStockResponse
 
     @GET("api/admin/alertas/validade")
     suspend fun getAlertasValidade(): AlertasValidadeResponse

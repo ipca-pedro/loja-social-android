@@ -119,18 +119,30 @@
             </LinearLayout>
         </ScrollView>
 
-        <TextView
-            android:id="@+id/tv_message"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_message"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:textAlignment="center"
             android:visibility="gone"
+            app:cardBackgroundColor="#E8F5E9"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
             app:layout_constraintBottom_toTopOf="@id/btn_delete"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            tools:text="Sucesso"
-            tools:textColor="@android:color/holo_green_dark"/>
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/tv_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:textAlignment="center"
+                android:textColor="@android:color/holo_green_dark"
+                android:textSize="14sp"
+                tools:text="Alterações salvas com sucesso!" />
+        </com.google.android.material.card.MaterialCardView>
 
         <Button
             android:id="@+id/btn_delete"
@@ -146,14 +158,18 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Salvar Alterações"
-            android:paddingVertical="12dp"
-            android:backgroundTint="@color/colorPrimaryDark"
-            android:textColor="@color/verdeTextoBotao"
+            android:text="SALVAR ALTERAÇÕES"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:paddingVertical="16dp"
+            android:backgroundTint="@color/colorPrimary"
+            android:textColor="@color/white"
+            app:cornerRadius="8dp"
+            android:letterSpacing="0.05"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />

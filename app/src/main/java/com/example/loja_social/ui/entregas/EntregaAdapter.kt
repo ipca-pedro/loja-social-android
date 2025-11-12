@@ -31,14 +31,15 @@ class EntregaAdapter(private val onConcluirClicked: (String) -> Unit) : ListAdap
             binding.tvEstadoConcluido.visibility = if (!isAgendada) View.VISIBLE else View.GONE
 
             if (!isAgendada) {
-                // Se não está agendada, mostra o estado real (Entregue / Não_Entregue)
+                // Se não está agendada, mostra o estado real (Entregue / Não_Entregue) usando Chip
                 val estado = entrega.estado.uppercase(Locale.getDefault())
                 binding.tvEstadoConcluido.text = estado
-                val cor = when (estado) {
+                val corRes = when (estado) {
                     "ENTREGUE" -> R.color.estadoAtivo
-                    else -> R.color.estadoInativo // Outros estados (e.g. NAO_ENTREGUE)
+                    else -> android.R.color.holo_red_dark // Outros estados (e.g. NAO_ENTREGUE)
                 }
-                binding.tvEstadoConcluido.setTextColor(ContextCompat.getColor(context, cor))
+                binding.tvEstadoConcluido.setChipBackgroundColorResource(corRes)
+                binding.tvEstadoConcluido.setTextColor(ContextCompat.getColor(context, android.R.color.white))
             } else {
                 // Ação do botão
                 binding.btnConcluir.setOnClickListener {

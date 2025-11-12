@@ -46,6 +46,11 @@ class EntregasFragment : Fragment() {
         // Configurar o RecyclerView
         binding.rvEntregas.adapter = entregaAdapter
 
+        // SwipeRefreshLayout
+        binding.swipeRefresh.setOnRefreshListener {
+            viewModel.fetchEntregas()
+        }
+
         // LÓGICA DO BOTÃO FAB PARA AGENDAR (PROBLEMA DE NAVEGAÇÃO CORRIGIDO PELO IMPORT)
         binding.fabAddEntrega.setOnClickListener {
             // Navega para o novo fragmento de agendamento
@@ -60,34 +65,29 @@ class EntregasFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { state ->
                 // Controlar visibilidade
-                binding.progressBar.isVisible = state.isLoading
+                binding.progressBar.isVisible = state.isLoading && !binding.swipeRefresh.isRefreshing
+                binding.swipeRefresh.isRefreshing = state.isLoading
 
-                // Lógica para mostrar a lista ou a mensagem de lista vazia
-                val showList = !state.isLoading && state.errorMessage == null && state.entregas.isNotEmpty()
-                val showEmptyMessage = !state.isLoading && state.errorMessage == null && state.entregas.isEmpty()
+                // Lógica para mostrar a lista ou o empty state
+                val hasData = state.entregas.isNotEmpty()
+                val showList = !state.isLoading && state.errorMessage == null && hasData
+                val showEmptyState = !state.isLoading && state.errorMessage == null && !hasData
 
                 binding.rvEntregas.isVisible = showList
+                binding.emptyState.isVisible = showEmptyState
                 binding.fabAddEntrega.isVisible = !state.isLoading
 
                 // Preencher dados na lista
                 entregaAdapter.submitList(state.entregas)
 
-                // Mostrar mensagem de sucesso, erro, ou lista vazia
-                if (state.errorMessage != null) {
-                    binding.tvMessage.text = state.errorMessage
-                    binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.estadoInativo))
-                    binding.tvMessage.isVisible = true
-                } else if (state.actionSuccessMessage != null) {
-                    binding.tvMessage.text = state.actionSuccessMessage
-                    binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.estadoAtivo))
-                    binding.tvMessage.isVisible = true
-                } else if (showEmptyMessage) {
-                    // MENSAGEM DE LISTA VAZIA (Se a API retornar [], isto é o que aparece)
-                    binding.tvMessage.text = "Não existem entregas agendadas ou passadas. Clique no '+' para agendar uma."
-                    binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.colorPrimaryDark))
-                    binding.tvMessage.isVisible = true
-                } else {
-                    binding.tvMessage.isVisible = false
+                // Mostrar mensagem de sucesso ou erro (usando Snackbar seria melhor, mas mantendo compatibilidade)
+                if (state.actionSuccessMessage != null) {
+                    // Mostrar mensagem de sucesso temporariamente
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        state.actionSuccessMessage,
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }

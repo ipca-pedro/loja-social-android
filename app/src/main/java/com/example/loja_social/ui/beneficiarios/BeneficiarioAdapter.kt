@@ -15,27 +15,56 @@ class BeneficiarioAdapter(private val onBeneficiarioClicked: (String) -> Unit) :
     inner class BeneficiarioViewHolder(private val binding: ListItemBeneficiarioBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(beneficiario: Beneficiario) {
-            val context = binding.root.context
+            try {
+                val context = binding.root.context
 
-            binding.tvNomeCompleto.text = beneficiario.nomeCompleto
+                // Preencher nome
+                binding.tvNomeCompleto.text = beneficiario.nomeCompleto ?: "Sem nome"
 
-            // Tenta mostrar o email, se não houver, mostra o nº de estudante
-            binding.tvDetalhe.text = beneficiario.email ?: beneficiario.numEstudante ?: "Sem contacto"
+                // Tenta mostrar o email, se não houver, mostra o nº de estudante
+                binding.tvDetalhe.text = beneficiario.email ?: beneficiario.numEstudante ?: "Sem contacto"
 
-            // Lógica para o estado
-            if (beneficiario.estado.equals("ativo", ignoreCase = true)) {
-                binding.tvEstado.text = "Ativo"
-                binding.tvEstado.setTextColor(ContextCompat.getColor(context, R.color.estadoAtivo))
-                binding.tvEstado.setBackgroundColor(ContextCompat.getColor(context, R.color.verdeFundo))
-            } else {
-                binding.tvEstado.text = "Inativo"
-                binding.tvEstado.setTextColor(ContextCompat.getColor(context, R.color.estadoInativo))
-                binding.tvEstado.setBackgroundColor(ContextCompat.getColor(context, R.color.white))
-            }
+                // Lógica para o estado usando TextView estilizado como Chip
+                val estado = beneficiario.estado ?: "inativo"
+                val isAtivo = estado.equals("ativo", ignoreCase = true)
+                
+                binding.tvEstado.text = if (isAtivo) "Ativo" else "Inativo"
+                
+                // Configurar cor de fundo do TextView usando GradientDrawable
+                try {
+                    val colorRes = if (isAtivo) R.color.estadoAtivo else R.color.estadoInativo
+                    val backgroundColor = ContextCompat.getColor(context, colorRes)
+                    
+                    // Criar um GradientDrawable programaticamente
+                    val drawable = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(backgroundColor)
+                        cornerRadius = 12f * context.resources.displayMetrics.density // 12dp em pixels
+                    }
+                    binding.tvEstado.background = drawable
+                    binding.tvEstado.setTextColor(ContextCompat.getColor(context, android.R.color.white))
+                } catch (e: Exception) {
+                    android.util.Log.e("BeneficiarioAdapter", "Erro ao configurar cor do estado", e)
+                    // Fallback: usar cor de fundo diretamente
+                    try {
+                        val colorRes = if (isAtivo) R.color.estadoAtivo else R.color.estadoInativo
+                        val backgroundColor = ContextCompat.getColor(context, colorRes)
+                        binding.tvEstado.setBackgroundColor(backgroundColor)
+                        binding.tvEstado.setTextColor(ContextCompat.getColor(context, android.R.color.white))
+                    } catch (e2: Exception) {
+                        android.util.Log.e("BeneficiarioAdapter", "Erro crítico ao configurar estado", e2)
+                    }
+                }
 
-            // [NOVO] Torna o item clicável e envia o ID
-            binding.root.setOnClickListener {
-                onBeneficiarioClicked(beneficiario.id)
+                // Torna o item clicável e envia o ID
+                binding.root.setOnClickListener {
+                    try {
+                        onBeneficiarioClicked(beneficiario.id)
+                    } catch (e: Exception) {
+                        android.util.Log.e("BeneficiarioAdapter", "Erro ao clicar no beneficiário", e)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("BeneficiarioAdapter", "Erro ao fazer bind do beneficiário", e)
             }
         }
     }
@@ -47,18 +76,34 @@ class BeneficiarioAdapter(private val onBeneficiarioClicked: (String) -> Unit) :
     }
 
     override fun onBindViewHolder(holder: BeneficiarioViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        try {
+            if (position >= 0 && position < itemCount) {
+                holder.bind(getItem(position))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("BeneficiarioAdapter", "Erro ao fazer bind na posição $position", e)
+        }
     }
 }
 
 class BeneficiarioDiffCallback : DiffUtil.ItemCallback<Beneficiario>() {
     override fun areItemsTheSame(oldItem: Beneficiario, newItem: Beneficiario): Boolean {
         // IDs são suficientes para saber se são o mesmo item (mesmo que o conteúdo mude)
-        return oldItem.id == newItem.id
+        return try {
+            oldItem.id == newItem.id
+        } catch (e: Exception) {
+            android.util.Log.e("BeneficiarioDiffCallback", "Erro ao comparar items", e)
+            false
+        }
     }
 
     override fun areContentsTheSame(oldItem: Beneficiario, newItem: Beneficiario): Boolean {
         // Compara o conteúdo da data class (nomes, emails, etc.)
-        return oldItem == newItem
+        return try {
+            oldItem == newItem
+        } catch (e: Exception) {
+            android.util.Log.e("BeneficiarioDiffCallback", "Erro ao comparar conteúdos", e)
+            false
+        }
     }
 }

@@ -10,8 +10,9 @@ import com.example.loja_social.repository.StockRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class StockUiState(
     val isLoading: Boolean = true,
@@ -73,18 +74,27 @@ class StockViewModel(
             return
         }
 
-        // 2. Formatar data (se existir)
+        // 2. Formatar data (se existir) - campo é opcional
         val dataFormatada = try {
-            if (dataValidade.isNotBlank()) {
+            if (dataValidade.isNotBlank() && dataValidade.isNotEmpty()) {
                 // Assume formato dd/MM/yyyy e converte para yyyy-MM-dd (formato API)
-                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                // O .withLocale(Locale.getDefault()) pode ser necessário dependendo da API
-                LocalDate.parse(dataValidade, formatter).format(DateTimeFormatter.ISO_LOCAL_DATE)
+                val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val date = inputFormat.parse(dataValidade.trim())
+                if (date != null) {
+                    outputFormat.format(date)
+                } else {
+                    throw IllegalArgumentException("Data inválida")
+                }
             } else {
+                // Data é opcional, pode ser null
                 null
             }
         } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Formato de data inválido. Use DD/MM/AAAA.")
+            _uiState.value = _uiState.value.copy(
+                isFormLoading = false,
+                errorMessage = "Formato de data inválido. Use DD/MM/AAAA ou deixe em branco."
+            )
             return
         }
 
@@ -100,9 +110,19 @@ class StockViewModel(
             try {
                 val response = repository.addStock(request)
                 if (response.success) {
+                    val loteInfo = if (response.data?.id != null && response.data.id.length >= 4) {
+                        "Lote: ${response.data.id.substring(0, 4)}..."
+                    } else {
+                        ""
+                    }
+                    val dataInfo = if (dataFormatada != null) {
+                        " com validade até ${dataValidade}"
+                    } else {
+                        " (sem data de validade)"
+                    }
                     _uiState.value = _uiState.value.copy(
                         isFormLoading = false,
-                        successMessage = "Stock adicionado com sucesso! Lote: ${response.data?.id?.substring(0, 4)}..."
+                        successMessage = "Stock adicionado com sucesso! $loteInfo$dataInfo"
                     )
                 } else {
                     val errorMsg = response.message ?: "Erro desconhecido ao adicionar stock."
@@ -110,7 +130,10 @@ class StockViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("StockVM", "Erro de rede ao adicionar stock", e)
-                _uiState.value = _uiState.value.copy(isFormLoading = false, errorMessage = "Falha de ligação: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    isFormLoading = false,
+                    errorMessage = "Falha de ligação: ${e.message ?: "Erro desconhecido"}"
+                )
             }
         }
     }

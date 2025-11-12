@@ -13,9 +13,10 @@
             android:id="@+id/tv_header"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Adicionar Novo Lote de Stock (RF3)"
-            android:textSize="20sp"
+            android:text="Adicionar Novo Lote de Stock"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
             android:textStyle="bold"
+            android:textColor="@color/colorPrimaryDark"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"/>
 
@@ -36,13 +37,18 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Categoria">
+                    android:hint="Categoria *"
+                    app:boxStrokeColor="@color/colorPrimary"
+                    app:hintTextColor="@color/colorPrimary"
+                    app:startIconDrawable="@drawable/ic_inventory"
+                    app:startIconTint="@color/colorPrimary">
 
                     <AutoCompleteTextView
                         android:id="@+id/actv_categoria"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none" />
+                        android:inputType="none"
+                        android:minHeight="56dp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -51,66 +57,127 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="Produto">
+                    android:hint="Produto *"
+                    app:boxStrokeColor="@color/colorPrimary"
+                    app:hintTextColor="@color/colorPrimary"
+                    app:startIconDrawable="@android:drawable/ic_menu_agenda"
+                    app:startIconTint="@color/colorPrimary">
 
                     <AutoCompleteTextView
                         android:id="@+id/actv_produto"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none" />
+                        android:inputType="none"
+                        android:minHeight="56dp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_quantidade"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="Quantidade (em unidades)">
+                    android:hint="Quantidade (unidades) *"
+                    app:boxStrokeColor="@color/colorPrimary"
+                    app:hintTextColor="@color/colorPrimary"
+                    app:startIconDrawable="@android:drawable/ic_menu_sort_by_size"
+                    app:startIconTint="@color/colorPrimary">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_quantidade"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="number"
+                        android:minHeight="56dp"
                         tools:text="100"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_data_validade"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="Data de Validade (DD/MM/AAAA) (Opcional)">
+                    android:hint="Data de Validade (Opcional)"
+                    app:boxStrokeColor="@color/colorPrimary"
+                    app:hintTextColor="@color/colorPrimary"
+                    app:startIconDrawable="@android:drawable/ic_menu_my_calendar"
+                    app:startIconTint="@color/colorPrimary"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@android:drawable/ic_menu_my_calendar"
+                    app:endIconTint="@color/colorPrimary">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_data_validade"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="date"
+                        android:inputType="none"
+                        android:minHeight="56dp"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:hint="Toque para selecionar data"
                         tools:text="31/12/2026"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_add_stock"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="32dp"
-                    android:text="Adicionar Stock"
-                    android:paddingVertical="12dp"
-                    android:backgroundTint="@color/verdeBotao"
-                    android:textColor="@color/verdeTextoBotao"
+                    android:text="ADICIONAR STOCK"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:paddingVertical="16dp"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="@color/white"
                     android:enabled="false"
+                    app:cornerRadius="8dp"
+                    android:letterSpacing="0.05"
                     tools:enabled="true"/>
 
-                <TextView
-                    android:id="@+id/tv_message"
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_success"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:textAlignment="center"
                     android:visibility="gone"
-                    tools:text="Mensagem de teste"
-                    tools:textColor="@android:color/holo_green_dark" />
+                    app:cardBackgroundColor="#E8F5E9"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="0dp"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:id="@+id/tv_success_message"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="12dp"
+                        android:textAlignment="center"
+                        android:textColor="@android:color/holo_green_dark"
+                        android:textSize="14sp"
+                        tools:text="Stock adicionado com sucesso!" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_error"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="#FFEBEE"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="0dp"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:id="@+id/tv_error_message"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="12dp"
+                        android:textAlignment="center"
+                        android:textColor="@android:color/holo_red_dark"
+                        android:textSize="14sp"
+                        tools:text="Erro ao adicionar stock" />
+                </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>
         </ScrollView>
