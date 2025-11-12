@@ -12,6 +12,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import com.example.loja_social.R
 import com.example.loja_social.api.Produto
 import com.example.loja_social.api.RetrofitInstance
@@ -52,6 +53,11 @@ class StockFragment : Fragment() {
 
         // O botão começa desativado até ser selecionado um produto
         binding.btnAddStock.isEnabled = false
+
+        // Botão para ver lista de stock
+        binding.btnViewStock.setOnClickListener {
+            findNavController().navigate(R.id.action_nav_stock_to_nav_stock_list)
+        }
     }
 
     private fun setupListeners() {

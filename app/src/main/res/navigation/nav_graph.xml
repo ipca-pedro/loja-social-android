@@ -42,7 +42,34 @@
         android:id="@+id/nav_stock"
         android:name="com.example.loja_social.ui.stock.StockFragment"
         android:label="Stock"
-        tools:layout="@layout/fragment_stock" />
+        tools:layout="@layout/fragment_stock">
+        <action
+            android:id="@+id/action_nav_stock_to_nav_stock_list"
+            app:destination="@id/nav_stock_list" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_stock_list"
+        android:name="com.example.loja_social.ui.stock.StockListFragment"
+        android:label="Lista de Stock"
+        tools:layout="@layout/fragment_stock_list">
+        <action
+            android:id="@+id/action_nav_stock_list_to_nav_stock_detail"
+            app:destination="@id/nav_stock_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_stock_detail"
+        android:name="com.example.loja_social.ui.stock.StockDetailFragment"
+        android:label="Detalhes do Stock"
+        tools:layout="@layout/fragment_stock_detail">
+        <argument
+            android:name="produtoId"
+            app:argType="integer" />
+        <argument
+            android:name="produtoNome"
+            app:argType="string" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_entregas"
