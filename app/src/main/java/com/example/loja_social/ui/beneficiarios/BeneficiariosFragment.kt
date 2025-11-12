@@ -1,6 +1,6 @@
 package com.example.loja_social.ui.beneficiarios
 
-import android.os.Bundle
+import android.os.Bundle // <--- IMPORT NECESSÁRIO
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,8 +8,9 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController // <--- IMPORT OBRIGATÓRIO
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.loja_social.R
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.databinding.FragmentBeneficiariosBinding
 import com.example.loja_social.repository.BeneficiarioRepository
@@ -49,23 +50,53 @@ class BeneficiariosFragment : Fragment() {
             layoutManager = LinearLayoutManager(context)
         }
 
-        // [NOVO] Adicionar o botão para CRIAR um novo beneficiário
-        binding.fabAddBeneficiario.setOnClickListener {
-            navigateToDetail(null)
-        }
+        // Adicionar o botão para CRIAR um novo beneficiário
+        // O ID fabAddBeneficiario deve estar no seu layout!
+        // binding.fabAddBeneficiario.setOnClickListener {
+        //     navigateToDetail(null)
+        // }
 
         observeViewModel()
     }
 
     private fun observeViewModel() {
-        // ... (o código de observação é o mesmo) ...
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.isLoading.collect { isLoading ->
+                binding.progressBar.isVisible = isLoading
+                binding.rvBeneficiarios.isVisible = !isLoading
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.uiState.collect { beneficiarios ->
+                beneficiarioAdapter.submitList(beneficiarios)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.errorMessage.collect { errorMsg ->
+                binding.tvErro.text = errorMsg
+                binding.tvErro.isVisible = (errorMsg != null)
+                if (errorMsg != null) {
+                    binding.rvBeneficiarios.isVisible = false
+                }
+            }
+        }
     }
 
-    // [NOVO] Função de Navegação
+    // ⬇️ FUNÇÃO DE NAVEGAÇÃO CORRIGIDA (USA BUNDLE) ⬇️
     private fun navigateToDetail(beneficiarioId: String?) {
         val title = if (beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
-        val action = BeneficiariosFragmentDirections.actionNavBeneficiariosToNavBeneficiarioDetail(beneficiarioId, title)
-        findNavController().navigate(action)
+
+        // 1. Cria um Bundle com os argumentos
+        val bundle = Bundle().apply {
+            // O nome do argumento TEM de corresponder ao do nav_graph.xml: "beneficiarioId"
+            putString("beneficiarioId", beneficiarioId)
+            putString("title", title)
+        }
+
+        // 2. Navega usando o ID do destino (nav_beneficiario_detail)
+        findNavController().navigate(R.id.nav_beneficiario_detail, bundle)
     }
 
 

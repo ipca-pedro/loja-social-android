@@ -48,4 +48,22 @@
         android:label="Entregas"
         tools:layout="@layout/fragment_entregas" />
 
+
+
+    <fragment
+        android:id="@id/nav_entregas"
+        android:name="com.example.loja_social.ui.entregas.EntregasFragment"
+        android:label="Entregas"
+        tools:layout="@layout/fragment_entregas" >
+        <action
+            android:id="@+id/action_nav_entregas_to_nav_agendar_entrega"
+            app:destination="@id/nav_agendar_entrega" />
+    </fragment>
+
+    <fragment
+        android:id="@id/nav_agendar_entrega"
+        android:name="com.example.loja_social.ui.entregas.AgendarEntregaFragment"
+        android:label="Agendar Entrega"
+        tools:layout="@layout/fragment_agendar_entrega" />
+
 </navigation>
