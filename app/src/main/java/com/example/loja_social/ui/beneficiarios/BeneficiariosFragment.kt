@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -73,7 +74,7 @@ class BeneficiariosFragment : Fragment() {
             android.util.Log.e("BeneficiariosFragment", "Erro no onViewCreated", e)
             // Mostrar mensagem de erro ao utilizador
             binding.cardError.isVisible = true
-            binding.tvErro.text = "Erro ao inicializar: ${e.message ?: "Erro desconhecido"}"
+            binding.tvErro.text = getString(R.string.error_initializing, e.message ?: getString(R.string.error_unknown))
             binding.rvBeneficiarios.isVisible = false
             binding.emptyState.isVisible = false
             binding.progressBar.isVisible = false
@@ -93,9 +94,8 @@ class BeneficiariosFragment : Fragment() {
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
                 val query = binding.etSearch.text.toString()
                 viewModel.setSearchQuery(query)
-                android.view.inputmethod.InputMethodManager
-                    .getInstance(requireContext())
-                    .hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
+                val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
                 true
             } else {
                 false

@@ -35,7 +35,7 @@
 ### 2. **Confirmação de Ações Destrutivas** ⭐⭐⭐
 **Onde implementar:**
 - Remover beneficiários (quando implementado)
-- Remover lotes de stock
+- Remover lotes de stockimage.png
 - Cancelar entregas
 - Logout
 

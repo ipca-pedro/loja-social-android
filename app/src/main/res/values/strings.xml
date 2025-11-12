@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">loja_social</string>
+    <string name="error_initializing">Erro ao inicializar: %1$s</string>
+    <string name="error_unknown">Erro desconhecido</string>
 </resources>
