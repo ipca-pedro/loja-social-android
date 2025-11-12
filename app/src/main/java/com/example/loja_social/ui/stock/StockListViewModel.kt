@@ -17,6 +17,7 @@ import java.util.Locale
 data class StockListUiState(
     val isLoading: Boolean = true,
     val stockItems: List<StockItem> = emptyList(),
+    val categories: List<String> = emptyList(), // NOVO: Lista de categorias para o dropdown
     val errorMessage: String? = null
 )
 
@@ -24,27 +25,23 @@ class StockListViewModel(
     private val repository: StockRepository
 ) : ViewModel() {
 
-    // Lista completa de stock (sem filtros)
     private val _allStockItems = MutableStateFlow<List<StockItem>>(emptyList())
-    
-    // Estado de pesquisa
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
-    
-    // Estado de filtro (null = todos, "validade_proxima", "stock_baixo")
     private val _filterType = MutableStateFlow<String?>(null)
-    val filterType: StateFlow<String?> = _filterType
+    private val _categoryFilter = MutableStateFlow<String?>(null) // NOVO: Filtro de categoria
 
-    // Lista filtrada e pesquisada (o que aparece na UI)
     val uiState: StateFlow<StockListUiState> = combine(
         _allStockItems,
         _searchQuery,
-        _filterType
-    ) { all: List<StockItem>, query: String, filter: String? ->
-        val filtered = filterStockItems(all, query, filter)
+        _filterType,
+        _categoryFilter // NOVO: Adicionado ao combine
+    ) { all, query, filter, category ->
+        val filteredItems = filterStockItems(all, query, filter, category)
+        val categories = all.mapNotNull { it.categoria }.distinct().sorted()
         StockListUiState(
             isLoading = false,
-            stockItems = filtered,
+            stockItems = filteredItems,
+            categories = categories,
             errorMessage = null
         )
     }.stateIn(
@@ -71,13 +68,10 @@ class StockListViewModel(
                 val response = repository.getStock()
                 if (response.success) {
                     _allStockItems.value = response.data
-                    Log.d("StockListVM", "Carregados ${response.data.size} produtos em stock")
                 } else {
-                    val errorMsg = response.message ?: "Erro ao carregar stock"
-                    _errorMessage.value = errorMsg
+                    _errorMessage.value = response.message ?: "Erro ao carregar stock"
                 }
             } catch (e: Exception) {
-                Log.e("StockListVM", "Falha ao carregar stock", e)
                 _errorMessage.value = "Falha de ligação: ${e.message ?: "Erro desconhecido"}"
             } finally {
                 _isLoading.value = false
@@ -93,14 +87,18 @@ class StockListViewModel(
         _filterType.value = filter
     }
 
+    fun setCategoryFilter(category: String?) { // NOVO
+        _categoryFilter.value = category
+    }
+
     private fun filterStockItems(
         all: List<StockItem>,
         query: String,
-        filter: String?
+        filter: String?,
+        category: String? // NOVO
     ): List<StockItem> {
         var filtered = all
 
-        // Aplicar pesquisa
         if (query.isNotEmpty()) {
             val queryLower = query.lowercase()
             filtered = filtered.filter { item ->
@@ -109,7 +107,10 @@ class StockListViewModel(
             }
         }
 
-        // Aplicar filtros
+        if (category != null) { // NOVO: Aplicar filtro de categoria
+            filtered = filtered.filter { it.categoria == category }
+        }
+
         when (filter) {
             "validade_proxima" -> {
                 filtered = filtered.filter { item ->
@@ -117,8 +118,7 @@ class StockListViewModel(
                 }
             }
             "stock_baixo" -> {
-                // Considerar stock baixo se quantidade < 10 (pode ser ajustado)
-                filtered = filtered.filter { it.quantidadeTotal < 10 }
+                filtered = filtered.filter { (it.quantidadeTotal?.toInt() ?: 0) < 10 }
             }
         }
 
@@ -126,12 +126,13 @@ class StockListViewModel(
     }
 
     private fun isExpiringSoon(validityDate: String): Boolean {
+        // ... (código existente)
         return try {
-            val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
             val date = inputFormat.parse(validityDate)
             if (date != null) {
                 val daysUntilExpiry = ((date.time - Date().time) / (1000 * 60 * 60 * 24)).toInt()
-                daysUntilExpiry in 0..30 // Próximos 30 dias
+                daysUntilExpiry in 0..30
             } else {
                 false
             }
@@ -144,4 +145,3 @@ class StockListViewModel(
         fetchStock()
     }
 }
-

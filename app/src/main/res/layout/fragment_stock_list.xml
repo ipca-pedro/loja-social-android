@@ -45,6 +45,24 @@
                         android:imeOptions="actionSearch" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- NOVO DROPDOWN DE CATEGORIAS -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_category_filter"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="Filtrar por categoria"
+                    app:boxStrokeColor="@color/colorPrimary"
+                    app:hintTextColor="@color/colorPrimary">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/actv_category_filter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
+
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/chip_group_filter"
                     android:layout_width="match_parent"
@@ -176,4 +194,3 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </layout>
-
