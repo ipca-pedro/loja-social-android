@@ -1,4 +1,4 @@
-package com.example.loja_social.ui.main // O package será corrigido no Passo 3
+package com.example.loja_social.ui.beneficiarios
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

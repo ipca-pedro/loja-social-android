@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Paleta de cores principal -->
-    <color name="colorPrimary">#4CAF50</color> <!-- Verde principal -->
-    <color name="colorPrimaryDark">#388E3C</color> <!-- Verde escuro -->
-    <color name="colorAccent">#8BC34A</color> <!-- Verde claro / destaque -->
+    <color name="colorPrimary">#4CAF50</color>
+    <color name="colorPrimaryDark">#388E3C</color>
+    <color name="colorAccent">#8BC34A</color>
 
-    <!-- Cores de interface -->
-    <color name="verdeFundo">#E8F5E9</color> <!-- Fundo suave -->
-    <color name="verdeBotao">#66BB6A</color> <!-- Botões -->
-    <color name="verdeTextoBotao">#FFFFFF</color> <!-- Texto nos botões -->
+    <color name="verdeFundo">#E8F5E9</color>
+    <color name="verdeBotao">#66BB6A</color>
+    <color name="verdeTextoBotao">#FFFFFF</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="estadoAtivo">#388E3C</color>
+    <color name="estadoInativo">#D32F2F</color>
 </resources>

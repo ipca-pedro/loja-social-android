@@ -10,9 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.loja_social.SessionManager
 import com.example.loja_social.api.RetrofitInstance
-import com.example.loja_social.databinding.ActivityLoginBinding // <-- IMPORT ADICIONADO
+import com.example.loja_social.databinding.ActivityLoginBinding
 import com.example.loja_social.repository.LoginRepository
-import com.example.loja_social.ui.main.MainActivity // <-- IMPORT ADICIONADO
+import com.example.loja_social.ui.main.MainActivity
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -28,10 +28,20 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // --- CORREÇÃO ADICIONADA AQUI ---
+        // 1. Verificar se já existe um token ANTES de mostrar o layout
+        val sessionManager = SessionManager(applicationContext)
+        if (sessionManager.fetchAuthToken() != null) {
+            // 2. Se sim, saltar diretamente para a MainActivity
+            navigateToMain()
+            return // 3. Importante: não continuar a executar o resto do onCreate
+        }
+        // --- FIM DA CORREÇÃO ---
+
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // EMAIL CORRIGIDO (lojasocial em vez de lojaipca)
         binding.etEmail.setText("admin@lojasocial.pt")
         binding.etPassword.setText("password123")
 
@@ -78,6 +88,6 @@ class LoginActivity : AppCompatActivity() {
     private fun navigateToMain() {
         val intent = Intent(this@LoginActivity, MainActivity::class.java)
         startActivity(intent)
-        finish()
+        finish() // 'finish()' remove a LoginActivity da pilha, não podes voltar atrás
     }
 }

@@ -16,4 +16,9 @@
         android:id="@+id/nav_entregas"
         android:icon="@drawable/ic_delivery"
         android:title="Entregas" />
+
+    <item
+        android:id="@+id/nav_logout"
+        android:icon="@android:drawable/ic_lock_power_off"
+        android:title="Logout" />
 </menu>

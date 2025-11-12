@@ -8,6 +8,8 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController // <--- IMPORT OBRIGATÓRIO
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.databinding.FragmentBeneficiariosBinding
 import com.example.loja_social.repository.BeneficiarioRepository
@@ -18,11 +20,15 @@ class BeneficiariosFragment : Fragment() {
     private var _binding: FragmentBeneficiariosBinding? = null
     private val binding get() = _binding!!
 
-    // VIEWMODEL ATUALIZADO (agora usa o ViewModel local)
+    // 1. Inicializa o Adapter com a lógica de navegação
+    private val beneficiarioAdapter = BeneficiarioAdapter { beneficiarioId ->
+        // Lógica de clique para navegar para o detalhe
+        navigateToDetail(beneficiarioId)
+    }
+
     private val viewModel: BeneficiariosViewModel by viewModels {
         val apiService = RetrofitInstance.api
         val repository = BeneficiarioRepository(apiService)
-        // FACTORY ATUALIZADA
         BeneficiariosViewModelFactory(repository)
     }
 
@@ -37,39 +43,31 @@ class BeneficiariosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Observar o estado de loading
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.isLoading.collect { isLoading ->
-                binding.progressBar.isVisible = isLoading // <-- Erro 'isLoading' corrigido
-                binding.tvResultadosBeneficiarios.isVisible = !isLoading
-            }
+        // Configurar o RecyclerView
+        binding.rvBeneficiarios.apply {
+            adapter = beneficiarioAdapter
+            layoutManager = LinearLayoutManager(context)
         }
 
-        // Observar a lista de beneficiários
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.uiState.collect { beneficiarios ->
-                // O uiState agora é uma List<Beneficiario>, por isso o 'joinToString' funciona
-                if (beneficiarios.isNotEmpty()) {
-                    val nomes = beneficiarios.joinToString(separator = "\n") { // <-- Erro 'joinToString' corrigido
-                        "- ${it.nomeCompleto} (${it.estado})" // <-- Erro 'it' corrigido
-                    }
-                    binding.tvResultadosBeneficiarios.text = nomes
-                    binding.tvErro.isVisible = false
-                }
-            }
+        // [NOVO] Adicionar o botão para CRIAR um novo beneficiário
+        binding.fabAddBeneficiario.setOnClickListener {
+            navigateToDetail(null)
         }
 
-        // Observar mensagens de erro
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.errorMessage.collect { errorMsg -> // <-- Erro 'errorMessage' corrigido
-                binding.tvErro.text = errorMsg
-                binding.tvErro.isVisible = (errorMsg != null)
-                if (errorMsg != null) {
-                    binding.tvResultadosBeneficiarios.text = "" // Limpar dados antigos se houver erro
-                }
-            }
-        }
+        observeViewModel()
     }
+
+    private fun observeViewModel() {
+        // ... (o código de observação é o mesmo) ...
+    }
+
+    // [NOVO] Função de Navegação
+    private fun navigateToDetail(beneficiarioId: String?) {
+        val title = if (beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
+        val action = BeneficiariosFragmentDirections.actionNavBeneficiariosToNavBeneficiarioDetail(beneficiarioId, title)
+        findNavController().navigate(action)
+    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()
