@@ -3,20 +3,36 @@ package com.example.loja_social.ui.beneficiarios
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.loja_social.api.Beneficiario // Importar o modelo completo
+import com.example.loja_social.api.Beneficiario
 import com.example.loja_social.repository.BeneficiarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-// NOME DA CLASSE MUDADO
 class BeneficiariosViewModel(
     private val repository: BeneficiarioRepository
 ) : ViewModel() {
 
-    // ESTES SÃO OS ESTADOS QUE O SEU FRAGMENTO PROCURA
-    private val _uiState = MutableStateFlow<List<Beneficiario>>(emptyList())
-    val uiState: StateFlow<List<Beneficiario>> = _uiState
+    // Lista completa de beneficiários (sem filtros)
+    private val _allBeneficiarios = MutableStateFlow<List<Beneficiario>>(emptyList())
+    
+    // Estado de pesquisa
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+    
+    // Estado de filtro (null = todos, "ativo", "inativo")
+    private val _filterState = MutableStateFlow<String?>(null)
+    val filterState: StateFlow<String?> = _filterState
+
+    // Lista filtrada e pesquisada (o que aparece na UI)
+    val uiState: StateFlow<List<Beneficiario>> = combine(
+        _allBeneficiarios,
+        _searchQuery,
+        _filterState
+    ) { all, query, filter ->
+        filterBeneficiarios(all, query, filter)
+    }
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
@@ -35,7 +51,7 @@ class BeneficiariosViewModel(
             try {
                 val response = repository.getBeneficiarios()
                 if (response.success) {
-                    _uiState.value = response.data
+                    _allBeneficiarios.value = response.data
                     Log.d("BeneficiariosVM", "Carregados ${response.data.size} beneficiários.")
                 } else {
                     Log.w("BeneficiariosVM", "API retornou erro: ${response.message}")
@@ -48,5 +64,42 @@ class BeneficiariosViewModel(
                 _isLoading.value = false
             }
         }
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query.trim()
+    }
+
+    fun setFilterState(state: String?) {
+        _filterState.value = state
+    }
+
+    private fun filterBeneficiarios(
+        all: List<Beneficiario>,
+        query: String,
+        filter: String?
+    ): List<Beneficiario> {
+        var filtered = all
+
+        // Aplicar filtro de estado
+        if (filter != null) {
+            filtered = filtered.filter { beneficiario ->
+                val estado = beneficiario.estado?.lowercase() ?: "inativo"
+                estado == filter.lowercase()
+            }
+        }
+
+        // Aplicar pesquisa
+        if (query.isNotEmpty()) {
+            val queryLower = query.lowercase()
+            filtered = filtered.filter { beneficiario ->
+                beneficiario.nomeCompleto?.lowercase()?.contains(queryLower) == true ||
+                beneficiario.email?.lowercase()?.contains(queryLower) == true ||
+                beneficiario.numEstudante?.lowercase()?.contains(queryLower) == true ||
+                beneficiario.nif?.contains(query) == true
+            }
+        }
+
+        return filtered
     }
 }

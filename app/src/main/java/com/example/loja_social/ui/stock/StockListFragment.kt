@@ -45,11 +45,48 @@ class StockListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
+        setupSearchAndFilters()
         observeViewModel()
 
         // SwipeRefreshLayout
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refresh()
+        }
+    }
+
+    private fun setupSearchAndFilters() {
+        // Listener para pesquisa
+        binding.etSearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                val query = binding.etSearch.text.toString()
+                viewModel.setSearchQuery(query)
+                android.view.inputmethod.InputMethodManager
+                    .getInstance(requireContext())
+                    .hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
+                true
+            } else {
+                false
+            }
+        }
+
+        // Pesquisa em tempo real
+        binding.etSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                viewModel.setSearchQuery(s?.toString() ?: "")
+            }
+        })
+
+        // Filtros
+        binding.chipAll.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterType(null)
+        }
+        binding.chipValidadeProxima.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterType("validade_proxima")
+        }
+        binding.chipStockBaixo.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterType("stock_baixo")
         }
     }
 
@@ -68,33 +105,44 @@ class StockListFragment : Fragment() {
     private fun observeViewModel() {
         // Observar loading state
         viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.isLoading.collect { isLoading ->
+                binding.progressBar.isVisible = isLoading && !binding.swipeRefresh.isRefreshing
+                binding.swipeRefresh.isRefreshing = isLoading
+            }
+        }
+
+        // Observar lista filtrada
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { state ->
-                binding.progressBar.isVisible = state.isLoading && !binding.swipeRefresh.isRefreshing
-                binding.swipeRefresh.isRefreshing = state.isLoading
-
-                // Atualizar lista
                 stockAdapter.submitList(state.stockItems)
+                updateVisibility()
+            }
+        }
 
-                // Atualizar visibilidade
-                updateVisibility(state)
+        // Observar erros
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.errorMessage.collect { errorMsg ->
+                if (errorMsg != null) {
+                    binding.cardError.isVisible = true
+                    binding.tvError.text = errorMsg
+                    binding.rvStock.isVisible = false
+                    binding.emptyState.isVisible = false
+                } else {
+                    binding.cardError.isVisible = false
+                    updateVisibility()
+                }
             }
         }
     }
 
-    private fun updateVisibility(state: StockListUiState) {
-        val hasData = state.stockItems.isNotEmpty()
-        val hasError = state.errorMessage != null
-        val isLoading = state.isLoading
+    private fun updateVisibility() {
+        val hasData = viewModel.uiState.value.stockItems.isNotEmpty()
+        val hasError = viewModel.errorMessage.value != null
+        val isLoading = viewModel.isLoading.value
 
         if (!isLoading && !hasError) {
             binding.rvStock.isVisible = hasData
             binding.emptyState.isVisible = !hasData
-            binding.cardError.isVisible = false
-        } else if (hasError) {
-            binding.rvStock.isVisible = false
-            binding.emptyState.isVisible = false
-            binding.cardError.isVisible = true
-            binding.tvError.text = state.errorMessage
         }
     }
 

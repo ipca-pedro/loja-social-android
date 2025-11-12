@@ -9,6 +9,7 @@ import com.example.loja_social.databinding.ActivityMainBinding
 import androidx.navigation.ui.setupWithNavController
 import com.example.loja_social.SessionManager // Import necessário
 import com.example.loja_social.ui.login.LoginActivity // Import necessário
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,14 +31,25 @@ class MainActivity : AppCompatActivity() {
         // 2. Implementar o Listener para o Log Out
         binding.bottomNavView.setOnItemSelectedListener { item ->
             if (item.itemId == R.id.nav_logout) {
-                performLogout()
-                true
+                showLogoutConfirmation()
+                false // Não navegar ainda, aguardar confirmação
             } else {
                 // Deixa o NavController tratar da navegação normal
                 navController.navigate(item.itemId)
                 true
             }
         }
+    }
+
+    private fun showLogoutConfirmation() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Confirmar Logout")
+            .setMessage("Tem certeza que deseja sair?")
+            .setPositiveButton("Sair") { _, _ ->
+                performLogout()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun performLogout() {

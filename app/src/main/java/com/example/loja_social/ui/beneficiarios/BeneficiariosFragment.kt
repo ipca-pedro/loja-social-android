@@ -57,6 +57,7 @@ class BeneficiariosFragment : Fragment() {
             }
 
             setupRecyclerView()
+            setupSearchAndFilters()
             observeViewModel()
 
             // SwipeRefreshLayout
@@ -83,6 +84,42 @@ class BeneficiariosFragment : Fragment() {
         binding.rvBeneficiarios.apply {
             adapter = beneficiarioAdapter
             layoutManager = LinearLayoutManager(context)
+        }
+    }
+
+    private fun setupSearchAndFilters() {
+        // Listener para pesquisa
+        binding.etSearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                val query = binding.etSearch.text.toString()
+                viewModel.setSearchQuery(query)
+                android.view.inputmethod.InputMethodManager
+                    .getInstance(requireContext())
+                    .hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
+                true
+            } else {
+                false
+            }
+        }
+
+        // Pesquisa em tempo real (opcional - pode ser removido se preferir só no Enter)
+        binding.etSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                viewModel.setSearchQuery(s?.toString() ?: "")
+            }
+        })
+
+        // Filtros por estado
+        binding.chipAll.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterState(null)
+        }
+        binding.chipAtivo.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterState("ativo")
+        }
+        binding.chipInativo.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterState("inativo")
         }
     }
 
