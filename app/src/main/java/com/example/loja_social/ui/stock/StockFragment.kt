@@ -5,7 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-
+import com.example.loja_social.databinding.FragmentStockBinding
 class StockFragment : Fragment() {
 
     private var _binding: FragmentStockBinding? = null

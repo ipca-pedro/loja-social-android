@@ -42,5 +42,6 @@ data class Beneficiario(
 
 data class BeneficiariosResponse(
     @SerializedName("success") val success: Boolean,
-    @SerializedName("data") val data: List<Beneficiario>
+    @SerializedName("data") val data: List<Beneficiario>,
+    @SerializedName("message") val message: String?
 )

@@ -5,7 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-
+import com.example.loja_social.databinding.FragmentEntregasBinding
 class EntregasFragment : Fragment() {
 
     private var _binding: FragmentEntregasBinding? = null

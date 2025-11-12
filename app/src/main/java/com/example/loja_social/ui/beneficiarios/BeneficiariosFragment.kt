@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import com.example.loja_social.repository.BeneficiarioRepository
 import com.example.loja_social.ui.main.MainViewModel
 import com.example.loja_social.ui.main.MainViewModelFactory
+import com.example.loja_social.databinding.FragmentBeneficiariosBinding
 
 class BeneficiariosFragment : Fragment() {
 

@@ -14,7 +14,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitInstance {
 
     // URL DA API (CORRIGIDA)
-    private const val BASE_URL = "https://api-lojasocial.duckdns.org/"
+    private const val BASE_URL = "https://api-lojaipca.duckdns.org/"
 
     // O "espião" de logs
     private val loggingInterceptor = HttpLoggingInterceptor().apply {

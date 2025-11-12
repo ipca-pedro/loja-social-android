@@ -4,7 +4,8 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
 import com.example.loja_social.R
-
+import com.example.loja_social.databinding.ActivityMainBinding
+import androidx.navigation.ui.setupWithNavController
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
