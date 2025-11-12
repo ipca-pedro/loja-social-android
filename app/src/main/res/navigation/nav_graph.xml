@@ -3,16 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/nav_dashboard">
+    app:startDestination="@+id/nav_dashboard">
 
     <fragment
-        android:id="@id/nav_dashboard"
+        android:id="@+id/nav_dashboard"
         android:name="com.example.loja_social.ui.dashboard.DashboardFragment"
         android:label="Dashboard"
         tools:layout="@layout/fragment_dashboard" />
 
     <fragment
-        android:id="@id/nav_beneficiarios"
+        android:id="@+id/nav_beneficiarios"
         android:name="com.example.loja_social.ui.beneficiarios.BeneficiariosFragment"
         android:label="Beneficiários"
         tools:layout="@layout/fragment_beneficiarios" >
@@ -39,23 +39,23 @@
     </fragment>
 
     <fragment
-        android:id="@id/nav_stock"
+        android:id="@+id/nav_stock"
         android:name="com.example.loja_social.ui.stock.StockFragment"
         android:label="Stock"
         tools:layout="@layout/fragment_stock" />
 
     <fragment
-        android:id="@id/nav_entregas"
+        android:id="@+id/nav_entregas"
         android:name="com.example.loja_social.ui.entregas.EntregasFragment"
         android:label="Entregas"
         tools:layout="@layout/fragment_entregas" >
         <action
             android:id="@+id/action_nav_entregas_to_nav_agendar_entrega"
-            app:destination="@id/nav_agendar_entrega" />
+            app:destination="@+id/nav_agendar_entrega" />
     </fragment>
 
     <fragment
-        android:id="@id/nav_agendar_entrega"
+        android:id="@+id/nav_agendar_entrega"
         android:name="com.example.loja_social.ui.entregas.AgendarEntregaFragment"
         android:label="Agendar Entrega"
         tools:layout="@layout/fragment_agendar_entrega" />
