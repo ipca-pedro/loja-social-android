@@ -30,6 +30,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // ESTA LINHA CORRIGE O ERRO DE REFERÊNCIA
+        coreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -37,6 +39,11 @@ android {
     buildFeatures {
         dataBinding = true
     }
+}
+// Certifique-se que esta dependência está na secção 'dependencies'
+dependencies {
+    // ... (manter as dependências existentes) ...
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 
 dependencies {

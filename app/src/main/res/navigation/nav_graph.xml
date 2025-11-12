@@ -3,11 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/nav_dashboard"> <fragment
-    android:id="@id/nav_dashboard"
-    android:name="com.example.loja_social.ui.dashboard.DashboardFragment"
-    android:label="Dashboard"
-    tools:layout="@layout/fragment_dashboard" />
+    app:startDestination="@id/nav_dashboard">
+
+    <fragment
+        android:id="@id/nav_dashboard"
+        android:name="com.example.loja_social.ui.dashboard.DashboardFragment"
+        android:label="Dashboard"
+        tools:layout="@layout/fragment_dashboard" />
 
     <fragment
         android:id="@id/nav_beneficiarios"
@@ -41,14 +43,6 @@
         android:name="com.example.loja_social.ui.stock.StockFragment"
         android:label="Stock"
         tools:layout="@layout/fragment_stock" />
-
-    <fragment
-        android:id="@id/nav_entregas"
-        android:name="com.example.loja_social.ui.entregas.EntregasFragment"
-        android:label="Entregas"
-        tools:layout="@layout/fragment_entregas" />
-
-
 
     <fragment
         android:id="@id/nav_entregas"
