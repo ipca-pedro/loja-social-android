@@ -1,6 +1,6 @@
 package com.example.loja_social.ui.beneficiarios
 
-import android.os.Bundle // <--- IMPORT NECESSÁRIO
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -50,19 +50,28 @@ class BeneficiariosFragment : Fragment() {
             layoutManager = LinearLayoutManager(context)
         }
 
-        // Adicionar o botão para CRIAR um novo beneficiário
-        // O ID fabAddBeneficiario deve estar no seu layout!
-        // binding.fabAddBeneficiario.setOnClickListener {
-        //     navigateToDetail(null)
-        // }
+        // [NOVO] Adicionar o botão para CRIAR um novo beneficiário
+        // Note: O ID fabAddBeneficiario foi adicionado no XML
+        binding.fabAddBeneficiario.setOnClickListener {
+            navigateToDetail(null)
+        }
 
         observeViewModel()
+    }
+
+    // [NOVO] Recarregar a lista sempre que o ecrã volta à frente
+    override fun onResume() {
+        super.onResume()
+        // Garante que a lista é recarregada sempre que o utilizador regressa
+        viewModel.fetchBeneficiarios()
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.isLoading.collect { isLoading ->
                 binding.progressBar.isVisible = isLoading
+                // O FAB só deve aparecer quando não está a carregar
+                binding.fabAddBeneficiario.isVisible = !isLoading
                 binding.rvBeneficiarios.isVisible = !isLoading
             }
         }
@@ -84,7 +93,7 @@ class BeneficiariosFragment : Fragment() {
         }
     }
 
-    // ⬇️ FUNÇÃO DE NAVEGAÇÃO CORRIGIDA (USA BUNDLE) ⬇️
+    // Função de navegação
     private fun navigateToDetail(beneficiarioId: String?) {
         val title = if (beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
 

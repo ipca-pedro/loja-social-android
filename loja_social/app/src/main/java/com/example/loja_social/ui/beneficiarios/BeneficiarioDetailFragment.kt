@@ -1,0 +1,23 @@
+package com.example.loja_social.ui.beneficiarios
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.navArgs
+import com.example.loja_social.R
+import com.example.loja_social.api.Beneficiario
+import com.example.loja_social.api.BeneficiarioRequest
+import com.example.loja_social.api.RetrofitInstance
+import com.example.loja_social.databinding.FragmentBeneficiarioDetailBinding
+import com.example.loja_social.repository.BeneficiarioRepository
+import kotlinx.coroutines.launch

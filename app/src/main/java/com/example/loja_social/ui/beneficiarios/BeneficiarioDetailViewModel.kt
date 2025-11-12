@@ -1,90 +1,115 @@
 package com.example.loja_social.ui.beneficiarios
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.loja_social.api.Beneficiario
-import com.example.loja_social.api.BeneficiarioRequest
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.loja_social.R
+import com.example.loja_social.api.RetrofitInstance
+import com.example.loja_social.databinding.FragmentBeneficiariosBinding
 import com.example.loja_social.repository.BeneficiarioRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.lang.Exception
 
-// Estado que a UI precisa para carregar o formulário e gerir feedback
-data class DetailUiState(
-    val isLoading: Boolean = true, // A carregar dados do beneficiário (só no modo de edição)
-    val isSaving: Boolean = false, // A enviar o formulário
-    val beneficiario: Beneficiario? = null, // O objeto Beneficiario
-    val errorMessage: String? = null,
-    val successMessage: String? = null
-)
+class BeneficiariosFragment : Fragment() {
 
-class BeneficiarioDetailViewModel(
-    private val repository: BeneficiarioRepository,
-    private val beneficiariosList: List<Beneficiario>, // Lista em cache do fragmento anterior
-    private val beneficiarioId: String? // null para criar novo, ID para editar
-) : ViewModel() {
+    private var _binding: FragmentBeneficiariosBinding? = null
+    private val binding get() = _binding!!
 
-    private val _uiState = MutableStateFlow(DetailUiState())
-    val uiState: StateFlow<DetailUiState> = _uiState
-
-    init {
-        loadBeneficiario()
+    // 1. Inicializa o Adapter com a lógica de navegação
+    private val beneficiarioAdapter = BeneficiarioAdapter { beneficiarioId ->
+        // Lógica de clique para navegar para o detalhe
+        navigateToDetail(beneficiarioId)
     }
 
-    /**
-     * Carrega os dados se estivermos em modo de edição (ID não nulo).
-     * Usa a lista do ecrã anterior como cache para evitar uma nova chamada de API.
-     */
-    private fun loadBeneficiario() {
-        if (beneficiarioId == null) {
-            // Modo de criação
-            _uiState.value = DetailUiState(isLoading = false, beneficiario = null)
-            return
-        }
-
-        // Modo de edição: procura o beneficiário na lista em cache
-        val beneficiario = beneficiariosList.find { it.id == beneficiarioId }
-
-        if (beneficiario != null) {
-            _uiState.value = DetailUiState(isLoading = false, beneficiario = beneficiario)
-        } else {
-            // Caso o beneficiário não estivesse na cache (o que não deve acontecer)
-            _uiState.value = DetailUiState(
-                isLoading = false,
-                errorMessage = "Erro: Beneficiário não encontrado na cache local.",
-                beneficiario = null
-            )
-        }
+    private val viewModel: BeneficiariosViewModel by viewModels {
+        val apiService = RetrofitInstance.api
+        val repository = BeneficiarioRepository(apiService)
+        BeneficiariosViewModelFactory(repository)
     }
 
-    /**
-     * RF2: Envia os dados para a API (POST para criar, PUT para editar).
-     */
-    fun saveBeneficiario(request: BeneficiarioRequest) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null, successMessage = null)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentBeneficiariosBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-            try {
-                val response = if (beneficiarioId == null) {
-                    // Modo de Criação (POST)
-                    repository.createBeneficiario(request)
-                } else {
-                    // Modo de Edição (PUT)
-                    repository.updateBeneficiario(beneficiarioId, request)
-                }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-                if (response.success) {
-                    val message = if (beneficiarioId == null) "Beneficiário criado com sucesso!" else "Beneficiário atualizado com sucesso!"
-                    _uiState.value = _uiState.value.copy(isSaving = false, successMessage = message)
-                    // Nota: O ecrã de lista precisa de ser recarregado (será feito no onResume do Fragmento de lista)
-                } else {
-                    val errorMsg = response.message ?: "Erro desconhecido ao guardar dados."
-                    _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = errorMsg)
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = "Falha de rede: ${e.message}")
+        // Configurar o RecyclerView
+        binding.rvBeneficiarios.apply {
+            adapter = beneficiarioAdapter
+            layoutManager = LinearLayoutManager(context)
+        }
+
+        // [NOVO] Adicionar o botão para CRIAR um novo beneficiário
+        binding.fabAddBeneficiario.setOnClickListener {
+            navigateToDetail(null)
+        }
+
+        observeViewModel()
+    }
+
+    // [NOVO] Recarregar a lista sempre que o ecrã volta à frente
+    override fun onResume() {
+        super.onResume()
+        // Garante que a lista é recarregada sempre que o utilizador regressa a este fragmento
+        viewModel.fetchBeneficiarios()
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.isLoading.collect { isLoading ->
+                binding.progressBar.isVisible = isLoading
+                // O FAB só deve aparecer quando não está a carregar
+                binding.fabAddBeneficiario.isVisible = !isLoading
+                binding.rvBeneficiarios.isVisible = !isLoading
             }
         }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.uiState.collect { beneficiarios ->
+                beneficiarioAdapter.submitList(beneficiarios)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.errorMessage.collect { errorMsg ->
+                binding.tvErro.text = errorMsg
+                binding.tvErro.isVisible = (errorMsg != null)
+                if (errorMsg != null) {
+                    binding.rvBeneficiarios.isVisible = false
+                }
+            }
+        }
+    }
+
+    // Função de navegação
+    private fun navigateToDetail(beneficiarioId: String?) {
+        val title = if (beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
+
+        // 1. Cria um Bundle com os argumentos
+        val bundle = Bundle().apply {
+            // O nome do argumento TEM de corresponder ao do nav_graph.xml: "beneficiarioId"
+            putString("beneficiarioId", beneficiarioId)
+            putString("title", title)
+        }
+
+        // 2. Navega usando o ID do destino (nav_beneficiario_detail)
+        findNavController().navigate(R.id.nav_beneficiario_detail, bundle)
+    }
+
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
