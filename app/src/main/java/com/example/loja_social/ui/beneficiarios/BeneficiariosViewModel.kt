@@ -8,6 +8,7 @@ import com.example.loja_social.repository.BeneficiarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class BeneficiariosViewModel(
@@ -30,9 +31,13 @@ class BeneficiariosViewModel(
         _allBeneficiarios,
         _searchQuery,
         _filterState
-    ) { all, query, filter ->
+    ) { all: List<Beneficiario>, query: String, filter: String? ->
         filterBeneficiarios(all, query, filter)
-    }
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
