@@ -10,6 +10,8 @@ import androidx.lifecycle.lifecycleScope
 import com.example.loja_social.api.RetrofitInstance
 import kotlinx.coroutines.launch
 import com.example.loja_social.repository.BeneficiarioRepository
+import com.example.loja_social.ui.main.MainViewModel
+import com.example.loja_social.ui.main.MainViewModelFactory
 
 class BeneficiariosFragment : Fragment() {
 

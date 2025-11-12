@@ -1,22 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-Este é o layout que vai mostrar a lista de beneficiários.
-Por agora, é igual ao teu activity_main.xml antigo
--->
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true"
-    tools:context=".ui.beneficiarios.BeneficiariosFragment">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <TextView
-        android:id="@+id/tv_resultados_beneficiarios"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="A carregar beneficiários..."
-        android:textSize="16sp" />
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        tools:context=".ui.beneficiarios.BeneficiariosFragment">
 
-</ScrollView>
+        <TextView
+            android:id="@+id/tv_resultados_beneficiarios"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="A carregar beneficiários..."
+            android:textSize="16sp" />
+
+    </ScrollView>
+
+</layout>
