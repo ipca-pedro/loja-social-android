@@ -1,17 +1,15 @@
 package com.example.loja_social.ui.entregas
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.loja_social.api.AgendarEntregaItemRequest
 import com.example.loja_social.api.AgendarEntregaRequest
 import com.example.loja_social.api.Beneficiario
 import com.example.loja_social.repository.AgendarEntregaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 data class AgendarEntregaUiState(
     val isLoading: Boolean = true,
@@ -26,7 +24,7 @@ class AgendarEntregaViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AgendarEntregaUiState())
-    val uiState: StateFlow<AgendarEntregaUiState> = _uiState
+    val uiState: StateFlow<AgendarEntregaUiState> = _uiState.asStateFlow()
 
     init {
         fetchBeneficiarios()
@@ -34,82 +32,38 @@ class AgendarEntregaViewModel(
 
     private fun fetchBeneficiarios() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val response = repository.getBeneficiarios()
                 if (response.success) {
-                    // Filtra apenas beneficiários ativos
-                    val ativos = response.data.filter { it.estado.equals("ativo", ignoreCase = true) }
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        beneficiarios = ativos
-                    )
+                    _uiState.update { it.copy(isLoading = false, beneficiarios = response.data ?: emptyList()) }
                 } else {
-                    val errorMsg = response.message ?: "Erro ao carregar lista de beneficiários."
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = errorMsg)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = response.message) }
                 }
             } catch (e: Exception) {
-                Log.e("AgendarEntregaVM", "Falha de rede ao carregar beneficiários", e)
-                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "Falha de ligação: ${e.message}")
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Falha de rede ao buscar beneficiários.") }
             }
         }
     }
 
-    /**
-     * RF4: Envia a requisição para agendar a entrega.
-     * @param beneficiarioNomeCompleto O nome do item selecionado na lista (Beneficiario + N.º Estudante).
-     * @param dataAgendamentoStr A data no formato DD/MM/AAAA.
-     */
-    fun agendarEntrega(beneficiarioNomeCompleto: String, dataAgendamentoStr: String) {
-        if (_uiState.value.isScheduling) return
-
-        // 1. Encontrar o ID do Beneficiário
-        val beneficiarioEncontrado = _uiState.value.beneficiarios.find {
-            "${it.nomeCompleto} (${it.numEstudante})" == beneficiarioNomeCompleto
-        }
-
-        if (beneficiarioEncontrado == null) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Beneficiário inválido ou não encontrado.")
-            return
-        }
-
-        // 2. Formatar e validar a data
-        val dataFormatada = try {
-            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            LocalDate.parse(dataAgendamentoStr, formatter).format(DateTimeFormatter.ISO_LOCAL_DATE)
-        } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Formato de data inválido. Use DD/MM/AAAA.")
-            return
-        }
-
-        // 3. Criar a requisição (Itens vazios para simplificação)
-        val request = AgendarEntregaRequest(
-            beneficiarioId = beneficiarioEncontrado.id,
-            dataAgendamento = dataFormatada,
-            itens = emptyList() // O POST da API permite lista de itens vazia.
-        )
-
+    fun agendarEntrega(beneficiarioId: String, data: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isScheduling = true, errorMessage = null, successMessage = null)
+            _uiState.update { it.copy(isScheduling = true, errorMessage = null, successMessage = null) }
             try {
+                val request = AgendarEntregaRequest(beneficiarioId, data, emptyList()) // Lista de itens vazia por agora
                 val response = repository.agendarEntrega(request)
                 if (response.success) {
-                    _uiState.value = _uiState.value.copy(
-                        isScheduling = false,
-                        successMessage = "Entrega agendada com sucesso! ID: ${response.data?.id?.substring(0, 4)}..."
-                    )
+                    _uiState.update { it.copy(isScheduling = false, successMessage = "Entrega agendada com sucesso!") }
                 } else {
-                    val errorMsg = response.message ?: "Erro desconhecido ao agendar entrega."
-                    _uiState.value = _uiState.value.copy(isScheduling = false, errorMessage = errorMsg)
+                    _uiState.update { it.copy(isScheduling = false, errorMessage = response.message) }
                 }
             } catch (e: Exception) {
-                Log.e("AgendarEntregaVM", "Erro de rede ao agendar entrega", e)
-                _uiState.value = _uiState.value.copy(isScheduling = false, errorMessage = "Falha de ligação: ${e.message}")
+                _uiState.update { it.copy(isScheduling = false, errorMessage = "Falha de rede ao agendar entrega.") }
             }
         }
     }
 
     fun clearMessages() {
-        _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null)
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 }

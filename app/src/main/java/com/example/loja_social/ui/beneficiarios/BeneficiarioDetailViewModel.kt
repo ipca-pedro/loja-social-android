@@ -1,115 +1,120 @@
 package com.example.loja_social.ui.beneficiarios
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.loja_social.R
-import com.example.loja_social.api.RetrofitInstance
-import com.example.loja_social.databinding.FragmentBeneficiariosBinding
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.loja_social.api.Beneficiario
+import com.example.loja_social.api.BeneficiarioRequest
 import com.example.loja_social.repository.BeneficiarioRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class BeneficiariosFragment : Fragment() {
+data class BeneficiarioDetailUiState(
+    val isLoading: Boolean = true,
+    val isSaving: Boolean = false,
+    val beneficiario: Beneficiario? = null,
+    val errorMessage: String? = null,
+    val successMessage: String? = null
+)
 
-    private var _binding: FragmentBeneficiariosBinding? = null
-    private val binding get() = _binding!!
+class BeneficiarioDetailViewModel(
+    private val repository: BeneficiarioRepository,
+    private val beneficiarioId: String?
+) : ViewModel() {
 
-    // 1. Inicializa o Adapter com a lógica de navegação
-    private val beneficiarioAdapter = BeneficiarioAdapter { beneficiarioId ->
-        // Lógica de clique para navegar para o detalhe
-        navigateToDetail(beneficiarioId)
+    private val _uiState = MutableStateFlow(BeneficiarioDetailUiState())
+    val uiState = _uiState.asStateFlow()
+
+    // Canal para eventos de navegação (ex: fechar o fragmento)
+    private val _navigateBack = MutableSharedFlow<Unit>()
+    val navigateBack = _navigateBack.asSharedFlow()
+
+    init {
+        loadBeneficiario()
     }
 
-    private val viewModel: BeneficiariosViewModel by viewModels {
-        val apiService = RetrofitInstance.api
-        val repository = BeneficiarioRepository(apiService)
-        BeneficiariosViewModelFactory(repository)
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentBeneficiariosBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        // Configurar o RecyclerView
-        binding.rvBeneficiarios.apply {
-            adapter = beneficiarioAdapter
-            layoutManager = LinearLayoutManager(context)
+    private fun loadBeneficiario() {
+        if (beneficiarioId == null) {
+            _uiState.update { it.copy(isLoading = false) }
+            return
         }
 
-        // [NOVO] Adicionar o botão para CRIAR um novo beneficiário
-        binding.fabAddBeneficiario.setOnClickListener {
-            navigateToDetail(null)
-        }
-
-        observeViewModel()
-    }
-
-    // [NOVO] Recarregar a lista sempre que o ecrã volta à frente
-    override fun onResume() {
-        super.onResume()
-        // Garante que a lista é recarregada sempre que o utilizador regressa a este fragmento
-        viewModel.fetchBeneficiarios()
-    }
-
-    private fun observeViewModel() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.isLoading.collect { isLoading ->
-                binding.progressBar.isVisible = isLoading
-                // O FAB só deve aparecer quando não está a carregar
-                binding.fabAddBeneficiario.isVisible = !isLoading
-                binding.rvBeneficiarios.isVisible = !isLoading
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.uiState.collect { beneficiarios ->
-                beneficiarioAdapter.submitList(beneficiarios)
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.errorMessage.collect { errorMsg ->
-                binding.tvErro.text = errorMsg
-                binding.tvErro.isVisible = (errorMsg != null)
-                if (errorMsg != null) {
-                    binding.rvBeneficiarios.isVisible = false
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val response = repository.getBeneficiario(beneficiarioId)
+                if (response.success && response.data != null) {
+                    _uiState.update { it.copy(isLoading = false, beneficiario = response.data) }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = response.message) }
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Falha ao carregar dados: ${e.message}") }
             }
         }
     }
 
-    // Função de navegação
-    private fun navigateToDetail(beneficiarioId: String?) {
-        val title = if (beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
+    fun saveBeneficiario(request: BeneficiarioRequest) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null, successMessage = null) }
+            val isEditing = beneficiarioId != null
+            try {
+                val response = if (isEditing) {
+                    repository.updateBeneficiario(beneficiarioId!!, request)
+                } else {
+                    repository.createBeneficiario(request)
+                }
 
-        // 1. Cria um Bundle com os argumentos
-        val bundle = Bundle().apply {
-            // O nome do argumento TEM de corresponder ao do nav_graph.xml: "beneficiarioId"
-            putString("beneficiarioId", beneficiarioId)
-            putString("title", title)
+                if (response.success) {
+                    val message = if (isEditing) "Beneficiário atualizado!" else "Beneficiário criado!"
+                    _uiState.update { it.copy(isSaving = false, successMessage = message) }
+                    // Se editou com sucesso, navega para trás
+                    if (isEditing) {
+                        _navigateBack.emit(Unit)
+                    }
+                } else {
+                    _uiState.update { it.copy(isSaving = false, errorMessage = response.message) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, errorMessage = "Falha de ligação: ${e.message}") }
+            }
         }
-
-        // 2. Navega usando o ID do destino (nav_beneficiario_detail)
-        findNavController().navigate(R.id.nav_beneficiario_detail, bundle)
     }
 
+    fun deactivateBeneficiario() {
+        if (beneficiarioId == null) return
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+        val currentBeneficiario = _uiState.value.beneficiario ?: return
+
+        val request = BeneficiarioRequest(
+            nomeCompleto = currentBeneficiario.nomeCompleto,
+            email = currentBeneficiario.email,
+            estado = "inativo", // Força a desativação
+            numEstudante = currentBeneficiario.numEstudante,
+            nif = currentBeneficiario.nif,
+            notasAdicionais = currentBeneficiario.notasAdicionais,
+            anoCurricular = currentBeneficiario.anoCurricular,
+            curso = currentBeneficiario.curso,
+            telefone = currentBeneficiario.telefone
+        )
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null, successMessage = null) }
+            try {
+                val response = repository.updateBeneficiario(beneficiarioId, request)
+                if (response.success) {
+                    _uiState.update { it.copy(isSaving = false, successMessage = "Beneficiário desativado.") }
+                    _navigateBack.emit(Unit) // Navega para trás após desativar
+                } else {
+                    _uiState.update { it.copy(isSaving = false, errorMessage = response.message) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, errorMessage = "Falha de ligação: ${e.message}") }
+            }
+        }
     }
 }

@@ -28,7 +28,7 @@ class BeneficiariosViewModel(
         fetchBeneficiarios()
     }
 
-    private fun fetchBeneficiarios() {
+    fun fetchBeneficiarios() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null

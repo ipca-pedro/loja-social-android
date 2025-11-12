@@ -21,9 +21,7 @@ class BeneficiariosFragment : Fragment() {
     private var _binding: FragmentBeneficiariosBinding? = null
     private val binding get() = _binding!!
 
-    // 1. Inicializa o Adapter com a lógica de navegação
     private val beneficiarioAdapter = BeneficiarioAdapter { beneficiarioId ->
-        // Lógica de clique para navegar para o detalhe
         navigateToDetail(beneficiarioId)
     }
 
@@ -44,25 +42,24 @@ class BeneficiariosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Configurar o RecyclerView
+        setupRecyclerView()
+        observeViewModel()
+
+        // Listener para o botão de adicionar
+        binding.fabAddBeneficiario.setOnClickListener {
+            navigateToDetail(null) // ID nulo para criar
+        }
+    }
+
+    private fun setupRecyclerView() {
         binding.rvBeneficiarios.apply {
             adapter = beneficiarioAdapter
             layoutManager = LinearLayoutManager(context)
         }
-
-        // [NOVO] Adicionar o botão para CRIAR um novo beneficiário
-        // Note: O ID fabAddBeneficiario foi adicionado no XML
-        binding.fabAddBeneficiario.setOnClickListener {
-            navigateToDetail(null)
-        }
-
-        observeViewModel()
     }
 
-    // [NOVO] Recarregar a lista sempre que o ecrã volta à frente
     override fun onResume() {
         super.onResume()
-        // Garante que a lista é recarregada sempre que o utilizador regressa
         viewModel.fetchBeneficiarios()
     }
 
@@ -70,9 +67,9 @@ class BeneficiariosFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.isLoading.collect { isLoading ->
                 binding.progressBar.isVisible = isLoading
-                // O FAB só deve aparecer quando não está a carregar
-                binding.fabAddBeneficiario.isVisible = !isLoading
                 binding.rvBeneficiarios.isVisible = !isLoading
+                // O botão de adicionar só aparece depois do carregamento inicial
+                binding.fabAddBeneficiario.isVisible = !isLoading
             }
         }
 
@@ -85,29 +82,26 @@ class BeneficiariosFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.errorMessage.collect { errorMsg ->
                 binding.tvErro.text = errorMsg
-                binding.tvErro.isVisible = (errorMsg != null)
+                binding.tvErro.isVisible = errorMsg != null
+                // Esconde a lista e o botão se houver um erro
                 if (errorMsg != null) {
                     binding.rvBeneficiarios.isVisible = false
+                    binding.fabAddBeneficiario.isVisible = false
                 }
             }
         }
     }
 
-    // Função de navegação
     private fun navigateToDetail(beneficiarioId: String?) {
         val title = if (beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
 
-        // 1. Cria um Bundle com os argumentos
         val bundle = Bundle().apply {
-            // O nome do argumento TEM de corresponder ao do nav_graph.xml: "beneficiarioId"
             putString("beneficiarioId", beneficiarioId)
             putString("title", title)
         }
 
-        // 2. Navega usando o ID do destino (nav_beneficiario_detail)
-        findNavController().navigate(R.id.nav_beneficiario_detail, bundle)
+        findNavController().navigate(R.id.action_nav_beneficiarios_to_nav_beneficiario_detail, bundle)
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()
