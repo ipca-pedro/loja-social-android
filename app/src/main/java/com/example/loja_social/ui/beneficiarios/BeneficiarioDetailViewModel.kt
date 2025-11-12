@@ -39,7 +39,9 @@ class BeneficiarioDetailViewModel(
 
     private fun loadBeneficiario() {
         if (beneficiarioId == null) {
+            // Na criação, não precisa carregar nada, apenas desativa o loading
             _uiState.update { it.copy(isLoading = false) }
+            Log.d("BeneficiarioDetailVM", "Modo de criação - não precisa carregar dados")
             return
         }
 
@@ -63,11 +65,16 @@ class BeneficiarioDetailViewModel(
             _uiState.update { it.copy(isSaving = true, errorMessage = null, successMessage = null) }
             val isEditing = beneficiarioId != null
             try {
+                Log.d("BeneficiarioDetailVM", "Salvando beneficiário: isEditing=$isEditing, request=$request")
                 val response = if (isEditing) {
+                    Log.d("BeneficiarioDetailVM", "Atualizando beneficiário ID: $beneficiarioId")
                     repository.updateBeneficiario(beneficiarioId!!, request)
                 } else {
+                    Log.d("BeneficiarioDetailVM", "Criando novo beneficiário")
                     repository.createBeneficiario(request)
                 }
+
+                Log.d("BeneficiarioDetailVM", "Resposta da API: success=${response.success}, message=${response.message}, data=${response.data}")
 
                 if (response.success) {
                     val message = if (isEditing) "Beneficiário atualizado!" else "Beneficiário criado!"
@@ -77,10 +84,26 @@ class BeneficiarioDetailViewModel(
                         _navigateBack.emit(Unit)
                     }
                 } else {
-                    _uiState.update { it.copy(isSaving = false, errorMessage = response.message) }
+                    val errorMsg = response.message ?: "Erro desconhecido ao salvar beneficiário"
+                    Log.e("BeneficiarioDetailVM", "Erro ao salvar: $errorMsg")
+                    _uiState.update { it.copy(isSaving = false, errorMessage = errorMsg) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isSaving = false, errorMessage = "Falha de ligação: ${e.message}") }
+                Log.e("BeneficiarioDetailVM", "Exceção ao salvar beneficiário", e)
+                val errorMsg = when {
+                    e.message?.contains("500", ignoreCase = true) == true -> 
+                        "Erro no servidor. Verifique se o email, número de estudante ou NIF já estão registados."
+                    e.message?.contains("email", ignoreCase = true) == true -> 
+                        "Este email já está registado. Use outro email."
+                    e.message?.contains("num_estudante", ignoreCase = true) == true -> 
+                        "Este número de estudante já está registado."
+                    e.message?.contains("nif", ignoreCase = true) == true -> 
+                        "Este NIF já está registado."
+                    e.message?.contains("UNIQUE", ignoreCase = true) == true -> 
+                        "Já existe um registo com estes dados (email, número de estudante ou NIF)."
+                    else -> "Falha de ligação: ${e.message ?: "Erro desconhecido"}"
+                }
+                _uiState.update { it.copy(isSaving = false, errorMessage = errorMsg) }
             }
         }
     }

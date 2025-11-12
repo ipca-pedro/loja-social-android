@@ -7,6 +7,7 @@ import com.example.loja_social.api.FullSingleBeneficiarioResponse // <-- Import 
 import com.example.loja_social.api.SingleBeneficiarioResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class BeneficiarioRepository(private val apiService: ApiService) {
 
@@ -47,7 +48,44 @@ class BeneficiarioRepository(private val apiService: ApiService) {
     // [NOVO] Cria um novo beneficiário (POST)
     suspend fun createBeneficiario(request: BeneficiarioRequest): SingleBeneficiarioResponse {
         return withContext(Dispatchers.IO) {
-            apiService.createBeneficiario(request)
+            try {
+                apiService.createBeneficiario(request)
+            } catch (e: HttpException) {
+                // Tratar erros HTTP específicos
+                android.util.Log.e("BeneficiarioRepository", "Erro HTTP ao criar beneficiário: ${e.code()}", e)
+                val errorBody = e.response()?.errorBody()?.string()
+                android.util.Log.d("BeneficiarioRepository", "Error body: $errorBody")
+                
+                when (e.code()) {
+                    409 -> SingleBeneficiarioResponse(
+                        false,
+                        "Já existe um registo com estes dados (email, número de estudante ou NIF).",
+                        null
+                    )
+                    400 -> SingleBeneficiarioResponse(
+                        false,
+                        "Dados inválidos. Verifique os campos preenchidos.",
+                        null
+                    )
+                    500 -> SingleBeneficiarioResponse(
+                        false,
+                        "Erro no servidor. Verifique se o email, número de estudante ou NIF já estão registados.",
+                        null
+                    )
+                    else -> SingleBeneficiarioResponse(
+                        false,
+                        "Erro ao criar beneficiário: ${e.message()}",
+                        null
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("BeneficiarioRepository", "Erro ao criar beneficiário", e)
+                SingleBeneficiarioResponse(
+                    false,
+                    "Falha de ligação: ${e.message ?: "Erro desconhecido"}",
+                    null
+                )
+            }
         }
     }
 

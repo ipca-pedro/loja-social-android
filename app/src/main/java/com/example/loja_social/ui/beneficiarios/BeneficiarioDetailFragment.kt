@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -18,6 +19,7 @@ import com.example.loja_social.api.BeneficiarioRequest
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.databinding.FragmentBeneficiarioDetailBinding
 import com.example.loja_social.repository.BeneficiarioRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class BeneficiarioDetailFragment : Fragment() {
@@ -51,7 +53,19 @@ class BeneficiarioDetailFragment : Fragment() {
         setupListeners()
         observeViewModel()
 
-        binding.btnDelete.isVisible = args.beneficiarioId != null
+        val isEditing = args.beneficiarioId != null
+        binding.btnDelete.isVisible = isEditing
+        // Estado só é visível na edição (na criação, o beneficiário é criado como "ativo" por padrão na API)
+        binding.tilEstado.isVisible = isEditing
+        
+        // Ajustar texto do botão e garantir que está habilitado
+        if (!isEditing) {
+            binding.btnSave.text = "CRIAR BENEFICIÁRIO"
+            binding.btnSave.isEnabled = true
+            android.util.Log.d("BeneficiarioDetail", "Modo de criação - botão habilitado e texto atualizado")
+        } else {
+            binding.btnSave.text = "SALVAR ALTERAÇÕES"
+        }
     }
 
     private fun setupEstadoSpinner() {
@@ -61,7 +75,14 @@ class BeneficiarioDetailFragment : Fragment() {
     }
 
     private fun setupListeners() {
-        binding.btnSave.setOnClickListener { saveChanges() }
+        binding.btnSave.setOnClickListener { 
+            android.util.Log.d("BeneficiarioDetail", "Botão SALVAR clicado! Enabled=${binding.btnSave.isEnabled}")
+            if (!binding.btnSave.isEnabled) {
+                Toast.makeText(requireContext(), "Aguarde...", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            saveChanges() 
+        }
         binding.btnDelete.setOnClickListener { deactivateBeneficiario() }
     }
 
@@ -70,7 +91,11 @@ class BeneficiarioDetailFragment : Fragment() {
             viewModel.uiState.collect { state ->
                 // Controla a visibilidade do ProgressBar e o estado dos botões
                 binding.progressBar.isVisible = state.isLoading || state.isSaving
+                val wasEnabled = binding.btnSave.isEnabled
                 binding.btnSave.isEnabled = !state.isSaving
+                if (wasEnabled != binding.btnSave.isEnabled) {
+                    android.util.Log.d("BeneficiarioDetail", "Estado do botão mudou: enabled=${binding.btnSave.isEnabled}, isSaving=${state.isSaving}")
+                }
                 binding.btnDelete.isEnabled = args.beneficiarioId != null && !state.isSaving
 
                 // Popula o formulário quando o beneficiário é carregado
@@ -90,47 +115,99 @@ class BeneficiarioDetailFragment : Fragment() {
 
     private fun handleMessages(state: BeneficiarioDetailUiState) {
         if (state.errorMessage != null) {
+            android.util.Log.w("BeneficiarioDetail", "Mostrando mensagem de erro: ${state.errorMessage}")
             binding.tvMessage.text = state.errorMessage
             binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.estadoInativo))
+            binding.cardMessage.setCardBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_light))
             binding.tvMessage.isVisible = true
+            binding.cardMessage.isVisible = true
         } else if (state.successMessage != null) {
+            android.util.Log.d("BeneficiarioDetail", "Mostrando mensagem de sucesso: ${state.successMessage}")
             binding.tvMessage.text = state.successMessage
-            binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.estadoAtivo))
+            binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark))
+            binding.cardMessage.setCardBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_light))
             binding.tvMessage.isVisible = true
+            binding.cardMessage.isVisible = true
 
             // Em modo de criação, limpa o formulário para permitir adicionar outro
-            if (args.beneficiarioId == null) {
-                clearForm()
+            if (args.beneficiarioId == null && state.successMessage != null) {
+                // Pequeno delay para o utilizador ver a mensagem de sucesso
+                viewLifecycleOwner.lifecycleScope.launch {
+                    kotlinx.coroutines.delay(2000)
+                    clearForm()
+                    binding.cardMessage.isVisible = false
+                }
             }
         } else {
             binding.tvMessage.isVisible = false
+            binding.cardMessage.isVisible = false
         }
     }
 
     private fun saveChanges() {
+        android.util.Log.d("BeneficiarioDetail", "saveChanges() chamado")
         val nome = binding.etNomeCompleto.text.toString().trim()
         val email = binding.etEmail.text.toString().trim()
         val estado = binding.actvEstado.text.toString().trim()
+        val isEditing = args.beneficiarioId != null
 
-        if (nome.isEmpty() || email.isEmpty() || estado.isEmpty()) {
-            binding.tvMessage.text = "Nome, Email e Estado são obrigatórios."
-            binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), R.color.estadoInativo))
-            binding.tvMessage.isVisible = true
+        android.util.Log.d("BeneficiarioDetail", "Dados do formulário: nome='$nome', email='$email', estado='$estado', isEditing=$isEditing")
+        
+        // Feedback visual imediato
+        Toast.makeText(requireContext(), "A processar...", Toast.LENGTH_SHORT).show()
+
+        // Validação: Nome e Email são sempre obrigatórios
+        if (nome.isEmpty() || email.isEmpty()) {
+            val errorMsg = "Nome e Email são obrigatórios."
+            android.util.Log.w("BeneficiarioDetail", "Validação falhou: $errorMsg")
+            showErrorMessage(errorMsg)
             return
         }
+        
+        // Validação de formato de email básica
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            val errorMsg = "Por favor, insira um email válido."
+            android.util.Log.w("BeneficiarioDetail", "Validação de email falhou")
+            showErrorMessage(errorMsg)
+            return
+        }
+        
+        // Validação de NIF (deve ter 9 dígitos se fornecido)
+        val nif = binding.etNif.text.toString().trim()
+        if (nif.isNotEmpty() && (nif.length != 9 || !nif.all { it.isDigit() })) {
+            val errorMsg = "O NIF deve ter exatamente 9 dígitos."
+            android.util.Log.w("BeneficiarioDetail", "Validação de NIF falhou")
+            showErrorMessage(errorMsg)
+            return
+        }
+
+        // Estado só é obrigatório na edição
+        if (isEditing && estado.isEmpty()) {
+            val errorMsg = "Estado é obrigatório ao editar."
+            android.util.Log.w("BeneficiarioDetail", "Validação falhou: $errorMsg")
+            showErrorMessage(errorMsg)
+            return
+        }
+        
+        // Se chegou aqui, a validação passou - esconder mensagens anteriores
+        binding.cardMessage.isVisible = false
 
         val request = BeneficiarioRequest(
             nomeCompleto = nome,
             email = email,
-            estado = estado,
+            // Estado só é enviado na edição (a API não aceita estado na criação)
+            estado = if (isEditing) estado else null,
             numEstudante = binding.etNumEstudante.text.toString().trim().ifEmpty { null },
             nif = binding.etNif.text.toString().trim().ifEmpty { null },
             notasAdicionais = binding.etNotas.text.toString().trim().ifEmpty { null },
-            // Campos não editáveis são preservados pelo ViewModel
-            anoCurricular = viewModel.uiState.value.beneficiario?.anoCurricular,
-            curso = viewModel.uiState.value.beneficiario?.curso,
-            telefone = viewModel.uiState.value.beneficiario?.telefone
+            // Na edição, preserva os campos não editáveis do beneficiário existente
+            // Na criação, esses campos são null (a API aceita null)
+            anoCurricular = if (isEditing) viewModel.uiState.value.beneficiario?.anoCurricular else null,
+            curso = if (isEditing) viewModel.uiState.value.beneficiario?.curso else null,
+            telefone = if (isEditing) viewModel.uiState.value.beneficiario?.telefone else null
         )
+        
+        android.util.Log.d("BeneficiarioDetail", "Criando/Editando beneficiário: isEditing=$isEditing, request=$request")
 
         viewModel.saveBeneficiario(request)
     }
@@ -149,6 +226,14 @@ class BeneficiarioDetailFragment : Fragment() {
             binding.etNotas.setText(b.notasAdicionais)
             binding.actvEstado.setText(b.estado, false)
         }
+    }
+
+    private fun showErrorMessage(message: String) {
+        binding.tvMessage.text = message
+        binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+        binding.cardMessage.setCardBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
+        binding.tvMessage.isVisible = true
+        binding.cardMessage.isVisible = true
     }
 
     private fun clearForm() {

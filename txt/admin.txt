@@ -8,7 +8,7 @@ router.use(authenticateToken);
 
 // ===== GESTÃO DE BENEFICIÁRIOS (RF2) =====
 
-// GET /api/beneficiarios - Listar todos os beneficiários
+// GET /api/admin/beneficiarios - Listar todos os beneficiários
 router.get('/beneficiarios', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -28,7 +28,7 @@ router.get('/beneficiarios', async (req, res) => {
   }
 });
 
-// POST /api/beneficiarios - Criar novo beneficiário
+// POST /api/admin/beneficiarios - Criar novo beneficiário
 router.post('/beneficiarios', async (req, res) => {
   try {
     const { nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, notas_adicionais } = req.body;
@@ -57,7 +57,7 @@ router.post('/beneficiarios', async (req, res) => {
   }
 });
 
-// PUT /api/beneficiarios/:id - Editar/Reativar beneficiário
+// PUT /api/admin/beneficiarios/:id - Editar/Reativar beneficiário
 router.put('/beneficiarios/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -88,7 +88,7 @@ router.put('/beneficiarios/:id', async (req, res) => {
 
 // ===== GESTÃO DE INVENTÁRIO (RF3 & RF6) =====
 
-// POST /api/stock - Adicionar novo lote de stock
+// POST /api/admin/stock - Adicionar novo lote de stock
 router.post('/stock', async (req, res) => {
   try {
     const { produto_id, quantidade_inicial, data_validade, campanha_id } = req.body;
@@ -115,7 +115,7 @@ router.post('/stock', async (req, res) => {
   }
 });
 
-// GET /api/produtos - Listar tipos de produto
+// GET /api/admin/produtos - Listar tipos de produto
 router.get('/produtos', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -132,7 +132,7 @@ router.get('/produtos', async (req, res) => {
   }
 });
 
-// GET /api/categorias - Listar categorias de produtos
+// GET /api/admin/categorias - Listar categorias de produtos
 router.get('/categorias', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, nome FROM categorias ORDER BY nome');
@@ -147,7 +147,7 @@ router.get('/categorias', async (req, res) => {
   }
 });
 
-// GET /api/stock - Listar stock agrupado por produto para Android
+// GET /api/admin/stock - Listar stock agrupado por produto para Android
 router.get('/stock', async (req, res) => {
   try {
     const result = await pool.query('SELECT p.id as produto_id, p.nome as produto, c.nome as categoria, SUM(s.quantidade_atual) as quantidade_total, COUNT(s.id) as lotes, MIN(s.data_validade) as validade_proxima FROM stock_items s JOIN produtos p ON s.produto_id = p.id LEFT JOIN categorias c ON p.categoria_id = c.id WHERE s.quantidade_atual > 0 GROUP BY p.id, p.nome, c.nome HAVING SUM(s.quantidade_atual) > 0 ORDER BY p.nome ASC');
@@ -159,7 +159,7 @@ router.get('/stock', async (req, res) => {
   }
 });
 
-// PUT /api/stock/:id - Editar lote de stock
+// PUT /api/admin/stock/:id - Editar lote de stock
 router.put('/stock/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -178,7 +178,7 @@ router.put('/stock/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/stock/:id - Remover lote de stock
+// DELETE /api/admin/stock/:id - Remover lote de stock
 router.delete('/stock/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -196,7 +196,7 @@ router.delete('/stock/:id', async (req, res) => {
   }
 });
 
-// GET /api/alertas/validade - Produtos próximos do vencimento (RF6)
+// GET /api/admin/alertas/validade - Produtos próximos do vencimento (RF6)
 router.get('/alertas/validade', async (req, res) => {
   try {
     const result = await pool.query('SELECT s.id, p.nome as produto, s.quantidade_atual, s.data_validade, (s.data_validade - CURRENT_DATE) as dias_restantes FROM stock_items s JOIN produtos p ON s.produto_id = p.id WHERE s.data_validade IS NOT NULL AND s.data_validade <= CURRENT_DATE + INTERVAL \'30 days\' AND s.quantidade_atual > 0 ORDER BY s.data_validade ASC');
@@ -210,7 +210,7 @@ router.get('/alertas/validade', async (req, res) => {
 
 // ===== GESTÃO DE ENTREGAS (RF4) =====
 
-// POST /api/entregas - Agendar nova entrega
+// POST /api/admin/entregas - Agendar nova entrega
 router.post('/entregas', async (req, res) => {
   try {
     const { beneficiario_id, data_agendamento, itens } = req.body;
@@ -258,7 +258,7 @@ router.post('/entregas', async (req, res) => {
   }
 });
 
-// GET /api/entregas - Listar entregas
+// GET /api/admin/entregas - Listar entregas
 router.get('/entregas', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -279,7 +279,7 @@ router.get('/entregas', async (req, res) => {
   }
 });
 
-// PUT /api/entregas/:id/concluir - Concluir entrega
+// PUT /api/admin/entregas/:id/concluir - Concluir entrega
 router.put('/entregas/:id/concluir', async (req, res) => {
   try {
     const { id } = req.params;
