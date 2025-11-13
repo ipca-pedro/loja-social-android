@@ -14,7 +14,7 @@ import java.util.Locale
 
 // NOTA: Removemos os imports de java.time para evitar falhas de execução no minSdk 24
 
-class EntregaAdapter(private val onConcluirClicked: (String) -> Unit) : ListAdapter<Entrega, EntregaAdapter.EntregaViewHolder>(EntregaDiffCallback()) {
+class EntregaAdapter(private val onConcluirClicked: (Entrega) -> Unit) : ListAdapter<Entrega, EntregaAdapter.EntregaViewHolder>(EntregaDiffCallback()) {
 
     inner class EntregaViewHolder(private val binding: ListItemEntregaBinding) : RecyclerView.ViewHolder(binding.root) {
 
@@ -43,7 +43,7 @@ class EntregaAdapter(private val onConcluirClicked: (String) -> Unit) : ListAdap
             } else {
                 // Ação do botão
                 binding.btnConcluir.setOnClickListener {
-                    onConcluirClicked(entrega.id)
+                    onConcluirClicked(entrega)
                 }
             }
         }

@@ -5,6 +5,7 @@ import com.example.loja_social.api.AddStockResponse
 import com.example.loja_social.api.ApiService
 import com.example.loja_social.api.CategoriasResponse
 import com.example.loja_social.api.DeleteStockResponse
+import com.example.loja_social.api.LotesResponse
 import com.example.loja_social.api.ProdutosResponse
 import com.example.loja_social.api.StockResponse
 import com.example.loja_social.api.UpdateStockRequest
@@ -53,6 +54,20 @@ class StockRepository(private val apiService: ApiService) {
     suspend fun deleteStock(stockId: String): DeleteStockResponse {
         return withContext(Dispatchers.IO) {
             apiService.deleteStock(stockId)
+        }
+    }
+
+    // Obter lotes individuais de um produto
+    suspend fun getLotesByProduto(produtoId: Int): LotesResponse {
+        return withContext(Dispatchers.IO) {
+            apiService.getLotesByProduto(produtoId)
+        }
+    }
+
+    // Obter todos os lotes disponíveis (para seleção em entregas)
+    suspend fun getAllLotes(): LotesResponse {
+        return withContext(Dispatchers.IO) {
+            apiService.getAllLotes()
         }
     }
 }

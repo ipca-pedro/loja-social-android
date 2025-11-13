@@ -8,7 +8,7 @@ router.use(authenticateToken);
 
 // ===== GESTÃO DE BENEFICIÁRIOS (RF2) =====
 
-// GET /api/admin/beneficiarios - Listar todos os beneficiários
+// GET /api/beneficiarios - Listar todos os beneficiários
 router.get('/beneficiarios', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -28,7 +28,9 @@ router.get('/beneficiarios', async (req, res) => {
   }
 });
 
-// POST /api/admin/beneficiarios - Criar novo beneficiário
+// POST /api/admin/beneficiarios
+// Detectar violações de UNIQUE e retornar mensagens específicas
+
 router.post('/beneficiarios', async (req, res) => {
   try {
     const { nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, notas_adicionais } = req.body;
@@ -37,6 +39,23 @@ router.post('/beneficiarios', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Nome e email são obrigatórios'
+      });
+    }
+
+    // Validação de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Formato de email inválido'
+      });
+    }
+
+    // Validação de NIF (9 dígitos se fornecido)
+    if (nif && (nif.length !== 9 || !/^\d+$/.test(nif))) {
+      return res.status(400).json({
+        success: false,
+        message: 'NIF deve ter exatamente 9 dígitos'
       });
     }
 
@@ -53,15 +72,52 @@ router.post('/beneficiarios', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao criar beneficiário:', error);
-    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+    
+    // Detectar violações de constraint UNIQUE
+    if (error.code === '23505') { // PostgreSQL unique violation error code
+      const constraint = error.constraint;
+      let message = 'Erro ao criar beneficiário';
+      
+      if (constraint && constraint.includes('email')) {
+        message = 'Este email já está registado. Use outro email.';
+      } else if (constraint && constraint.includes('num_estudante')) {
+        message = 'Este número de estudante já está registado.';
+      } else if (constraint && constraint.includes('nif')) {
+        message = 'Este NIF já está registado.';
+      } else {
+        message = 'Já existe um registo com estes dados (email, número de estudante ou NIF).';
+      }
+      
+      return res.status(409).json({ // 409 Conflict é mais apropriado que 500
+        success: false,
+        message: message
+      });
+    }
+    
+    // Outros erros de base de dados
+    if (error.code && error.code.startsWith('23')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Erro de validação: ' + (error.message || 'Dados inválidos')
+      });
+    }
+    
+    // Erro genérico
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erro interno do servidor' 
+    });
   }
 });
 
-// PUT /api/admin/beneficiarios/:id - Editar/Reativar beneficiário
+// PUT /api/beneficiarios/:id - Editar/Reativar beneficiário
+
 router.put('/beneficiarios/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { nome_completo, num_estudante, nif, ano_curricular, curso, email, telefone, estado, notas_adicionais } = req.body;
+    
+    // Validações similares...
     
     const result = await pool.query(`
       UPDATE beneficiarios 
@@ -82,13 +138,34 @@ router.put('/beneficiarios/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao atualizar beneficiário:', error);
+    
+    // Mesmo tratamento de erros UNIQUE
+    if (error.code === '23505') {
+      const constraint = error.constraint;
+      let message = 'Erro ao atualizar beneficiário';
+      
+      if (constraint && constraint.includes('email')) {
+        message = 'Este email já está registado noutro beneficiário.';
+      } else if (constraint && constraint.includes('num_estudante')) {
+        message = 'Este número de estudante já está registado noutro beneficiário.';
+      } else if (constraint && constraint.includes('nif')) {
+        message = 'Este NIF já está registado noutro beneficiário.';
+      }
+      
+      return res.status(409).json({
+        success: false,
+        message: message
+      });
+    }
+    
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
 
+
 // ===== GESTÃO DE INVENTÁRIO (RF3 & RF6) =====
 
-// POST /api/admin/stock - Adicionar novo lote de stock
+// POST /api/stock - Adicionar novo lote de stock
 router.post('/stock', async (req, res) => {
   try {
     const { produto_id, quantidade_inicial, data_validade, campanha_id } = req.body;
@@ -115,7 +192,7 @@ router.post('/stock', async (req, res) => {
   }
 });
 
-// GET /api/admin/produtos - Listar tipos de produto
+// GET /api/produtos - Listar tipos de produto
 router.get('/produtos', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -132,7 +209,7 @@ router.get('/produtos', async (req, res) => {
   }
 });
 
-// GET /api/admin/categorias - Listar categorias de produtos
+// GET /api/categorias - Listar categorias de produtos
 router.get('/categorias', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, nome FROM categorias ORDER BY nome');
@@ -147,7 +224,7 @@ router.get('/categorias', async (req, res) => {
   }
 });
 
-// GET /api/admin/stock - Listar stock agrupado por produto para Android
+// GET /api/stock - Listar stock agrupado por produto para Android
 router.get('/stock', async (req, res) => {
   try {
     const result = await pool.query('SELECT p.id as produto_id, p.nome as produto, c.nome as categoria, SUM(s.quantidade_atual) as quantidade_total, COUNT(s.id) as lotes, MIN(s.data_validade) as validade_proxima FROM stock_items s JOIN produtos p ON s.produto_id = p.id LEFT JOIN categorias c ON p.categoria_id = c.id WHERE s.quantidade_atual > 0 GROUP BY p.id, p.nome, c.nome HAVING SUM(s.quantidade_atual) > 0 ORDER BY p.nome ASC');
@@ -159,7 +236,41 @@ router.get('/stock', async (req, res) => {
   }
 });
 
-// PUT /api/admin/stock/:id - Editar lote de stock
+
+// GET /api/admin/stock/produto/:produto_id - Listar lotes individuais de um produto
+router.get('/stock/produto/:produto_id', async (req, res) => {
+  try {
+    const { produto_id } = req.params;
+    
+    const result = await pool.query(`
+      SELECT 
+        si.id,
+        si.quantidade_inicial,
+        si.quantidade_atual,
+        si.data_entrada,
+        si.data_validade,
+        p.nome as produto,
+        c.nome as categoria
+      FROM stock_items si
+      JOIN produtos p ON si.produto_id = p.id
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE si.produto_id = $1 AND si.quantidade_atual > 0
+      ORDER BY 
+        CASE WHEN si.data_validade IS NULL THEN 1 ELSE 0 END,
+        si.data_validade ASC
+    `, [produto_id]);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Erro ao listar lotes do produto:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// PUT /api/stock/:id - Editar lote de stock
 router.put('/stock/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -178,7 +289,7 @@ router.put('/stock/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/admin/stock/:id - Remover lote de stock
+// DELETE /api/stock/:id - Remover lote de stock
 router.delete('/stock/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -196,7 +307,7 @@ router.delete('/stock/:id', async (req, res) => {
   }
 });
 
-// GET /api/admin/alertas/validade - Produtos próximos do vencimento (RF6)
+// GET /api/alertas/validade - Produtos próximos do vencimento (RF6)
 router.get('/alertas/validade', async (req, res) => {
   try {
     const result = await pool.query('SELECT s.id, p.nome as produto, s.quantidade_atual, s.data_validade, (s.data_validade - CURRENT_DATE) as dias_restantes FROM stock_items s JOIN produtos p ON s.produto_id = p.id WHERE s.data_validade IS NOT NULL AND s.data_validade <= CURRENT_DATE + INTERVAL \'30 days\' AND s.quantidade_atual > 0 ORDER BY s.data_validade ASC');
@@ -210,7 +321,7 @@ router.get('/alertas/validade', async (req, res) => {
 
 // ===== GESTÃO DE ENTREGAS (RF4) =====
 
-// POST /api/admin/entregas - Agendar nova entrega
+// POST /api/entregas - Agendar nova entrega
 router.post('/entregas', async (req, res) => {
   try {
     const { beneficiario_id, data_agendamento, itens } = req.body;
@@ -258,7 +369,7 @@ router.post('/entregas', async (req, res) => {
   }
 });
 
-// GET /api/admin/entregas - Listar entregas
+// GET /api/entregas - Listar entregas
 router.get('/entregas', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -279,7 +390,7 @@ router.get('/entregas', async (req, res) => {
   }
 });
 
-// PUT /api/admin/entregas/:id/concluir - Concluir entrega
+// PUT /api/entregas/:id/concluir - Concluir entrega
 router.put('/entregas/:id/concluir', async (req, res) => {
   try {
     const { id } = req.params;

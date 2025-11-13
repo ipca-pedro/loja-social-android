@@ -1,0 +1,110 @@
+// ============================================
+// SUGESTÃO: Endpoint para Lotes Individuais
+// ============================================
+// 
+// PROBLEMA: Para editar/remover lotes individuais, precisamos do ID de cada lote.
+// O endpoint atual GET /api/admin/stock agrupa por produto e não retorna IDs dos lotes.
+//
+// SOLUÇÃO: Criar novo endpoint que retorna lotes individuais de um produto
+//
+// ============================================
+
+// GET /api/admin/stock/produto/:produto_id - Listar lotes individuais de um produto
+router.get('/stock/produto/:produto_id', async (req, res) => {
+  try {
+    const { produto_id } = req.params;
+    
+    const result = await pool.query(`
+      SELECT 
+        si.id,
+        si.quantidade_inicial,
+        si.quantidade_atual,
+        si.data_entrada,
+        si.data_validade,
+        p.nome as produto,
+        c.nome as categoria
+      FROM stock_items si
+      JOIN produtos p ON si.produto_id = p.id
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE si.produto_id = $1 AND si.quantidade_atual > 0
+      ORDER BY 
+        CASE WHEN si.data_validade IS NULL THEN 1 ELSE 0 END,
+        si.data_validade ASC
+    `, [produto_id]);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Erro ao listar lotes do produto:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// ============================================
+// Estrutura de Resposta Esperada:
+// ============================================
+// {
+//   "success": true,
+//   "data": [
+//     {
+//       "id": "uuid-do-lote",
+//       "quantidade_inicial": 100,
+//       "quantidade_atual": 75,
+//       "data_entrada": "2024-01-15",
+//       "data_validade": "2025-12-31",
+//       "produto": "Arroz Integral",
+//       "categoria": "Alimentação"
+//     },
+//     ...
+//   ]
+// }
+// ============================================
+
+// ============================================
+// ONDE ADICIONAR NO SERVIDOR:
+// ============================================
+// 
+// Este endpoint deve ser adicionado no ficheiro admin.txt (ou equivalente)
+// na secção de rotas de stock, após o GET /api/admin/stock
+//
+// Exemplo de localização:
+// - Antes: GET /api/admin/stock (linha ~150)
+// - Depois: Adicionar este novo endpoint
+//
+// ============================================
+// NOTAS IMPORTANTES:
+// ============================================
+//
+// 1. Este endpoint retorna TODOS os lotes de um produto específico
+// 2. Ordena por validade (mais próximos primeiro, depois sem validade)
+// 3. Só retorna lotes com quantidade_atual > 0
+// 4. Retorna o ID do lote (necessário para PUT/DELETE)
+//
+// ============================================
+// USO NO ANDROID:
+// ============================================
+//
+// Após implementar este endpoint no servidor:
+// 1. Adicionar método no ApiService.kt:
+//    @GET("api/admin/stock/produto/{produto_id}")
+//    suspend fun getLotesByProduto(@Path("produto_id") produtoId: Int): LotesResponse
+//
+// 2. Criar modelo LoteIndividual:
+//    data class LoteIndividual(
+//      val id: String,
+//      val quantidadeInicial: Int,
+//      val quantidadeAtual: Int,
+//      val dataEntrada: String,
+//      val dataValidade: String?,
+//      val produto: String,
+//      val categoria: String?
+//    )
+//
+// 3. Usar no StockDetailFragment para mostrar lista de lotes
+// 4. Permitir editar/remover cada lote individualmente
+//
+// ============================================
+
+

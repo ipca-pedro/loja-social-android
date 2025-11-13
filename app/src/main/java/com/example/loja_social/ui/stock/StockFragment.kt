@@ -190,15 +190,47 @@ class StockFragment : Fragment() {
 
     // Função para preencher o Spinner de Categorias
     private fun updateCategorySpinner(categoryNames: List<String>) {
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, categoryNames)
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            categoryNames
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_dropdown_item_1line)
+        }
         binding.actvCategoria.setAdapter(adapter)
+        // Garantir que o dropdown abre ao clicar
+        binding.actvCategoria.setOnClickListener {
+            binding.actvCategoria.showDropDown()
+        }
+        binding.actvCategoria.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                binding.actvCategoria.showDropDown()
+            }
+        }
     }
 
     // Função para preencher o Spinner de Produtos
     private fun updateProductSpinner(products: List<Produto>) {
         val productNames = products.map { it.nome }
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, productNames)
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            productNames
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_dropdown_item_1line)
+        }
         binding.actvProduto.setAdapter(adapter)
+        // Garantir que o dropdown abre ao clicar
+        binding.actvProduto.setOnClickListener {
+            if (productNames.isNotEmpty()) {
+                binding.actvProduto.showDropDown()
+            }
+        }
+        binding.actvProduto.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus && productNames.isNotEmpty()) {
+                binding.actvProduto.showDropDown()
+            }
+        }
     }
 
     override fun onDestroyView() {

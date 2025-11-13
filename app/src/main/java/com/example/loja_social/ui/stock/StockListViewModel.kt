@@ -34,8 +34,8 @@ class StockListViewModel(
         _allStockItems,
         _searchQuery,
         _filterType,
-        _categoryFilter // NOVO: Adicionado ao combine
-    ) { all, query, filter, category ->
+        _categoryFilter
+    ) { all: List<StockItem>, query: String, filter: String?, category: String? ->
         val filteredItems = filterStockItems(all, query, filter, category)
         val categories = all.mapNotNull { it.categoria }.distinct().sorted()
         StockListUiState(
@@ -118,7 +118,7 @@ class StockListViewModel(
                 }
             }
             "stock_baixo" -> {
-                filtered = filtered.filter { (it.quantidadeTotal?.toInt() ?: 0) < 10 }
+                filtered = filtered.filter { it.quantidadeTotal < 10 }
             }
         }
 
@@ -126,9 +126,9 @@ class StockListViewModel(
     }
 
     private fun isExpiringSoon(validityDate: String): Boolean {
-        // ... (código existente)
         return try {
-            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+            // A API retorna datas no formato yyyy-MM-dd
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val date = inputFormat.parse(validityDate)
             if (date != null) {
                 val daysUntilExpiry = ((date.time - Date().time) / (1000 * 60 * 60 * 24)).toInt()

@@ -11,9 +11,11 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController // <--- IMPORT ESSENCIAL CORRIGIDO
 import com.example.loja_social.R
+import com.example.loja_social.api.Entrega
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.databinding.FragmentEntregasBinding
 import com.example.loja_social.repository.EntregaRepository
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class EntregasFragment : Fragment() {
@@ -22,8 +24,8 @@ class EntregasFragment : Fragment() {
     private val binding get() = _binding!!
 
     // Inicializar o Adapter com a lambda para o clique do botão
-    private val entregaAdapter = EntregaAdapter { entregaId ->
-        viewModel.concluirEntrega(entregaId)
+    private val entregaAdapter = EntregaAdapter { entrega ->
+        showConfirmarEntregaDialog(entrega)
     }
 
     private val viewModel: EntregasViewModel by viewModels {
@@ -91,6 +93,17 @@ class EntregasFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun showConfirmarEntregaDialog(entrega: Entrega) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Confirmar Entrega")
+            .setMessage("Tem certeza que deseja confirmar esta entrega?\n\nBeneficiário: ${entrega.beneficiario}\nData: ${entrega.dataAgendamento}\n\nO stock será automaticamente abatido.")
+            .setPositiveButton("Confirmar") { _, _ ->
+                viewModel.concluirEntrega(entrega.id)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     override fun onDestroyView() {

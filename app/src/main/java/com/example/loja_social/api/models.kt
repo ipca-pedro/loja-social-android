@@ -232,6 +232,23 @@ data class DeleteStockResponse(
     @SerializedName("message") val message: String?
 )
 
+// --- Modelos para Lotes Individuais de um Produto ---
+data class LotesResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<LoteIndividual>,
+    @SerializedName("message") val message: String?
+)
+
+data class LoteIndividual(
+    @SerializedName("id") val id: String,
+    @SerializedName("quantidade_inicial") val quantidadeInicial: Int,
+    @SerializedName("quantidade_atual") val quantidadeAtual: Int,
+    @SerializedName("data_entrada") val dataEntrada: String,
+    @SerializedName("data_validade") val dataValidade: String?,
+    @SerializedName("produto") val produto: String,
+    @SerializedName("categoria") val categoria: String?
+)
+
 // --- Modelos Públicos ---
 data class StockSummaryResponse(
     @SerializedName("success") val success: Boolean,

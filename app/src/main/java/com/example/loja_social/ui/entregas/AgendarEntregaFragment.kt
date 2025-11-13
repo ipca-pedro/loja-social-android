@@ -29,7 +29,8 @@ class AgendarEntregaFragment : Fragment() {
     private val viewModel: AgendarEntregaViewModel by viewModels {
         val apiService = RetrofitInstance.api
         val repository = AgendarEntregaRepository(apiService)
-        AgendarEntregaViewModelFactory(repository)
+        val stockRepository = com.example.loja_social.repository.StockRepository(apiService)
+        AgendarEntregaViewModelFactory(repository, stockRepository)
     }
 
     override fun onCreateView(

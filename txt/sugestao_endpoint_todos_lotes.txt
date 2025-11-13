@@ -1,0 +1,73 @@
+// ============================================
+// SUGESTÃO: Endpoint para Todos os Lotes Disponíveis
+// ============================================
+// 
+// PROBLEMA: Para agendar entregas, precisamos selecionar lotes de stock.
+// O endpoint atual GET /api/admin/stock/produto/:produto_id retorna lotes de um produto específico.
+// Para facilitar a seleção, seria útil ter um endpoint que retorne TODOS os lotes disponíveis.
+//
+// SOLUÇÃO: Criar endpoint que retorna todos os lotes com quantidade > 0
+//
+// ============================================
+
+// GET /api/admin/stock/lotes - Listar TODOS os lotes disponíveis (para seleção em entregas)
+router.get('/stock/lotes', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        si.id,
+        si.quantidade_inicial,
+        si.quantidade_atual,
+        si.data_entrada,
+        si.data_validade,
+        p.id as produto_id,
+        p.nome as produto,
+        c.nome as categoria
+      FROM stock_items si
+      JOIN produtos p ON si.produto_id = p.id
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE si.quantidade_atual > 0
+      ORDER BY 
+        p.nome ASC,
+        CASE WHEN si.data_validade IS NULL THEN 1 ELSE 0 END,
+        si.data_validade ASC
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Erro ao listar todos os lotes:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// ============================================
+// Estrutura de Resposta Esperada:
+// ============================================
+// {
+//   "success": true,
+//   "data": [
+//     {
+//       "id": "uuid-do-lote",
+//       "quantidade_inicial": 100,
+//       "quantidade_atual": 75,
+//       "data_entrada": "2024-01-15",
+//       "data_validade": "2025-12-31",
+//       "produto_id": 1,
+//       "produto": "Arroz Integral",
+//       "categoria": "Alimentação"
+//     },
+//     ...
+//   ]
+// }
+// ============================================
+// 
+// NOTA: Este endpoint retorna TODOS os lotes disponíveis, ordenados por:
+// 1. Nome do produto
+// 2. Validade (mais próximos primeiro, depois sem validade)
+//
+// ============================================
+
+

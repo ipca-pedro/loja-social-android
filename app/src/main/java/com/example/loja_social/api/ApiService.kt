@@ -60,6 +60,14 @@ interface ApiService {
     @GET("api/admin/stock")
     suspend fun getStock(): StockResponse
 
+    @GET("api/admin/stock/produto/{produto_id}")
+    suspend fun getLotesByProduto(
+        @Path("produto_id") produtoId: Int
+    ): LotesResponse
+
+    @GET("api/admin/stock/lotes")
+    suspend fun getAllLotes(): LotesResponse
+
     @POST("api/admin/stock")
     suspend fun addStock(
         @Body request: AddStockRequest
