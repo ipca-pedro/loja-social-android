@@ -19,6 +19,11 @@ import com.example.loja_social.databinding.FragmentStockListBinding
 import com.example.loja_social.repository.StockRepository
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment para exibir a lista de stock agrupado por produto.
+ * Suporta pesquisa por texto, filtros por validade próxima/stock baixo e filtro por categoria.
+ * Permite navegar para detalhes de um produto específico.
+ */
 class StockListFragment : Fragment() {
 
     private var _binding: FragmentStockListBinding? = null
@@ -54,9 +59,13 @@ class StockListFragment : Fragment() {
         }
     }
 
+    /**
+     * Configura os listeners de pesquisa e filtros.
+     * - Chips: filtros por tipo (todos/validade próxima/stock baixo)
+     * - Dropdown de categoria: filtro adicional por categoria
+     */
     private fun setupSearchAndFilters() {
-        // ... (código da pesquisa e dos chips permanece o mesmo)
-
+        // Configura listeners dos chips de filtro
         binding.chipAll.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) viewModel.setFilterType(null)
         }
@@ -68,6 +77,11 @@ class StockListFragment : Fragment() {
         }
     }
 
+    /**
+     * Configura o dropdown de filtro por categoria.
+     * Adiciona uma opção "Todas as categorias" no início da lista.
+     * @param categories Lista de categorias únicas extraídas dos produtos
+     */
     private fun setupCategoryFilter(categories: List<String>) {
         val allCategories = listOf("Todas as categorias") + categories
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, allCategories)
@@ -75,6 +89,7 @@ class StockListFragment : Fragment() {
 
         binding.actvCategoryFilter.setOnItemClickListener { parent, _, position, _ ->
             val selectedCategory = parent.getItemAtPosition(position) as String
+            // Se selecionar "Todas as categorias", remove o filtro (null)
             if (selectedCategory == "Todas as categorias") {
                 viewModel.setCategoryFilter(null)
             } else {
@@ -130,6 +145,10 @@ class StockListFragment : Fragment() {
         }
     }
 
+    /**
+     * Atualiza a visibilidade dos componentes baseado no estado atual.
+     * Mostra RecyclerView se houver dados, ou empty state se não houver.
+     */
     private fun updateVisibility() {
         val hasData = viewModel.uiState.value.stockItems.isNotEmpty()
         val hasError = viewModel.errorMessage.value != null
@@ -141,6 +160,10 @@ class StockListFragment : Fragment() {
         }
     }
 
+    /**
+     * Navega para o fragmento de detalhes de um produto de stock.
+     * @param stockItem O item de stock selecionado
+     */
     private fun navigateToStockDetail(stockItem: StockItem) {
         val bundle = Bundle().apply {
             putInt("produtoId", stockItem.produtoId)

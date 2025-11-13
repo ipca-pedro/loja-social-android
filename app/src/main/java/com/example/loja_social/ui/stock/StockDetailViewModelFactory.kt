@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.loja_social.repository.StockRepository
 
+/**
+ * Factory para criar instâncias de StockDetailViewModel.
+ * Permite injetar dependências (Repository e produtoId) no ViewModel.
+ */
 class StockDetailViewModelFactory(
     private val repository: StockRepository,
     private val produtoId: Int

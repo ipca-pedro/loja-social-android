@@ -15,6 +15,11 @@ import com.example.loja_social.repository.LoginRepository
 import com.example.loja_social.ui.main.MainActivity
 import kotlinx.coroutines.launch
 
+/**
+ * Activity de login.
+ * Gerencia autenticação do utilizador e navegação para MainActivity após login bem-sucedido.
+ * Verifica se já existe um token válido e redireciona automaticamente se houver.
+ */
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
@@ -29,28 +34,30 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // --- CORREÇÃO ADICIONADA AQUI ---
-        // 1. Verificar se já existe um token ANTES de mostrar o layout
+        // Verifica se já existe um token válido (utilizador já autenticado)
+        // Se sim, redireciona diretamente para MainActivity sem mostrar a tela de login
         val sessionManager = SessionManager(applicationContext)
         if (sessionManager.fetchAuthToken() != null) {
-            // 2. Se sim, saltar diretamente para a MainActivity
             navigateToMain()
-            return // 3. Importante: não continuar a executar o resto do onCreate
+            return // Não continua a execução do onCreate
         }
-        // --- FIM DA CORREÇÃO ---
 
+        // Infla o layout e configura a UI
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Preenche campos com valores padrão (apenas para desenvolvimento)
         binding.etEmail.setText("admin@lojasocial.pt")
         binding.etPassword.setText("password123")
 
+        // Configura listener do botão de login
         binding.btnLogin.setOnClickListener {
             val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
             viewModel.login(email, password)
         }
 
+        // Observa mudanças no estado do ViewModel
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
@@ -60,6 +67,11 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Atualiza a UI baseado no estado atual do ViewModel.
+     * Gerencia visibilidade de componentes e mensagens de erro.
+     * @param state Estado atual do login
+     */
     private fun handleUiState(state: LoginUiState) {
         when (state) {
             is LoginUiState.Idle -> {
@@ -85,9 +97,13 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Navega para a MainActivity após login bem-sucedido.
+     * Remove a LoginActivity da pilha para evitar voltar atrás.
+     */
     private fun navigateToMain() {
         val intent = Intent(this@LoginActivity, MainActivity::class.java)
         startActivity(intent)
-        finish() // 'finish()' remove a LoginActivity da pilha, não podes voltar atrás
+        finish() // Remove a LoginActivity da pilha
     }
 }

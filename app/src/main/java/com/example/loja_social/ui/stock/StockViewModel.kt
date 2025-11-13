@@ -14,6 +14,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Estado da UI do formulário de adicionar stock.
+ * @param isLoading Indica se está a carregar categorias e produtos iniciais
+ * @param categorias Lista de categorias disponíveis para seleção
+ * @param produtos Lista de produtos disponíveis para seleção
+ * @param errorMessage Mensagem de erro a exibir (null se não houver erro)
+ * @param successMessage Mensagem de sucesso a exibir (null se não houver sucesso)
+ * @param isFormLoading Indica se está a processar o envio do formulário
+ */
 data class StockUiState(
     val isLoading: Boolean = true,
     val categorias: List<Categoria> = emptyList(),
@@ -23,6 +32,10 @@ data class StockUiState(
     val isFormLoading: Boolean = false
 )
 
+/**
+ * ViewModel para o formulário de adicionar novo stock.
+ * Gerencia o carregamento de categorias e produtos, e o envio de novos lotes.
+ */
 class StockViewModel(
     private val repository: StockRepository
 ) : ViewModel() {
@@ -36,6 +49,7 @@ class StockViewModel(
 
     /**
      * Busca categorias e produtos assim que o ecrã arranca.
+     * Usado para popular os dropdowns do formulário.
      */
     private fun fetchInitialData() {
         viewModelScope.launch {
@@ -62,22 +76,27 @@ class StockViewModel(
     }
 
     /**
-     * RF3: Envia o formulário para adicionar novo stock.
+     * Processa o envio do formulário para adicionar novo stock.
+     * Valida os dados, formata a data (se fornecida) e envia a requisição à API.
+     * 
+     * @param produtoId O ID do produto selecionado
+     * @param quantidade A quantidade a adicionar (deve ser um número inteiro positivo)
+     * @param dataValidade A data de validade no formato DD/MM/AAAA (opcional, pode ser vazia)
      */
     fun addStockItem(produtoId: Int, quantidade: String, dataValidade: String) {
         if (_uiState.value.isFormLoading) return
 
-        // 1. Validação simples
+        // Validação da quantidade
         val quantidadeInt = quantidade.toIntOrNull()
         if (quantidadeInt == null || quantidadeInt <= 0) {
             _uiState.value = _uiState.value.copy(errorMessage = "A quantidade deve ser um número inteiro positivo.")
             return
         }
 
-        // 2. Formatar data (se existir) - campo é opcional
+        // Formatação da data (campo opcional)
+        // Converte de DD/MM/AAAA (formato do utilizador) para yyyy-MM-dd (formato da API)
         val dataFormatada = try {
             if (dataValidade.isNotBlank() && dataValidade.isNotEmpty()) {
-                // Assume formato dd/MM/yyyy e converte para yyyy-MM-dd (formato API)
                 val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                 val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val date = inputFormat.parse(dataValidade.trim())
@@ -98,11 +117,12 @@ class StockViewModel(
             return
         }
 
+        // Cria a requisição
         val request = AddStockRequest(
             produtoId = produtoId,
             quantidadeInicial = quantidadeInt,
             dataValidade = dataFormatada,
-            campanhaId = null // Implementação futura de seleção de campanha
+            campanhaId = null // TODO: Implementar seleção de campanha no futuro
         )
 
         viewModelScope.launch {
@@ -138,6 +158,10 @@ class StockViewModel(
         }
     }
 
+    /**
+     * Limpa as mensagens de erro e sucesso do estado.
+     * Útil para resetar o feedback visual após o utilizador interagir com a UI.
+     */
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null)
     }

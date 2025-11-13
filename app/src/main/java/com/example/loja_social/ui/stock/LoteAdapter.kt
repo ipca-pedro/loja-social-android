@@ -14,6 +14,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Adapter para exibir lotes individuais de stock em um RecyclerView.
+ * Mostra informações do lote, alertas de validade e botões de ação (editar/remover).
+ * 
+ * @param onEditClick Callback chamado quando o utilizador clica em "Editar"
+ * @param onDeleteClick Callback chamado quando o utilizador clica em "Remover"
+ */
 class LoteAdapter(
     private val onEditClick: (LoteIndividual) -> Unit,
     private val onDeleteClick: (LoteIndividual) -> Unit
@@ -21,13 +28,18 @@ class LoteAdapter(
 
     inner class LoteViewHolder(private val binding: ListItemLoteBinding) : RecyclerView.ViewHolder(binding.root) {
 
+        /**
+         * Liga os dados do lote aos componentes da UI.
+         * Formata datas, calcula alertas de validade e configura botões de ação.
+         * @param lote O lote a exibir
+         */
         fun bind(lote: LoteIndividual) {
             val context = binding.root.context
 
-            // Quantidade
+            // Exibe quantidade atual vs inicial (ex: "50 / 100")
             binding.tvQuantidade.text = "${lote.quantidadeAtual} / ${lote.quantidadeInicial}"
             
-            // Data de entrada
+            // Formata data de entrada (converte de yyyy-MM-dd para dd/MM/yyyy)
             try {
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -41,7 +53,7 @@ class LoteAdapter(
                 binding.tvDataEntrada.text = "Entrada: ${lote.dataEntrada}"
             }
 
-            // Data de validade
+            // Formata e exibe data de validade (se existir)
             if (lote.dataValidade != null) {
                 try {
                     val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -52,9 +64,10 @@ class LoteAdapter(
                         binding.tvDataValidade.text = "Validade: $formattedDate"
                         binding.tvDataValidade.isVisible = true
                         
-                        // Verificar se está próximo do vencimento
+                        // Calcula dias até o vencimento e exibe alertas coloridos
                         val daysUntilExpiry = ((date.time - Date().time) / (1000 * 60 * 60 * 24)).toInt()
                         if (daysUntilExpiry < 0) {
+                            // Vencido: vermelho
                             binding.chipValidade.text = "VENCIDO"
                             val drawable = android.graphics.drawable.GradientDrawable().apply {
                                 cornerRadius = 12f * context.resources.displayMetrics.density
@@ -63,6 +76,7 @@ class LoteAdapter(
                             binding.chipValidade.background = drawable
                             binding.chipValidade.isVisible = true
                         } else if (daysUntilExpiry <= 7) {
+                            // Vence em 7 dias ou menos: laranja escuro
                             binding.chipValidade.text = "Vence em $daysUntilExpiry dias"
                             val drawable = android.graphics.drawable.GradientDrawable().apply {
                                 cornerRadius = 12f * context.resources.displayMetrics.density
@@ -71,6 +85,7 @@ class LoteAdapter(
                             binding.chipValidade.background = drawable
                             binding.chipValidade.isVisible = true
                         } else if (daysUntilExpiry <= 30) {
+                            // Vence em 30 dias ou menos: laranja claro
                             binding.chipValidade.text = "Vence em $daysUntilExpiry dias"
                             val drawable = android.graphics.drawable.GradientDrawable().apply {
                                 cornerRadius = 12f * context.resources.displayMetrics.density
@@ -79,24 +94,27 @@ class LoteAdapter(
                             binding.chipValidade.background = drawable
                             binding.chipValidade.isVisible = true
                         } else {
+                            // Mais de 30 dias: não mostra alerta
                             binding.chipValidade.isVisible = false
                         }
                     }
                 } catch (e: Exception) {
+                    // Em caso de erro no parsing, mostra a data original
                     binding.tvDataValidade.text = "Validade: ${lote.dataValidade}"
                     binding.tvDataValidade.isVisible = true
                     binding.chipValidade.isVisible = false
                 }
             } else {
+                // Sem data de validade: oculta os campos relacionados
                 binding.tvDataValidade.isVisible = false
                 binding.chipValidade.isVisible = false
             }
 
-            // ID do lote (truncado)
+            // Exibe ID do lote truncado (primeiros 8 caracteres)
             val loteIdShort = if (lote.id.length >= 8) lote.id.substring(0, 8) else lote.id
             binding.tvLoteId.text = "Lote: $loteIdShort..."
 
-            // Botões
+            // Configura botões de ação
             binding.btnEdit.setOnClickListener { onEditClick(lote) }
             binding.btnDelete.setOnClickListener { onDeleteClick(lote) }
         }
@@ -113,11 +131,22 @@ class LoteAdapter(
     }
 }
 
+/**
+ * Callback para DiffUtil usado pelo LoteAdapter.
+ * Compara lotes pelo ID para determinar se são o mesmo item,
+ * e compara todos os campos para determinar se o conteúdo mudou.
+ */
 class LoteDiffCallback : DiffUtil.ItemCallback<LoteIndividual>() {
+    /**
+     * Verifica se dois itens representam o mesmo lote (mesmo ID).
+     */
     override fun areItemsTheSame(oldItem: LoteIndividual, newItem: LoteIndividual): Boolean {
         return oldItem.id == newItem.id
     }
 
+    /**
+     * Verifica se o conteúdo de dois lotes é idêntico.
+     */
     override fun areContentsTheSame(oldItem: LoteIndividual, newItem: LoteIndividual): Boolean {
         return oldItem == newItem
     }

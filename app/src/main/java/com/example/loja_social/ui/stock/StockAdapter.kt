@@ -14,28 +14,37 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Adapter para exibir itens de stock agrupados por produto em um RecyclerView.
+ * Mostra informações do produto, quantidade total, número de lotes e alertas de validade.
+ * 
+ * @param onStockItemClicked Callback chamado quando o utilizador clica em um item de stock
+ */
 class StockAdapter(
     private val onStockItemClicked: (StockItem) -> Unit
 ) : ListAdapter<StockItem, StockAdapter.StockViewHolder>(StockDiffCallback()) {
 
     inner class StockViewHolder(private val binding: ListItemStockBinding) : RecyclerView.ViewHolder(binding.root) {
 
+        /**
+         * Liga os dados do item de stock aos componentes da UI.
+         * Formata datas, calcula alertas de validade e configura clique.
+         * @param stockItem O item de stock a exibir
+         */
         fun bind(stockItem: StockItem) {
             val context = binding.root.context
 
             binding.tvProdutoNome.text = stockItem.produto
             binding.tvCategoria.text = stockItem.categoria ?: "Sem categoria"
             
-            // Quantidade total
+            // Exibe quantidade total e número de lotes
             binding.tvQuantidade.text = "${stockItem.quantidadeTotal} unidades"
-            
-            // Número de lotes
             binding.tvLotes.text = "${stockItem.lotes} ${if (stockItem.lotes == 1) "lote" else "lotes"}"
 
-            // Data de validade mais próxima
+            // Formata e exibe data de validade mais próxima (se existir)
             if (stockItem.validadeProxima != null) {
                 try {
-                    // Formatar data de yyyy-MM-dd para dd/MM/yyyy
+                    // Converte de yyyy-MM-dd para dd/MM/yyyy
                     val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                     val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                     val date = inputFormat.parse(stockItem.validadeProxima)
@@ -44,30 +53,31 @@ class StockAdapter(
                         binding.tvValidade.text = "Validade: $formattedDate"
                         binding.tvValidade.isVisible = true
                         
-                        // Verificar se está próximo do vencimento
+                        // Calcula dias até o vencimento e exibe alertas coloridos
                         val daysUntilExpiry = ((date.time - Date().time) / (1000 * 60 * 60 * 24)).toInt()
                         val drawable = android.graphics.drawable.GradientDrawable().apply {
                             cornerRadius = 12f * context.resources.displayMetrics.density
                         }
                         if (daysUntilExpiry < 0) {
-                            // Já vencido
+                            // Vencido: vermelho
                             binding.chipValidade.text = "VENCIDO"
                             drawable.setColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
                             binding.chipValidade.background = drawable
                             binding.chipValidade.isVisible = true
                         } else if (daysUntilExpiry <= 7) {
-                            // Próximo do vencimento (7 dias)
+                            // Vence em 7 dias ou menos: laranja escuro
                             binding.chipValidade.text = "Vence em $daysUntilExpiry dias"
                             drawable.setColor(ContextCompat.getColor(context, android.R.color.holo_orange_dark))
                             binding.chipValidade.background = drawable
                             binding.chipValidade.isVisible = true
                         } else if (daysUntilExpiry <= 30) {
-                            // Próximo do vencimento (30 dias)
+                            // Vence em 30 dias ou menos: laranja claro
                             binding.chipValidade.text = "Vence em $daysUntilExpiry dias"
                             drawable.setColor(ContextCompat.getColor(context, android.R.color.holo_orange_light))
                             binding.chipValidade.background = drawable
                             binding.chipValidade.isVisible = true
                         } else {
+                            // Mais de 30 dias: não mostra alerta
                             binding.chipValidade.isVisible = false
                         }
                     } else {
@@ -75,16 +85,18 @@ class StockAdapter(
                         binding.chipValidade.isVisible = false
                     }
                 } catch (e: Exception) {
+                    // Em caso de erro, mostra a data original
                     binding.tvValidade.text = "Validade: ${stockItem.validadeProxima}"
                     binding.tvValidade.isVisible = true
                     binding.chipValidade.isVisible = false
                 }
             } else {
+                // Sem data de validade: oculta os campos relacionados
                 binding.tvValidade.isVisible = false
                 binding.chipValidade.isVisible = false
             }
 
-            // Torna o item clicável
+            // Torna o item clicável para navegar para detalhes
             binding.root.setOnClickListener {
                 onStockItemClicked(stockItem)
             }
@@ -102,11 +114,22 @@ class StockAdapter(
     }
 }
 
+/**
+ * Callback para DiffUtil usado pelo StockAdapter.
+ * Compara itens de stock pelo produtoId para determinar se são o mesmo item,
+ * e compara todos os campos para determinar se o conteúdo mudou.
+ */
 class StockDiffCallback : DiffUtil.ItemCallback<StockItem>() {
+    /**
+     * Verifica se dois itens representam o mesmo produto (mesmo produtoId).
+     */
     override fun areItemsTheSame(oldItem: StockItem, newItem: StockItem): Boolean {
         return oldItem.produtoId == newItem.produtoId
     }
 
+    /**
+     * Verifica se o conteúdo de dois itens de stock é idêntico.
+     */
     override fun areContentsTheSame(oldItem: StockItem, newItem: StockItem): Boolean {
         return oldItem == newItem
     }

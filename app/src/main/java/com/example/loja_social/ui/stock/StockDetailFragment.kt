@@ -24,6 +24,11 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+/**
+ * Fragment para exibir detalhes de um produto de stock.
+ * Mostra dados agregados do produto e lista de lotes individuais.
+ * Permite editar e remover lotes através de diálogos.
+ */
 class StockDetailFragment : Fragment() {
 
     private var _binding: FragmentStockDetailBinding? = null
@@ -58,6 +63,9 @@ class StockDetailFragment : Fragment() {
         observeViewModel()
     }
 
+    /**
+     * Configura o RecyclerView com o adapter e layout manager.
+     */
     private fun setupRecyclerView() {
         binding.rvLotes.apply {
             adapter = loteAdapter
@@ -65,6 +73,10 @@ class StockDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * Observa as mudanças do ViewModel e atualiza a UI.
+     * Gerencia estados de loading, dados do produto, lista de lotes e mensagens.
+     */
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { state ->
@@ -101,12 +113,18 @@ class StockDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * Popula os campos de detalhes do produto com os dados agregados.
+     * Formata a data de validade próxima (de yyyy-MM-dd para dd/MM/yyyy).
+     * @param stockItem Os dados agregados do produto
+     */
     private fun populateDetails(stockItem: com.example.loja_social.api.StockItem) {
         binding.tvProdutoNome.text = stockItem.produto
         binding.tvCategoria.text = stockItem.categoria ?: "Sem categoria"
         binding.tvQuantidadeTotal.text = "${stockItem.quantidadeTotal} unidades"
         binding.tvNumLotes.text = "${stockItem.lotes} ${if (stockItem.lotes == 1) "lote" else "lotes"}"
 
+        // Formata e exibe data de validade próxima (se existir)
         if (stockItem.validadeProxima != null) {
             try {
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -119,6 +137,7 @@ class StockDetailFragment : Fragment() {
                     binding.llValidade.isVisible = false
                 }
             } catch (e: Exception) {
+                // Em caso de erro, mostra a data original
                 binding.tvValidadeProxima.text = stockItem.validadeProxima
                 binding.llValidade.isVisible = true
             }
@@ -127,6 +146,12 @@ class StockDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * Mostra um diálogo para editar um lote.
+     * Permite alterar a quantidade e a data de validade.
+     * Valida que a quantidade não excede a quantidade inicial.
+     * @param lote O lote a editar
+     */
     private fun showEditLoteDialog(lote: LoteIndividual) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_edit_lote, null)
         val quantidadeEditText = dialogView.findViewById<android.widget.EditText>(R.id.et_quantidade_atual)
@@ -169,7 +194,7 @@ class StockDetailFragment : Fragment() {
                     return@setPositiveButton
                 }
 
-                // Converter data de DD/MM/yyyy para yyyy-MM-dd
+                // Converte data de DD/MM/yyyy (formato do utilizador) para yyyy-MM-dd (formato da API)
                 val dataFormatada = if (dataValidadeStr.isNotEmpty()) {
                     try {
                         val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -193,6 +218,11 @@ class StockDetailFragment : Fragment() {
             .show()
     }
 
+    /**
+     * Mostra um DatePickerDialog para selecionar a data de validade no diálogo de edição.
+     * A data mínima é hoje (não permite datas passadas).
+     * @param editText O campo de texto onde a data será inserida
+     */
     private fun showDatePickerForEdit(editText: com.google.android.material.textfield.TextInputEditText) {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -202,10 +232,11 @@ class StockDetailFragment : Fragment() {
         val datePickerDialog = DatePickerDialog(
             requireContext(),
             { _, selectedYear, selectedMonth, selectedDay ->
+                // Formata a data como DD/MM/AAAA
                 val formattedDate = String.format(
                     "%02d/%02d/%04d",
                     selectedDay,
-                    selectedMonth + 1,
+                    selectedMonth + 1, // Month é 0-indexed
                     selectedYear
                 )
                 editText.setText(formattedDate)
@@ -214,10 +245,16 @@ class StockDetailFragment : Fragment() {
             month,
             day
         )
+        // Define data mínima como hoje
         datePickerDialog.datePicker.minDate = calendar.timeInMillis
         datePickerDialog.show()
     }
 
+    /**
+     * Mostra um diálogo de confirmação antes de remover um lote.
+     * Exibe informações do lote e avisa que a ação não pode ser desfeita.
+     * @param lote O lote a remover
+     */
     private fun showDeleteConfirmation(lote: LoteIndividual) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Confirmar Remoção")

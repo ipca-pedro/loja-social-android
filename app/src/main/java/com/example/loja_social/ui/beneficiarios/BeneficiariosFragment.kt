@@ -18,6 +18,11 @@ import com.example.loja_social.databinding.FragmentBeneficiariosBinding
 import com.example.loja_social.repository.BeneficiarioRepository
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment para exibir a lista de beneficiários.
+ * Suporta pesquisa por texto e filtros por estado (ativo/inativo).
+ * Permite navegar para detalhes/edição e criar novos beneficiários.
+ */
 class BeneficiariosFragment : Fragment() {
 
     private var _binding: FragmentBeneficiariosBinding? = null
@@ -81,6 +86,9 @@ class BeneficiariosFragment : Fragment() {
         }
     }
 
+    /**
+     * Configura o RecyclerView com o adapter e layout manager.
+     */
     private fun setupRecyclerView() {
         binding.rvBeneficiarios.apply {
             adapter = beneficiarioAdapter
@@ -88,8 +96,13 @@ class BeneficiariosFragment : Fragment() {
         }
     }
 
+    /**
+     * Configura os listeners de pesquisa e filtros.
+     * - Pesquisa: em tempo real e ao pressionar Enter
+     * - Filtros: chips para filtrar por estado (todos/ativo/inativo)
+     */
     private fun setupSearchAndFilters() {
-        // Listener para pesquisa
+        // Listener para pesquisa ao pressionar Enter (esconde o teclado)
         binding.etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
                 val query = binding.etSearch.text.toString()
@@ -128,8 +141,12 @@ class BeneficiariosFragment : Fragment() {
         viewModel.fetchBeneficiarios()
     }
 
+    /**
+     * Observa as mudanças do ViewModel e atualiza a UI.
+     * Gerencia estados de loading, lista de beneficiários e mensagens de erro.
+     */
     private fun observeViewModel() {
-        // Observar loading state
+        // Observa estado de loading (progress bar e swipe refresh)
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.isLoading.collect { isLoading ->
                 binding.progressBar.isVisible = isLoading && !binding.swipeRefresh.isRefreshing
@@ -168,6 +185,10 @@ class BeneficiariosFragment : Fragment() {
         }
     }
 
+    /**
+     * Atualiza a visibilidade dos componentes baseado no estado atual.
+     * Mostra RecyclerView se houver dados, ou empty state se não houver.
+     */
     private fun updateVisibility() {
         val hasData = viewModel.uiState.value.isNotEmpty()
         val hasError = viewModel.errorMessage.value != null
@@ -179,6 +200,10 @@ class BeneficiariosFragment : Fragment() {
         }
     }
 
+    /**
+     * Navega para o fragmento de detalhes/edição de beneficiário.
+     * @param beneficiarioId O ID do beneficiário (null = modo criação)
+     */
     private fun navigateToDetail(beneficiarioId: String?) {
         val title = if (beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
 

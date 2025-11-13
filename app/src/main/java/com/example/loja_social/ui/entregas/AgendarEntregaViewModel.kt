@@ -14,11 +14,26 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * Representa um item de stock selecionado para entrega.
+ * @param lote O lote de stock selecionado
+ * @param quantidade A quantidade a entregar deste lote (deve ser <= quantidadeAtual do lote)
+ */
 data class ItemSelecionado(
     val lote: LoteIndividual,
     val quantidade: Int
 )
 
+/**
+ * Estado da UI do formulário de agendamento de entrega.
+ * @param isLoading Indica se está a carregar dados iniciais (beneficiários e lotes)
+ * @param isScheduling Indica se está a processar o agendamento
+ * @param beneficiarios Lista de beneficiários disponíveis para seleção
+ * @param lotesDisponiveis Lista de lotes de stock disponíveis para seleção
+ * @param itensSelecionados Lista de itens já selecionados pelo utilizador
+ * @param errorMessage Mensagem de erro a exibir (null se não houver erro)
+ * @param successMessage Mensagem de sucesso a exibir (null se não houver sucesso)
+ */
 data class AgendarEntregaUiState(
     val isLoading: Boolean = true,
     val isScheduling: Boolean = false,
@@ -29,6 +44,11 @@ data class AgendarEntregaUiState(
     val successMessage: String? = null
 )
 
+/**
+ * ViewModel para o fluxo de agendamento de entregas.
+ * Gerencia o estado do formulário, busca beneficiários e lotes disponíveis,
+ * e processa o agendamento de entregas com múltiplos itens de stock.
+ */
 class AgendarEntregaViewModel(
     private val repository: AgendarEntregaRepository,
     private val stockRepository: StockRepository
@@ -42,6 +62,10 @@ class AgendarEntregaViewModel(
         fetchLotesDisponiveis()
     }
 
+    /**
+     * Busca a lista de beneficiários disponíveis para seleção no formulário.
+     * Atualiza o estado com os beneficiários ou uma mensagem de erro em caso de falha.
+     */
     private fun fetchBeneficiarios() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -60,6 +84,11 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Busca todos os lotes de stock disponíveis para seleção.
+     * Os lotes são filtrados no servidor para mostrar apenas os com quantidade > 0.
+     * Erros são logados mas não interrompem o fluxo (o utilizador pode continuar sem lotes).
+     */
     private fun fetchLotesDisponiveis() {
         viewModelScope.launch {
             try {
@@ -75,6 +104,12 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Adiciona um item à lista de itens selecionados para entrega.
+     * Valida que a quantidade é positiva e não excede a quantidade disponível no lote.
+     * @param lote O lote de stock a adicionar
+     * @param quantidade A quantidade a entregar (deve ser > 0 e <= quantidadeAtual)
+     */
     fun adicionarItem(lote: LoteIndividual, quantidade: Int) {
         if (quantidade <= 0 || quantidade > lote.quantidadeAtual) {
             _uiState.update { it.copy(errorMessage = "Quantidade inválida. Máximo: ${lote.quantidadeAtual}") }
@@ -90,6 +125,10 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Remove um item da lista de itens selecionados.
+     * @param loteId O ID do lote a remover
+     */
     fun removerItem(loteId: String) {
         _uiState.update { state ->
             state.copy(
@@ -98,6 +137,12 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Atualiza a quantidade de um item já selecionado.
+     * Valida que a nova quantidade é válida antes de atualizar.
+     * @param loteId O ID do lote a atualizar
+     * @param novaQuantidade A nova quantidade (deve ser > 0 e <= quantidadeAtual)
+     */
     fun atualizarQuantidade(loteId: String, novaQuantidade: Int) {
         _uiState.update { state ->
             val item = state.itensSelecionados.find { it.lote.id == loteId }
@@ -114,9 +159,12 @@ class AgendarEntregaViewModel(
     }
 
     /**
-     * RF4: Envia a requisição para agendar a entrega com os itens selecionados.
-     * @param beneficiarioId O ID (UUID) do beneficiário selecionado.
-     * @param dataAgendamentoStr A data no formato DD/MM/AAAA.
+     * Processa o agendamento de uma entrega.
+     * Valida os dados, formata a data, mapeia os itens selecionados e envia a requisição à API.
+     * 
+     * @param beneficiarioId O ID (UUID) do beneficiário selecionado
+     * @param dataAgendamentoStr A data no formato DD/MM/AAAA (será convertida para ISO_LOCAL_DATE)
+     * @throws IllegalStateException Se não houver itens selecionados ou se a data for inválida
      */
     fun agendarEntrega(beneficiarioId: String, dataAgendamentoStr: String) {
         if (_uiState.value.isScheduling) return
@@ -175,6 +223,10 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Limpa as mensagens de erro e sucesso do estado.
+     * Útil para resetar o feedback visual após o utilizador interagir com a UI.
+     */
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }

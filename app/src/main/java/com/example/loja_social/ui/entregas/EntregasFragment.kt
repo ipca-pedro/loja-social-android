@@ -95,6 +95,11 @@ class EntregasFragment : Fragment() {
         }
     }
 
+    /**
+     * Mostra um diálogo de confirmação antes de concluir uma entrega.
+     * Exibe informações da entrega e avisa que o stock será automaticamente abatido.
+     * @param entrega A entrega a ser confirmada
+     */
     private fun showConfirmarEntregaDialog(entrega: Entrega) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Confirmar Entrega")

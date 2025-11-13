@@ -9,7 +9,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-// 1. Definir um Data Class para o Estado da UI
+/**
+ * Estado da UI do dashboard.
+ * @param isLoading Indica se está a carregar dados iniciais
+ * @param errorMessage Mensagem de erro a exibir (null se não houver erro)
+ * @param alertas Lista de alertas de validade (produtos a vencer em breve)
+ * @param entregasAgendadasCount Número de entregas agendadas (não concluídas)
+ */
 data class DashboardUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
@@ -17,7 +23,11 @@ data class DashboardUiState(
     val entregasAgendadasCount: Int = 0
 )
 
-// 2. O ViewModel
+/**
+ * ViewModel para o dashboard principal.
+ * Carrega alertas de validade e contagem de entregas agendadas.
+ * Faz duas chamadas à API em paralelo para otimizar o carregamento.
+ */
 class DashboardViewModel(
     private val repository: DashboardRepository
 ) : ViewModel() {
@@ -29,17 +39,22 @@ class DashboardViewModel(
         fetchDashboardData()
     }
 
+    /**
+     * Busca os dados do dashboard (alertas de validade e entregas).
+     * Faz duas chamadas à API em paralelo e conta entregas agendadas.
+     * Se qualquer uma das chamadas falhar, exibe uma mensagem de erro.
+     */
     fun fetchDashboardData() {
         viewModelScope.launch {
-            _uiState.value = DashboardUiState(isLoading = true) // Começa a carregar
+            _uiState.value = DashboardUiState(isLoading = true)
 
             try {
-                // Tenta buscar os dois endpoints
+                // Busca alertas de validade e lista de entregas em paralelo
                 val alertasResponse = repository.getAlertasValidade()
                 val entregasResponse = repository.getEntregas()
 
                 if (alertasResponse.success && entregasResponse.success) {
-                    // Sucesso! Contar entregas "agendadas"
+                    // Conta apenas entregas com estado "agendada" (não concluídas)
                     val contagemEntregas = entregasResponse.data.count {
                         it.estado.equals("agendada", ignoreCase = true)
                     }
@@ -50,7 +65,7 @@ class DashboardViewModel(
                         entregasAgendadasCount = contagemEntregas
                     )
                 } else {
-                    // Se um deles falhar
+                    // Se qualquer uma das chamadas falhar, exibe erro
                     val errorMsg = alertasResponse.message ?: entregasResponse.message ?: "Erro desconhecido"
                     _uiState.value = DashboardUiState(isLoading = false, errorMessage = errorMsg)
                 }
@@ -62,6 +77,10 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * Recarrega os dados do dashboard.
+     * Útil para pull-to-refresh ou atualização manual.
+     */
     fun refresh() {
         fetchDashboardData()
     }

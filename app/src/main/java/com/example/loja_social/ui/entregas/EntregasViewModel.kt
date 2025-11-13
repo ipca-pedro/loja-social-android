@@ -9,13 +9,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * Estado da UI da lista de entregas.
+ * @param isLoading Indica se está a carregar dados iniciais
+ * @param errorMessage Mensagem de erro a exibir (null se não houver erro)
+ * @param entregas Lista de entregas (agendadas e concluídas)
+ * @param actionSuccessMessage Mensagem de sucesso após concluir uma entrega (null se não houver)
+ */
 data class EntregasUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val entregas: List<Entrega> = emptyList(),
-    val actionSuccessMessage: String? = null // Mensagem para mostrar após concluir uma entrega
+    val actionSuccessMessage: String? = null
 )
 
+/**
+ * ViewModel para a lista de entregas.
+ * Gerencia a busca de entregas e a conclusão de entregas agendadas.
+ */
 class EntregasViewModel(
     private val repository: EntregaRepository
 ) : ViewModel() {
@@ -54,7 +65,11 @@ class EntregasViewModel(
     }
 
     /**
-     * RF4: Marca uma entrega como concluída e recarrega a lista.
+     * Marca uma entrega como concluída.
+     * O servidor automaticamente abate o stock dos itens entregues.
+     * Após sucesso, recarrega a lista para mostrar o novo estado.
+     * 
+     * @param entregaId O ID (UUID) da entrega a concluir
      */
     fun concluirEntrega(entregaId: String) {
         viewModelScope.launch {

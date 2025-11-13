@@ -13,12 +13,16 @@ import com.example.loja_social.databinding.FragmentDashboardBinding
 import com.example.loja_social.repository.DashboardRepository
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment do dashboard principal.
+ * Exibe resumo de alertas de validade e contagem de entregas agendadas.
+ * Suporta pull-to-refresh para atualizar os dados.
+ */
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
 
-    // 1. Ligar o ViewModel
     private val viewModel: DashboardViewModel by viewModels {
         val apiService = RetrofitInstance.api
         val repository = DashboardRepository(apiService)
@@ -36,28 +40,28 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // SwipeRefreshLayout
+        // Configura pull-to-refresh
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refresh()
         }
 
-        // 2. Observar as mudanças do ViewModel
+        // Observa as mudanças do ViewModel e atualiza a UI
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { state ->
-                // Controlar visibilidade
+                // Controla visibilidade dos componentes baseado no estado
                 binding.progressBar.isVisible = state.isLoading && !binding.swipeRefresh.isRefreshing
                 binding.swipeRefresh.isRefreshing = state.isLoading
                 binding.cardAlertas.isVisible = !state.isLoading && state.errorMessage == null
                 binding.cardEntregas.isVisible = !state.isLoading && state.errorMessage == null
                 binding.cardError.isVisible = state.errorMessage != null
 
-                // Preencher dados
+                // Preenche dados quando carregamento termina com sucesso
                 if (!state.isLoading && state.errorMessage == null) {
                     binding.tvAlertasCount.text = state.alertas.size.toString()
                     binding.tvEntregasCount.text = state.entregasAgendadasCount.toString()
                 }
 
-                // Mostrar erro
+                // Exibe mensagem de erro se houver
                 if (state.errorMessage != null) {
                     binding.tvErro.text = state.errorMessage
                 }

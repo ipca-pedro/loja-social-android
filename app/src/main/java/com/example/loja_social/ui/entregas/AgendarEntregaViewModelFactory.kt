@@ -5,6 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.loja_social.repository.AgendarEntregaRepository
 import com.example.loja_social.repository.StockRepository
 
+/**
+ * Factory para criar instâncias de AgendarEntregaViewModel.
+ * Permite injetar dependências (AgendarEntregaRepository e StockRepository) no ViewModel.
+ */
 class AgendarEntregaViewModelFactory(
     private val repository: AgendarEntregaRepository,
     private val stockRepository: StockRepository

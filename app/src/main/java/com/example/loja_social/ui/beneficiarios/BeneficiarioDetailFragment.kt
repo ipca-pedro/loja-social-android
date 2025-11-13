@@ -22,6 +22,11 @@ import com.example.loja_social.repository.BeneficiarioRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Fragment para criar ou editar um beneficiário.
+ * Suporta dois modos: criação (beneficiarioId == null) e edição (beneficiarioId != null).
+ * Inclui validação de campos, formatação de dados e feedback visual.
+ */
 class BeneficiarioDetailFragment : Fragment() {
 
     private var _binding: FragmentBeneficiarioDetailBinding? = null
@@ -32,7 +37,7 @@ class BeneficiarioDetailFragment : Fragment() {
     private val viewModel: BeneficiarioDetailViewModel by viewModels {
         val apiService = RetrofitInstance.api
         val repository = BeneficiarioRepository(apiService)
-        // Passa o ID diretamente. O ViewModel tratará da lógica de carregar.
+        // Passa o ID do beneficiário (null em modo criação, não-null em modo edição)
         BeneficiarioDetailViewModelFactory(repository, args.beneficiarioId)
     }
 
@@ -68,12 +73,21 @@ class BeneficiarioDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * Configura o dropdown de estado (ativo/inativo).
+     * Apenas visível em modo edição.
+     */
     private fun setupEstadoSpinner() {
         val estados = arrayOf("ativo", "inativo")
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, estados)
         binding.actvEstado.setAdapter(adapter)
     }
 
+    /**
+     * Configura os listeners dos botões.
+     * - Botão Salvar: valida e envia os dados
+     * - Botão Remover: desativa o beneficiário (apenas em modo edição)
+     */
     private fun setupListeners() {
         binding.btnSave.setOnClickListener { 
             android.util.Log.d("BeneficiarioDetail", "Botão SALVAR clicado! Enabled=${binding.btnSave.isEnabled}")
@@ -86,10 +100,14 @@ class BeneficiarioDetailFragment : Fragment() {
         binding.btnDelete.setOnClickListener { deactivateBeneficiario() }
     }
 
+    /**
+     * Observa as mudanças do ViewModel e atualiza a UI.
+     * Gerencia estados de loading, população do formulário, mensagens e navegação.
+     */
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.uiState.collect { state ->
-                // Controla a visibilidade do ProgressBar e o estado dos botões
+                // Controla visibilidade do ProgressBar e estado dos botões
                 binding.progressBar.isVisible = state.isLoading || state.isSaving
                 val wasEnabled = binding.btnSave.isEnabled
                 binding.btnSave.isEnabled = !state.isSaving
@@ -113,6 +131,11 @@ class BeneficiarioDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * Gerencia a exibição de mensagens de erro e sucesso.
+     * Em modo criação, limpa o formulário após sucesso para permitir adicionar outro.
+     * @param state Estado atual do ViewModel
+     */
     private fun handleMessages(state: BeneficiarioDetailUiState) {
         if (state.errorMessage != null) {
             android.util.Log.w("BeneficiarioDetail", "Mostrando mensagem de erro: ${state.errorMessage}")
@@ -144,6 +167,11 @@ class BeneficiarioDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * Valida e salva os dados do formulário.
+     * Aplica validações de campos obrigatórios, formato de email e NIF.
+     * Cria BeneficiarioRequest e envia ao ViewModel.
+     */
     private fun saveChanges() {
         android.util.Log.d("BeneficiarioDetail", "saveChanges() chamado")
         val nome = binding.etNomeCompleto.text.toString().trim()
@@ -192,10 +220,12 @@ class BeneficiarioDetailFragment : Fragment() {
         // Se chegou aqui, a validação passou - esconder mensagens anteriores
         binding.cardMessage.isVisible = false
 
+        // Cria a requisição com os dados do formulário
+        // Nota: Em modo edição, preserva campos não editáveis (anoCurricular, curso, telefone)
         val request = BeneficiarioRequest(
             nomeCompleto = nome,
             email = email,
-            // Estado só é enviado na edição (a API não aceita estado na criação)
+            // Estado só é enviado na edição (a API cria como "ativo" por padrão)
             estado = if (isEditing) estado else null,
             numEstudante = binding.etNumEstudante.text.toString().trim().ifEmpty { null },
             nif = binding.etNif.text.toString().trim().ifEmpty { null },
@@ -212,10 +242,19 @@ class BeneficiarioDetailFragment : Fragment() {
         viewModel.saveBeneficiario(request)
     }
 
+    /**
+     * Desativa o beneficiário (muda estado para "inativo").
+     * Apenas disponível em modo edição.
+     */
     private fun deactivateBeneficiario() {
         viewModel.deactivateBeneficiario()
     }
 
+    /**
+     * Popula o formulário com os dados do beneficiário.
+     * Evita repopular se já tiver texto (previne perda de dados durante re-criação da view).
+     * @param b O beneficiário a exibir
+     */
     private fun populateForm(b: Beneficiario) {
         // Evita repopular o formulário se já tiver texto (evita perder dados em re-criação)
         if (binding.etNomeCompleto.text.toString() != b.nomeCompleto) {
@@ -228,6 +267,10 @@ class BeneficiarioDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * Exibe uma mensagem de erro no card de mensagens.
+     * @param message A mensagem de erro a exibir
+     */
     private fun showErrorMessage(message: String) {
         binding.tvMessage.text = message
         binding.tvMessage.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
@@ -236,8 +279,12 @@ class BeneficiarioDetailFragment : Fragment() {
         binding.cardMessage.isVisible = true
     }
 
+    /**
+     * Limpa todos os campos do formulário.
+     * Usado após criar um beneficiário com sucesso para permitir adicionar outro.
+     */
     private fun clearForm() {
-        // 1. Limpa os campos de texto usando o método setText("")
+        // Limpa os campos de texto
         binding.etNomeCompleto.setText("")
         binding.etNumEstudante.setText("")
         binding.etEmail.setText("")

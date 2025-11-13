@@ -13,58 +13,97 @@ import com.example.loja_social.api.UpdateStockResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Repository para operações relacionadas com stock.
+ * Centraliza todas as chamadas à API de gestão de stock, categorias e produtos.
+ */
 class StockRepository(private val apiService: ApiService) {
 
-    // RF3: Listar categorias para preencher o Spinner
+    /**
+     * Obtém a lista de todas as categorias disponíveis.
+     * Usado para popular o dropdown de categorias no formulário de adicionar stock.
+     * @return Resposta da API com a lista de categorias
+     */
     suspend fun getCategorias(): CategoriasResponse {
         return withContext(Dispatchers.IO) {
             apiService.getCategorias()
         }
     }
 
-    // RF3: Listar produtos para preencher o Spinner
+    /**
+     * Obtém a lista de todos os produtos disponíveis.
+     * Usado para popular o dropdown de produtos no formulário de adicionar stock.
+     * @return Resposta da API com a lista de produtos
+     */
     suspend fun getProdutos(): ProdutosResponse {
         return withContext(Dispatchers.IO) {
             apiService.getProdutos()
         }
     }
 
-    // RF3: Listar stock agrupado por produto
+    /**
+     * Obtém o stock agrupado por produto.
+     * Retorna uma lista com cada produto e a sua quantidade total e lotes.
+     * @return Resposta da API com o stock agrupado
+     */
     suspend fun getStock(): StockResponse {
         return withContext(Dispatchers.IO) {
             apiService.getStock()
         }
     }
 
-    // RF3: Adicionar novo lote de stock
+    /**
+     * Adiciona um novo lote de stock.
+     * @param request Dados do novo lote (produto, categoria, quantidade, data de validade)
+     * @return Resposta da API confirmando a criação
+     */
     suspend fun addStock(request: AddStockRequest): AddStockResponse {
         return withContext(Dispatchers.IO) {
             apiService.addStock(request)
         }
     }
 
-    // Atualizar lote de stock existente
+    /**
+     * Atualiza um lote de stock existente.
+     * Permite alterar a quantidade e a data de validade de um lote.
+     * @param stockId O ID (UUID) do lote a atualizar
+     * @param request Dados atualizados (quantidade e/ou data de validade)
+     * @return Resposta da API confirmando a atualização
+     */
     suspend fun updateStock(stockId: String, request: UpdateStockRequest): UpdateStockResponse {
         return withContext(Dispatchers.IO) {
             apiService.updateStock(stockId, request)
         }
     }
 
-    // Remover lote de stock
+    /**
+     * Remove um lote de stock.
+     * @param stockId O ID (UUID) do lote a remover
+     * @return Resposta da API confirmando a remoção
+     */
     suspend fun deleteStock(stockId: String): DeleteStockResponse {
         return withContext(Dispatchers.IO) {
             apiService.deleteStock(stockId)
         }
     }
 
-    // Obter lotes individuais de um produto
+    /**
+     * Obtém todos os lotes individuais de um produto específico.
+     * Usado na tela de detalhes do stock para mostrar todos os lotes de um produto.
+     * @param produtoId O ID do produto
+     * @return Resposta da API com a lista de lotes do produto
+     */
     suspend fun getLotesByProduto(produtoId: Int): LotesResponse {
         return withContext(Dispatchers.IO) {
             apiService.getLotesByProduto(produtoId)
         }
     }
 
-    // Obter todos os lotes disponíveis (para seleção em entregas)
+    /**
+     * Obtém todos os lotes disponíveis (com quantidade > 0).
+     * Usado no formulário de agendamento de entregas para permitir seleção de lotes.
+     * @return Resposta da API com todos os lotes disponíveis
+     */
     suspend fun getAllLotes(): LotesResponse {
         return withContext(Dispatchers.IO) {
             apiService.getAllLotes()

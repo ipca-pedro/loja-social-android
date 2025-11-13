@@ -8,9 +8,12 @@ import com.example.loja_social.repository.LoginRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-// import session.SessionManager <-- LINHA ERRADA REMOVIDA
 import java.lang.Exception
 
+/**
+ * ViewModel para o ecrã de login.
+ * Gerencia a autenticação do utilizador e o armazenamento do token de sessão.
+ */
 class LoginViewModel(
     private val loginRepository: LoginRepository,
     private val sessionManager: SessionManager
@@ -19,9 +22,18 @@ class LoginViewModel(
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val uiState: StateFlow<LoginUiState> = _uiState
 
+    /**
+     * Processa o login do utilizador.
+     * Valida os campos, autentica via API e guarda o token de sessão.
+     * 
+     * @param email Email do utilizador
+     * @param password Password do utilizador
+     */
     fun login(email: String, password: String) {
+        // Previne múltiplas tentativas simultâneas
         if (_uiState.value == LoginUiState.Loading) return
 
+        // Validação básica dos campos
         if (email.isEmpty() || password.isEmpty()) {
             _uiState.value = LoginUiState.Error("Por favor, preencha todos os campos.")
             return
@@ -32,6 +44,7 @@ class LoginViewModel(
             try {
                 val response = loginRepository.login(email, password)
                 if (response.success && response.token != null) {
+                    // Guarda o token para uso em requisições futuras
                     sessionManager.saveAuthToken(response.token)
                     Log.d("LoginViewModel", "Login bem-sucedido! Token guardado.")
                     _uiState.value = LoginUiState.Success
@@ -46,6 +59,10 @@ class LoginViewModel(
         }
     }
 
+    /**
+     * Reseta o estado para Idle.
+     * Útil para limpar mensagens de erro após o utilizador interagir com a UI.
+     */
     fun resetStateToIdle() {
         _uiState.value = LoginUiState.Idle
     }

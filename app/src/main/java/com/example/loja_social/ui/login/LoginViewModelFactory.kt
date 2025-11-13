@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.loja_social.SessionManager
 import com.example.loja_social.repository.LoginRepository
-// import session.SessionManager <-- LINHA ERRADA REMOVIDA
 
+/**
+ * Factory para criar instâncias de LoginViewModel.
+ * Permite injetar dependências (Repository e SessionManager) no ViewModel.
+ */
 class LoginViewModelFactory(
     private val loginRepository: LoginRepository,
     private val sessionManager: SessionManager

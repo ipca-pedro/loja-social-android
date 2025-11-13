@@ -22,13 +22,19 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
+/**
+ * Fragment para adicionar novo stock.
+ * Permite selecionar categoria e produto, definir quantidade e data de validade.
+ * Inclui validação e feedback visual de sucesso/erro.
+ */
 class StockFragment : Fragment() {
 
     private var _binding: FragmentStockBinding? = null
     private val binding get() = _binding!!
 
-    // Variáveis de estado da UI
+    /** Produto selecionado pelo utilizador */
     private var selectedProduto: Produto? = null
+    /** Lista completa de produtos (para filtragem por categoria) */
     private var allProducts: List<Produto> = emptyList()
 
     private val viewModel: StockViewModel by viewModels {
@@ -60,9 +66,15 @@ class StockFragment : Fragment() {
         }
     }
 
+    /**
+     * Configura os listeners dos componentes da UI.
+     * - Botão de adicionar: valida e envia os dados
+     * - Dropdowns: categoria e produto (com dependência entre eles)
+     * - Campo de data: abre DatePicker
+     */
     private fun setupListeners() {
 
-        // Listener para o botão de submissão
+        // Listener para o botão de adicionar stock
         binding.btnAddStock.setOnClickListener {
             val produto = selectedProduto
             val quantidade = binding.etQuantidade.text.toString()
@@ -112,6 +124,11 @@ class StockFragment : Fragment() {
         }
     }
 
+    /**
+     * Mostra um DatePickerDialog para selecionar a data de validade.
+     * A data mínima é hoje (não permite datas passadas).
+     * Formata a data selecionada como DD/MM/AAAA.
+     */
     private fun showDatePicker() {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -121,11 +138,11 @@ class StockFragment : Fragment() {
         val datePickerDialog = DatePickerDialog(
             requireContext(),
             { _, selectedYear, selectedMonth, selectedDay ->
-                // Formatar data como DD/MM/AAAA
+                // Formata a data como DD/MM/AAAA (formato do utilizador)
                 val formattedDate = String.format(
                     "%02d/%02d/%04d",
                     selectedDay,
-                    selectedMonth + 1, // Month é 0-indexed
+                    selectedMonth + 1, // Month é 0-indexed no Calendar
                     selectedYear
                 )
                 binding.etDataValidade.setText(formattedDate)
@@ -135,7 +152,7 @@ class StockFragment : Fragment() {
             day
         )
 
-        // Definir data mínima como hoje
+        // Define data mínima como hoje (não permite selecionar datas passadas)
         datePickerDialog.datePicker.minDate = calendar.timeInMillis
         datePickerDialog.show()
     }
@@ -188,7 +205,11 @@ class StockFragment : Fragment() {
         }
     }
 
-    // Função para preencher o Spinner de Categorias
+    /**
+     * Popula o dropdown de categorias.
+     * Configura listeners para garantir que o dropdown abre corretamente.
+     * @param categoryNames Lista de nomes de categorias
+     */
     private fun updateCategorySpinner(categoryNames: List<String>) {
         val adapter = ArrayAdapter(
             requireContext(),
@@ -209,7 +230,11 @@ class StockFragment : Fragment() {
         }
     }
 
-    // Função para preencher o Spinner de Produtos
+    /**
+     * Popula o dropdown de produtos (filtrados pela categoria selecionada).
+     * Configura listeners para garantir que o dropdown abre corretamente.
+     * @param products Lista de produtos a exibir (já filtrados por categoria)
+     */
     private fun updateProductSpinner(products: List<Produto>) {
         val productNames = products.map { it.nome }
         val adapter = ArrayAdapter(

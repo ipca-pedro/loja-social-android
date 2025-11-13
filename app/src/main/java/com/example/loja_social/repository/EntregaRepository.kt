@@ -6,8 +6,16 @@ import com.example.loja_social.api.EntregasResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Repository para operações relacionadas com entregas.
+ * Centraliza chamadas à API para listar e concluir entregas.
+ */
 class EntregaRepository(private val apiService: ApiService) {
 
+    /**
+     * Obtém a lista de todas as entregas (agendadas e concluídas).
+     * @return Resposta da API com lista de entregas
+     */
     suspend fun getEntregas(): EntregasResponse {
         return withContext(Dispatchers.IO) {
             apiService.getEntregas()
@@ -15,7 +23,10 @@ class EntregaRepository(private val apiService: ApiService) {
     }
 
     /**
-     * RF4: Marca uma entrega como concluída, o trigger na BD faz o abate do stock.
+     * Marca uma entrega agendada como concluída.
+     * O trigger na base de dados faz automaticamente o abate do stock.
+     * @param entregaId ID da entrega a concluir
+     * @return Resposta da API com dados da entrega concluída
      */
     suspend fun concluirEntrega(entregaId: String): ConcluirEntregaResponse {
         return withContext(Dispatchers.IO) {

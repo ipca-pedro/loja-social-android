@@ -12,14 +12,22 @@ import kotlinx.coroutines.withContext
  */
 class AgendarEntregaRepository(private val apiService: ApiService) {
 
-    // Reutiliza o endpoint de beneficiários para o dropdown
+    /**
+     * Obtém a lista de todos os beneficiários disponíveis.
+     * Usado para popular o dropdown de seleção no formulário de agendamento.
+     * @return Resposta da API com a lista de beneficiários
+     */
     suspend fun getBeneficiarios(): BeneficiariosResponse {
         return withContext(Dispatchers.IO) {
             apiService.getBeneficiarios()
         }
     }
 
-    // RF4: Agenda a entrega (a listagem de itens é temporariamente vazia para simplificação)
+    /**
+     * Agenda uma nova entrega com os itens de stock selecionados.
+     * @param request Requisição contendo beneficiário, data e lista de itens
+     * @return Resposta da API com os dados da entrega criada
+     */
     suspend fun agendarEntrega(request: AgendarEntregaRequest): AgendarEntregaResponse {
         return withContext(Dispatchers.IO) {
             apiService.agendarEntrega(request)

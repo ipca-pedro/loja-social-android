@@ -10,32 +10,44 @@ import com.example.loja_social.R
 import com.example.loja_social.api.Beneficiario
 import com.example.loja_social.databinding.ListItemBeneficiarioBinding
 
+/**
+ * Adapter para exibir beneficiários em um RecyclerView.
+ * Mostra nome, contacto (email ou número de estudante) e estado (ativo/inativo).
+ * Usa TextView estilizado como Chip para o estado (compatibilidade com minSdk 24).
+ * 
+ * @param onBeneficiarioClicked Callback chamado quando o utilizador clica em um beneficiário
+ */
 class BeneficiarioAdapter(private val onBeneficiarioClicked: (String) -> Unit) : ListAdapter<Beneficiario, BeneficiarioAdapter.BeneficiarioViewHolder>(BeneficiarioDiffCallback()) {
 
     inner class BeneficiarioViewHolder(private val binding: ListItemBeneficiarioBinding) : RecyclerView.ViewHolder(binding.root) {
 
+        /**
+         * Liga os dados do beneficiário aos componentes da UI.
+         * Exibe nome, contacto e estado com cores dinâmicas.
+         * @param beneficiario O beneficiário a exibir
+         */
         fun bind(beneficiario: Beneficiario) {
             try {
                 val context = binding.root.context
 
-                // Preencher nome
+                // Exibe nome completo (ou "Sem nome" se null)
                 binding.tvNomeCompleto.text = beneficiario.nomeCompleto ?: "Sem nome"
 
-                // Tenta mostrar o email, se não houver, mostra o nº de estudante
+                // Exibe email ou número de estudante (prioridade para email)
                 binding.tvDetalhe.text = beneficiario.email ?: beneficiario.numEstudante ?: "Sem contacto"
 
-                // Lógica para o estado usando TextView estilizado como Chip
+                // Configura estado (ativo/inativo) com TextView estilizado como Chip
+                // Nota: Usa TextView em vez de Chip para compatibilidade com minSdk 24
                 val estado = beneficiario.estado ?: "inativo"
                 val isAtivo = estado.equals("ativo", ignoreCase = true)
                 
                 binding.tvEstado.text = if (isAtivo) "Ativo" else "Inativo"
                 
-                // Configurar cor de fundo do TextView usando GradientDrawable
+                // Cria um GradientDrawable programaticamente para simular um Chip
                 try {
                     val colorRes = if (isAtivo) R.color.estadoAtivo else R.color.estadoInativo
                     val backgroundColor = ContextCompat.getColor(context, colorRes)
                     
-                    // Criar um GradientDrawable programaticamente
                     val drawable = android.graphics.drawable.GradientDrawable().apply {
                         setColor(backgroundColor)
                         cornerRadius = 12f * context.resources.displayMetrics.density // 12dp em pixels
@@ -55,7 +67,7 @@ class BeneficiarioAdapter(private val onBeneficiarioClicked: (String) -> Unit) :
                     }
                 }
 
-                // Torna o item clicável e envia o ID
+                // Torna o item clicável e envia o ID do beneficiário
                 binding.root.setOnClickListener {
                     try {
                         onBeneficiarioClicked(beneficiario.id)
@@ -86,9 +98,16 @@ class BeneficiarioAdapter(private val onBeneficiarioClicked: (String) -> Unit) :
     }
 }
 
+/**
+ * Callback para DiffUtil usado pelo BeneficiarioAdapter.
+ * Compara beneficiários pelo ID para determinar se são o mesmo item,
+ * e compara todos os campos para determinar se o conteúdo mudou.
+ */
 class BeneficiarioDiffCallback : DiffUtil.ItemCallback<Beneficiario>() {
+    /**
+     * Verifica se dois itens representam o mesmo beneficiário (mesmo ID).
+     */
     override fun areItemsTheSame(oldItem: Beneficiario, newItem: Beneficiario): Boolean {
-        // IDs são suficientes para saber se são o mesmo item (mesmo que o conteúdo mude)
         return try {
             oldItem.id == newItem.id
         } catch (e: Exception) {
@@ -97,8 +116,10 @@ class BeneficiarioDiffCallback : DiffUtil.ItemCallback<Beneficiario>() {
         }
     }
 
+    /**
+     * Verifica se o conteúdo de dois beneficiários é idêntico.
+     */
     override fun areContentsTheSame(oldItem: Beneficiario, newItem: Beneficiario): Boolean {
-        // Compara o conteúdo da data class (nomes, emails, etc.)
         return try {
             oldItem == newItem
         } catch (e: Exception) {

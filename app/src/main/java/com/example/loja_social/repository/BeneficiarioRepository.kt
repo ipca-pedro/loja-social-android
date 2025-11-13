@@ -3,15 +3,22 @@ package com.example.loja_social.repository
 import com.example.loja_social.api.ApiService
 import com.example.loja_social.api.BeneficiariosResponse
 import com.example.loja_social.api.BeneficiarioRequest
-import com.example.loja_social.api.FullSingleBeneficiarioResponse // <-- Import necessário para resolver o erro
+import com.example.loja_social.api.FullSingleBeneficiarioResponse
 import com.example.loja_social.api.SingleBeneficiarioResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
+/**
+ * Repository para operações relacionadas com beneficiários.
+ * Centraliza todas as chamadas à API de gestão de beneficiários (CRUD).
+ */
 class BeneficiarioRepository(private val apiService: ApiService) {
 
-    // Lista todos os beneficiários
+    /**
+     * Obtém a lista de todos os beneficiários.
+     * @return Resposta da API com a lista de beneficiários
+     */
     suspend fun getBeneficiarios(): BeneficiariosResponse {
         return withContext(Dispatchers.IO) {
             apiService.getBeneficiarios()
@@ -19,15 +26,17 @@ class BeneficiarioRepository(private val apiService: ApiService) {
     }
 
     /**
-     * [NOVO] Obtém um único beneficiário (simulado usando a listagem completa, pois não há endpoint específico).
+     * Obtém um único beneficiário pelo seu ID.
+     * Nota: Como não existe endpoint específico, busca a lista completa e filtra localmente.
+     * @param beneficiarioId O ID (UUID) do beneficiário
+     * @return Resposta da API com o beneficiário encontrado ou null se não encontrado
      */
     suspend fun getBeneficiario(beneficiarioId: String): FullSingleBeneficiarioResponse {
         return withContext(Dispatchers.IO) {
-            // Primeiro, buscamos a lista completa (simulando a busca de um único item)
+            // Busca a lista completa e filtra pelo ID
             val response = apiService.getBeneficiarios()
 
             if (response.success && response.data.isNotEmpty()) {
-                // Filtramos a lista para encontrar o beneficiário com o ID
                 val beneficiario = response.data.find { it.id == beneficiarioId }
                 if (beneficiario != null) {
                     FullSingleBeneficiarioResponse(true, "Beneficiário carregado com sucesso.", beneficiario)
@@ -35,7 +44,6 @@ class BeneficiarioRepository(private val apiService: ApiService) {
                     FullSingleBeneficiarioResponse(false, "Beneficiário com ID '$beneficiarioId' não encontrado.", null)
                 }
             } else {
-                // Erro ao carregar lista (ou lista vazia)
                 FullSingleBeneficiarioResponse(
                     response.success,
                     response.message ?: "Falha ao carregar lista de beneficiários da API.",
@@ -45,7 +53,12 @@ class BeneficiarioRepository(private val apiService: ApiService) {
         }
     }
 
-    // [NOVO] Cria um novo beneficiário (POST)
+    /**
+     * Cria um novo beneficiário.
+     * Trata erros HTTP específicos (409 Conflict para duplicados, 400 Bad Request, etc.).
+     * @param request Dados do novo beneficiário
+     * @return Resposta da API com o beneficiário criado ou mensagem de erro
+     */
     suspend fun createBeneficiario(request: BeneficiarioRequest): SingleBeneficiarioResponse {
         return withContext(Dispatchers.IO) {
             try {
@@ -89,7 +102,12 @@ class BeneficiarioRepository(private val apiService: ApiService) {
         }
     }
 
-    // [NOVO] Atualiza um beneficiário existente (PUT)
+    /**
+     * Atualiza um beneficiário existente.
+     * @param beneficiarioId O ID (UUID) do beneficiário a atualizar
+     * @param request Dados atualizados do beneficiário
+     * @return Resposta da API com o beneficiário atualizado ou mensagem de erro
+     */
     suspend fun updateBeneficiario(beneficiarioId: String, request: BeneficiarioRequest): SingleBeneficiarioResponse {
         return withContext(Dispatchers.IO) {
             apiService.updateBeneficiario(beneficiarioId, request)
