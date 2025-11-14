@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.loja_social.R
 import com.example.loja_social.SessionManager
+import com.example.loja_social.api.RetrofitHelper
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.databinding.FragmentAgendarEntregaBinding
 import com.example.loja_social.repository.AgendarEntregaRepository
@@ -32,7 +33,16 @@ class AgendarEntregaFragment : Fragment() {
     // A propriedade beneficiariosAdapter foi REMOVIDA
 
     private val viewModel: AgendarEntregaViewModel by viewModels {
-        val apiService = RetrofitInstance.api
+        // O RetrofitInstance já deve estar inicializado na Application (LojaSocialApp)
+        // Mas adicionamos proteção para garantir que está inicializado
+        val apiService = try {
+            RetrofitInstance.api
+        } catch (e: UninitializedPropertyAccessException) {
+            // Se não estiver inicializado, tentar inicializar agora
+            val context = requireContext().applicationContext
+            RetrofitHelper.ensureInitialized(context)
+            RetrofitInstance.api
+        }
         val repository = AgendarEntregaRepository(apiService)
         val stockRepository = com.example.loja_social.repository.StockRepository(apiService)
         AgendarEntregaViewModelFactory(repository, stockRepository)
@@ -42,6 +52,10 @@ class AgendarEntregaFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        // Garantir que o Retrofit está inicializado antes de criar o view
+        val context = requireContext().applicationContext
+        RetrofitHelper.ensureInitialized(context)
+        
         _binding = FragmentAgendarEntregaBinding.inflate(inflater, container, false)
         sessionManager = SessionManager(requireContext())
         return binding.root
@@ -49,10 +63,21 @@ class AgendarEntregaFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupRecyclerView()
-        setupListeners()
-        observeUiState()
-        observeUiEvents()
+        
+        // Verificação adicional de segurança
+        try {
+            setupRecyclerView()
+            setupListeners()
+            observeUiState()
+            observeUiEvents()
+        } catch (e: Exception) {
+            android.util.Log.e("AgendarEntregaFragment", "Erro ao inicializar fragment", e)
+            Toast.makeText(context, "Erro ao carregar o ecrã de agendamento", Toast.LENGTH_LONG).show()
+            // Tentar voltar atrás se possível
+            if (isAdded) {
+                parentFragmentManager.popBackStack()
+            }
+        }
     }
 
     override fun onResume() {

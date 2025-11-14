@@ -95,17 +95,19 @@
                 android:id="@+id/tv_estado_concluido"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:text="ENTREGUE"
+                android:textSize="12sp"
                 android:textStyle="bold"
-                android:textAllCaps="true"
                 app:chipBackgroundColor="@android:color/holo_green_dark"
                 app:chipStrokeWidth="0dp"
                 app:chipCornerRadius="12dp"
+                app:chipMinHeight="24dp"
+                app:chipStartPadding="8dp"
+                app:chipEndPadding="8dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 android:visibility="gone"
-                tools:text="ENTREGUE"
                 tools:visibility="visible" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>

@@ -10,20 +10,42 @@ import com.example.loja_social.repository.AgendarEntregaRepository
 import com.example.loja_social.repository.StockRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/**
+ * Eventos unidirecionais do ViewModel para o Fragment.
+ * Usado para comunicação de eventos únicos (como mensagens de sucesso).
+ */
 sealed class AgendarEntregaEvent {
+    /**
+     * Evento para exibir uma mensagem de sucesso.
+     * @param message Mensagem a exibir
+     */
     data class ShowSuccessMessage(val message: String) : AgendarEntregaEvent()
 }
 
+/**
+ * Representa um item selecionado para a entrega.
+ * @param lote O lote de stock selecionado
+ * @param quantidade A quantidade a entregar deste lote
+ */
 data class ItemSelecionado(
     val lote: LoteIndividual,
     val quantidade: Int
 )
 
+/**
+ * Estado da UI do ecrã de agendamento de entrega.
+ * @param isLoading Indica se os dados estão a ser carregados
+ * @param isScheduling Indica se a entrega está a ser agendada
+ * @param beneficiarios Lista de beneficiários disponíveis
+ * @param lotesDisponiveis Lista de lotes de stock disponíveis
+ * @param itensSelecionados Lista de itens selecionados para a entrega
+ * @param selectedBeneficiarioId ID do beneficiário selecionado
+ * @param errorMessage Mensagem de erro, se houver
+ */
 data class AgendarEntregaUiState(
     val isLoading: Boolean = false,
     val isScheduling: Boolean = false,
@@ -34,6 +56,14 @@ data class AgendarEntregaUiState(
     val errorMessage: String? = null
 )
 
+/**
+ * ViewModel para o ecrã de agendamento de entregas.
+ * Gerencia o estado da UI, carrega dados necessários (beneficiários e lotes),
+ * e processa o agendamento de entregas.
+ * 
+ * @param repository Repository para operações de agendamento de entregas
+ * @param stockRepository Repository para operações de stock
+ */
 class AgendarEntregaViewModel(
     private val repository: AgendarEntregaRepository,
     private val stockRepository: StockRepository
@@ -47,6 +77,10 @@ class AgendarEntregaViewModel(
 
     private var fetchDataJob: Job? = null
 
+    /**
+     * Inicializa o ViewModel quando o Fragment está pronto.
+     * Carrega beneficiários e lotes disponíveis em paralelo.
+     */
     fun onFragmentReady() {
         fetchDataJob?.cancel()
         _uiState.value = AgendarEntregaUiState()
@@ -56,20 +90,27 @@ class AgendarEntregaViewModel(
                 launch { fetchBeneficiarios() }.join()
                 launch { fetchLotesDisponiveis() }.join()
             } finally {
-                // ** A CORREÇÃO FINAL E DEFINITIVA ESTÁ AQUI **
-                // Usar "this.isActive" para remover a ambiguidade e aceder à propriedade do CoroutineScope
-                if (currentCoroutineContext().isActive) {
+                // Verifica se a coroutine ainda está ativa antes de atualizar o estado
+                // Evita atualizar o estado após cancelamento
+                if (isActive) {
                     _uiState.update { it.copy(isLoading = false) }
                 }
             }
         }
     }
 
+    /**
+     * Processa a seleção de um beneficiário no dropdown.
+     * @param selection String formatada do beneficiário selecionado (formato: "Nome (Número Estudante)")
+     */
     fun onBeneficiarioSelected(selection: String) {
         val id = _uiState.value.beneficiarios.find { b -> "${b.nomeCompleto} (${b.numEstudante ?: "N/A"})" == selection }?.id
         _uiState.update { it.copy(selectedBeneficiarioId = id, errorMessage = null) }
     }
 
+    /**
+     * Carrega a lista de beneficiários da API.
+     */
     private suspend fun fetchBeneficiarios() {
         try {
             val response = repository.getBeneficiarios()
@@ -85,6 +126,9 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Carrega a lista de lotes de stock disponíveis da API.
+     */
     private suspend fun fetchLotesDisponiveis() {
         try {
             val response = stockRepository.getAllLotes()
@@ -100,6 +144,13 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Agenda uma nova entrega.
+     * Valida os dados e envia a requisição para a API.
+     * 
+     * @param colaboradorId ID do colaborador que está a agendar a entrega
+     * @param dataAgendamentoStr Data de agendamento no formato DD/MM/YYYY
+     */
     fun agendarEntrega(colaboradorId: String, dataAgendamentoStr: String) {
         val state = _uiState.value
         if (state.isScheduling) return
@@ -139,6 +190,13 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Adiciona um item à lista de itens selecionados para a entrega.
+     * Valida se a quantidade é válida antes de adicionar.
+     * 
+     * @param lote O lote de stock a adicionar
+     * @param quantidade A quantidade a entregar
+     */
     fun adicionarItem(lote: LoteIndividual, quantidade: Int) {
         if (quantidade <= 0 || quantidade > lote.quantidadeAtual) {
             _uiState.update { it.copy(errorMessage = "Quantidade inválida. Máximo: ${lote.quantidadeAtual}") }
@@ -148,10 +206,21 @@ class AgendarEntregaViewModel(
         _uiState.update { s -> s.copy(itensSelecionados = s.itensSelecionados + item, errorMessage = null) }
     }
 
+    /**
+     * Remove um item da lista de itens selecionados.
+     * @param loteId ID do lote a remover
+     */
     fun removerItem(loteId: String) {
         _uiState.update { s -> s.copy(itensSelecionados = s.itensSelecionados.filter { it.lote.id != loteId }) }
     }
 
+    /**
+     * Atualiza a quantidade de um item já selecionado.
+     * Valida se a nova quantidade é válida antes de atualizar.
+     * 
+     * @param loteId ID do lote cuja quantidade será atualizada
+     * @param novaQuantidade Nova quantidade a definir
+     */
     fun atualizarQuantidade(loteId: String, novaQuantidade: Int) {
         _uiState.update { state ->
             val item = state.itensSelecionados.find { it.lote.id == loteId }
@@ -163,6 +232,9 @@ class AgendarEntregaViewModel(
         }
     }
 
+    /**
+     * Limpa as mensagens de erro do estado.
+     */
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null) }
     }
