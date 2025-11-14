@@ -1,0 +1,76 @@
+const express = require('express');
+const pool = require('../db');
+const { authenticateToken } = require('../middleware/auth');
+const router = express.Router();
+
+// POST /api/entregas - Criar nova entrega (requer autenticação)
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const { beneficiario_id, items } = req.body;
+    const colaborador_id = req.user.id; // Extraído do token JWT
+
+    if (!beneficiario_id || !items || !Array.isArray(items)) {
+      return res.status(400).json({
+        success: false,
+        message: 'beneficiario_id e items são obrigatórios'
+      });
+    }
+
+    // Criar entrega
+    const entregaResult = await pool.query(
+      'INSERT INTO entregas (beneficiario_id, colaborador_id, data_entrega, estado) VALUES ($1, $2, NOW(), $3) RETURNING id',
+      [beneficiario_id, colaborador_id, 'pendente']
+    );
+
+    const entrega_id = entregaResult.rows[0].id;
+
+    // Adicionar items da entrega
+    for (const item of items) {
+      await pool.query(
+        'INSERT INTO entrega_items (entrega_id, stock_item_id, quantidade) VALUES ($1, $2, $3)',
+        [entrega_id, item.stock_item_id, item.quantidade]
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Entrega criada com sucesso',
+      data: { 
+        entrega_id,
+        colaborador: req.user.nome
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao criar entrega:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+// GET /api/entregas/minhas - Listar entregas do utilizador autenticado
+router.get('/minhas', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT e.*, b.nome as beneficiario_nome 
+      FROM entregas e
+      JOIN beneficiarios b ON e.beneficiario_id = b.id
+      WHERE e.colaborador_id = $1
+      ORDER BY e.data_entrega DESC
+    `, [req.user.id]);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Erro ao obter entregas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+module.exports = router;

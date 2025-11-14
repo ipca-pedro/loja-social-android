@@ -49,6 +49,7 @@ data class LoginResponse(
     @SerializedName("token") val token: String?
 )
 
+
 // ===== MODELOS DE ADMIN: BENEFICIÁRIOS =====
 
 /**
@@ -234,6 +235,7 @@ data class EntregasResponse(
  */
 data class AgendarEntregaRequest(
     @SerializedName("beneficiario_id") val beneficiarioId: String,
+    @SerializedName("colaborador_id") val colaboradorId: String,
     @SerializedName("data_agendamento") val dataAgendamento: String,
     @SerializedName("itens") val itens: List<AgendarEntregaItemRequest>
 )
@@ -263,20 +265,20 @@ data class EntregaAgendadaData(
 )
 
 /**
+ * Dados de uma entrega concluída (ID e estado final).
+ */
+data class ConcluirEntregaData(
+    @SerializedName("id") val id: String,
+    @SerializedName("estado") val estado: String
+)
+
+/**
  * Resposta da API após concluir uma entrega.
  */
 data class ConcluirEntregaResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
-    @SerializedName("data") val data: EntregaConcluidaData?
-)
-
-/**
- * Dados de uma entrega concluída (ID e estado final).
- */
-data class EntregaConcluidaData(
-    @SerializedName("id") val id: String,
-    @SerializedName("estado") val estado: String
+    @SerializedName("data") val data: ConcluirEntregaData?
 )
 
 // ===== WRAPPER GENÉRICO DE RESPOSTA DA API =====

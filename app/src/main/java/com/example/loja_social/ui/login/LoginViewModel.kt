@@ -12,7 +12,7 @@ import java.lang.Exception
 
 /**
  * ViewModel para o ecrã de login.
- * Gerencia a autenticação do utilizador e o armazenamento do token de sessão.
+ * Gerencia a autenticação do utilizador e o armazenamento da sessão.
  */
 class LoginViewModel(
     private val loginRepository: LoginRepository,
@@ -24,16 +24,14 @@ class LoginViewModel(
 
     /**
      * Processa o login do utilizador.
-     * Valida os campos, autentica via API e guarda o token de sessão.
+     * Valida os campos, autentica via API e guarda a sessão.
      * 
      * @param email Email do utilizador
      * @param password Password do utilizador
      */
     fun login(email: String, password: String) {
-        // Previne múltiplas tentativas simultâneas
         if (_uiState.value == LoginUiState.Loading) return
 
-        // Validação básica dos campos
         if (email.isEmpty() || password.isEmpty()) {
             _uiState.value = LoginUiState.Error("Por favor, preencha todos os campos.")
             return
@@ -43,10 +41,11 @@ class LoginViewModel(
             _uiState.value = LoginUiState.Loading
             try {
                 val response = loginRepository.login(email, password)
+                // LÓGICA CORRIGIDA E SIMPLIFICADA
                 if (response.success && response.token != null) {
-                    // Guarda o token para uso em requisições futuras
+                    // A "magia" acontece aqui: saveAuthToken agora também guarda o ID
                     sessionManager.saveAuthToken(response.token)
-                    Log.d("LoginViewModel", "Login bem-sucedido! Token guardado.")
+                    Log.d("LoginViewModel", "Login bem-sucedido! Sessão guardada.")
                     _uiState.value = LoginUiState.Success
                 } else {
                     Log.d("LoginViewModel", "Login falhou: ${response.message}")

@@ -9,7 +9,8 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController // <--- IMPORT ESSENCIAL CORRIGIDO
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager // Import necessário
 import com.example.loja_social.R
 import com.example.loja_social.api.Entrega
 import com.example.loja_social.api.RetrofitInstance
@@ -23,7 +24,6 @@ class EntregasFragment : Fragment() {
     private var _binding: FragmentEntregasBinding? = null
     private val binding get() = _binding!!
 
-    // Inicializar o Adapter com a lambda para o clique do botão
     private val entregaAdapter = EntregaAdapter { entrega ->
         showConfirmarEntregaDialog(entrega)
     }
@@ -47,15 +47,15 @@ class EntregasFragment : Fragment() {
 
         // Configurar o RecyclerView
         binding.rvEntregas.adapter = entregaAdapter
+        binding.rvEntregas.layoutManager = LinearLayoutManager(context) // CORREÇÃO: Adicionar o LayoutManager
 
         // SwipeRefreshLayout
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.fetchEntregas()
         }
 
-        // LÓGICA DO BOTÃO FAB PARA AGENDAR (PROBLEMA DE NAVEGAÇÃO CORRIGIDO PELO IMPORT)
+        // LÓGICA DO BOTÃO FAB PARA AGENDAR
         binding.fabAddEntrega.setOnClickListener {
-            // Navega para o novo fragmento de agendamento
             findNavController().navigate(R.id.action_nav_entregas_to_nav_agendar_entrega)
         }
 
@@ -70,7 +70,6 @@ class EntregasFragment : Fragment() {
                 binding.progressBar.isVisible = state.isLoading && !binding.swipeRefresh.isRefreshing
                 binding.swipeRefresh.isRefreshing = state.isLoading
 
-                // Lógica para mostrar a lista ou o empty state
                 val hasData = state.entregas.isNotEmpty()
                 val showList = !state.isLoading && state.errorMessage == null && hasData
                 val showEmptyState = !state.isLoading && state.errorMessage == null && !hasData
@@ -79,12 +78,9 @@ class EntregasFragment : Fragment() {
                 binding.emptyState.isVisible = showEmptyState
                 binding.fabAddEntrega.isVisible = !state.isLoading
 
-                // Preencher dados na lista
                 entregaAdapter.submitList(state.entregas)
 
-                // Mostrar mensagem de sucesso ou erro (usando Snackbar seria melhor, mas mantendo compatibilidade)
                 if (state.actionSuccessMessage != null) {
-                    // Mostrar mensagem de sucesso temporariamente
                     android.widget.Toast.makeText(
                         requireContext(),
                         state.actionSuccessMessage,
@@ -95,11 +91,6 @@ class EntregasFragment : Fragment() {
         }
     }
 
-    /**
-     * Mostra um diálogo de confirmação antes de concluir uma entrega.
-     * Exibe informações da entrega e avisa que o stock será automaticamente abatido.
-     * @param entrega A entrega a ser confirmada
-     */
     private fun showConfirmarEntregaDialog(entrega: Entrega) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Confirmar Entrega")
