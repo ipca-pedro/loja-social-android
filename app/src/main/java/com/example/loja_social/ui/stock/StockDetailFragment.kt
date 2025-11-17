@@ -133,16 +133,20 @@ class StockDetailFragment : Fragment() {
                 if (date != null) {
                     binding.tvValidadeProxima.text = outputFormat.format(date)
                     binding.llValidade.isVisible = true
+                    binding.dividerValidade.isVisible = true
                 } else {
                     binding.llValidade.isVisible = false
+                    binding.dividerValidade.isVisible = false
                 }
             } catch (e: Exception) {
                 // Em caso de erro, mostra a data original
                 binding.tvValidadeProxima.text = stockItem.validadeProxima
                 binding.llValidade.isVisible = true
+                binding.dividerValidade.isVisible = true
             }
         } else {
             binding.llValidade.isVisible = false
+            binding.dividerValidade.isVisible = false
         }
     }
 

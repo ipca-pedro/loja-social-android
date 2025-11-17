@@ -6,25 +6,27 @@
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginVertical="6dp"
-        app:cardElevation="4dp"
-        app:cardCornerRadius="12dp"
-        app:strokeWidth="0dp">
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginVertical="8dp"
+        app:cardElevation="2dp"
+        app:cardCornerRadius="16dp"
+        app:strokeWidth="0dp"
+        app:cardBackgroundColor="?attr/colorSurface">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:minHeight="80dp">
+            android:padding="20dp"
+            android:minHeight="120dp">
 
             <TextView
                 android:id="@+id/tv_lote_id"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?android:attr/textColorSecondary"
                 android:textStyle="bold"
+                android:letterSpacing="0.02"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/chip_validade"
@@ -34,10 +36,11 @@
                 android:id="@+id/tv_quantidade"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:layout_marginTop="12dp"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
                 android:textStyle="bold"
                 android:textColor="@color/colorPrimary"
+                android:letterSpacing="0.01"
                 app:layout_constraintTop_toBottomOf="@id/tv_lote_id"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/btn_edit"
@@ -47,83 +50,113 @@
                 android:id="@+id/ll_datas"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="12dp"
                 android:orientation="vertical"
                 app:layout_constraintTop_toBottomOf="@id/tv_quantidade"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/btn_edit">
+                app:layout_constraintEnd_toStartOf="@id/btn_edit"
+                app:layout_constraintBottom_toTopOf="@id/ll_buttons">
 
                 <TextView
                     android:id="@+id/tv_data_entrada"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="?android:attr/textColorSecondary"
+                    android:drawablePadding="8dp"
                     tools:text="Entrada: 15/01/2024" />
 
                 <TextView
                     android:id="@+id/tv_data_validade"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:layout_marginTop="6dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="?android:attr/textColorSecondary"
+                    android:drawablePadding="8dp"
                     android:visibility="gone"
                     tools:text="Validade: 31/12/2025"
                     tools:visibility="visible" />
             </LinearLayout>
 
-            <TextView
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/chip_validade"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textStyle="bold"
-                android:textColor="@android:color/white"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:minHeight="24dp"
-                android:gravity="center"
                 android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="Vence em 5 dias"
-                tools:visibility="visible" />
+                tools:visibility="visible">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_edit"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Editar"
-                android:textSize="14sp"
-                app:icon="@android:drawable/ic_menu_edit"
-                app:iconGravity="textStart"
-                app:layout_constraintEnd_toStartOf="@id/btn_delete"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent" />
+                <TextView
+                    android:id="@+id/tv_chip_validade"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:minHeight="32dp"
+                    android:gravity="center"
+                    tools:text="Vence em 5 dias" />
+            </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_delete"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/ll_buttons"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Remover"
-                android:textSize="14sp"
-                android:textColor="@android:color/holo_red_dark"
-                app:icon="@android:drawable/ic_menu_delete"
-                app:iconGravity="textStart"
-                app:iconTint="@android:color/holo_red_dark"
-                app:strokeColor="@android:color/holo_red_dark"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:gravity="end"
+                app:layout_constraintTop_toBottomOf="@id/ll_datas"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent" />
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_edit"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="EDITAR"
+                    android:textSize="13sp"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="12dp"
+                    app:icon="@android:drawable/ic_menu_edit"
+                    app:iconGravity="textStart"
+                    app:iconSize="18dp"
+                    app:cornerRadius="10dp"
+                    app:strokeWidth="1.5dp"
+                    android:layout_marginEnd="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_delete"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="REMOVER"
+                    android:textSize="13sp"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="12dp"
+                    android:textColor="@android:color/holo_red_dark"
+                    app:icon="@android:drawable/ic_menu_delete"
+                    app:iconGravity="textStart"
+                    app:iconSize="18dp"
+                    app:iconTint="@android:color/holo_red_dark"
+                    app:strokeColor="@android:color/holo_red_dark"
+                    app:cornerRadius="10dp"
+                    app:strokeWidth="1.5dp" />
+            </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
 </layout>
+
 
 

@@ -68,30 +68,24 @@ class LoteAdapter(
                         val daysUntilExpiry = ((date.time - Date().time) / (1000 * 60 * 60 * 24)).toInt()
                         if (daysUntilExpiry < 0) {
                             // Vencido: vermelho
-                            binding.chipValidade.text = "VENCIDO"
-                            val drawable = android.graphics.drawable.GradientDrawable().apply {
-                                cornerRadius = 12f * context.resources.displayMetrics.density
-                                setColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
-                            }
-                            binding.chipValidade.background = drawable
+                            binding.tvChipValidade.text = "VENCIDO"
+                            binding.chipValidade.setCardBackgroundColor(
+                                ContextCompat.getColor(context, android.R.color.holo_red_dark)
+                            )
                             binding.chipValidade.isVisible = true
                         } else if (daysUntilExpiry <= 7) {
                             // Vence em 7 dias ou menos: laranja escuro
-                            binding.chipValidade.text = "Vence em $daysUntilExpiry dias"
-                            val drawable = android.graphics.drawable.GradientDrawable().apply {
-                                cornerRadius = 12f * context.resources.displayMetrics.density
-                                setColor(ContextCompat.getColor(context, android.R.color.holo_orange_dark))
-                            }
-                            binding.chipValidade.background = drawable
+                            binding.tvChipValidade.text = "Vence em $daysUntilExpiry dias"
+                            binding.chipValidade.setCardBackgroundColor(
+                                ContextCompat.getColor(context, android.R.color.holo_orange_dark)
+                            )
                             binding.chipValidade.isVisible = true
                         } else if (daysUntilExpiry <= 30) {
                             // Vence em 30 dias ou menos: laranja claro
-                            binding.chipValidade.text = "Vence em $daysUntilExpiry dias"
-                            val drawable = android.graphics.drawable.GradientDrawable().apply {
-                                cornerRadius = 12f * context.resources.displayMetrics.density
-                                setColor(ContextCompat.getColor(context, android.R.color.holo_orange_light))
-                            }
-                            binding.chipValidade.background = drawable
+                            binding.tvChipValidade.text = "Vence em $daysUntilExpiry dias"
+                            binding.chipValidade.setCardBackgroundColor(
+                                ContextCompat.getColor(context, android.R.color.holo_orange_light)
+                            )
                             binding.chipValidade.isVisible = true
                         } else {
                             // Mais de 30 dias: não mostra alerta
