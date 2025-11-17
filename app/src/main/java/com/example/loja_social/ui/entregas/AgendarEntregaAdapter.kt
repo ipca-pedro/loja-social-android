@@ -67,6 +67,13 @@ class AgendarEntregaAdapter(
                 ContextCompat.getColor(binding.root.context, R.color.estadoInativo)
             }
             binding.etQuantidade.setTextColor(textColor)
+            
+            // Mostrar erro no TextInputLayout se quantidade inválida
+            if (!isQuantidadeValida) {
+                binding.tilQuantidadeItem.error = "Máx: ${item.lote.quantidadeAtual}"
+            } else {
+                binding.tilQuantidadeItem.error = null
+            }
 
             // Cria e adiciona um novo listener para atualizar quantidade em tempo real
             textWatcher = object : TextWatcher {
@@ -82,6 +89,13 @@ class AgendarEntregaAdapter(
                         ContextCompat.getColor(binding.root.context, R.color.estadoInativo)
                     }
                     binding.etQuantidade.setTextColor(color)
+                    
+                    // Atualizar erro no TextInputLayout
+                    if (!isValid && novaQuantidade > 0) {
+                        binding.tilQuantidadeItem.error = "Máx: ${item.lote.quantidadeAtual}"
+                    } else {
+                        binding.tilQuantidadeItem.error = null
+                    }
                     
                     // Notifica o ViewModel apenas se a quantidade mudou
                     if (novaQuantidade != item.quantidade) {

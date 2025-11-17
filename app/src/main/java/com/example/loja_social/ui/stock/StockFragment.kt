@@ -59,11 +59,6 @@ class StockFragment : Fragment() {
 
         // O botão começa desativado até ser selecionado um produto
         binding.btnAddStock.isEnabled = false
-
-        // Botão para ver lista de stock
-        binding.btnViewStock.setOnClickListener {
-            findNavController().navigate(R.id.action_nav_stock_to_nav_stock_list)
-        }
     }
 
     /**

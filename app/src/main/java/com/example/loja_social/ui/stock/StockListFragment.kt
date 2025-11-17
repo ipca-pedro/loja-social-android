@@ -57,6 +57,11 @@ class StockListFragment : Fragment() {
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refresh()
         }
+
+        // Listener para o botão de adicionar
+        binding.fabAddStock.setOnClickListener {
+            findNavController().navigate(R.id.action_nav_stock_to_nav_add_stock)
+        }
     }
 
     /**

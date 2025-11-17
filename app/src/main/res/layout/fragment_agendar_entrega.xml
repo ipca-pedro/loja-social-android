@@ -39,7 +39,8 @@
                     android:textAppearance="?attr/textAppearanceTitleMedium"
                     android:textStyle="bold"
                     android:textColor="@color/colorPrimaryDark"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="4dp"/>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_beneficiario"
@@ -68,7 +69,8 @@
                     android:textAppearance="?attr/textAppearanceTitleMedium"
                     android:textStyle="bold"
                     android:textColor="@color/colorPrimaryDark"
-                    android:layout_marginTop="24dp"/>
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="4dp"/>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_data_agendamento"
@@ -103,7 +105,8 @@
                     android:textAppearance="?attr/textAppearanceTitleMedium"
                     android:textStyle="bold"
                     android:textColor="@color/colorPrimaryDark"
-                    android:layout_marginTop="24dp"/>
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="4dp"/>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_itens_entrega"
@@ -116,12 +119,17 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_add_item"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ Adicionar Item"
                     android:layout_gravity="start"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_marginTop="12dp"
+                    android:textColor="@color/colorPrimary"
+                    app:strokeColor="@color/colorPrimary"
+                    app:icon="@android:drawable/ic_input_add"
+                    app:iconTint="@color/colorPrimary"
+                    app:cornerRadius="8dp"/>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_agendar"

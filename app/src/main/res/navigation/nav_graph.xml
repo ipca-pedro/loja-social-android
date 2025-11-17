@@ -40,13 +40,22 @@
 
     <fragment
         android:id="@+id/nav_stock"
-        android:name="com.example.loja_social.ui.stock.StockFragment"
+        android:name="com.example.loja_social.ui.stock.StockListFragment"
         android:label="Stock"
-        tools:layout="@layout/fragment_stock">
+        tools:layout="@layout/fragment_stock_list">
         <action
-            android:id="@+id/action_nav_stock_to_nav_stock_list"
-            app:destination="@id/nav_stock_list" />
+            android:id="@+id/action_nav_stock_to_nav_stock_detail"
+            app:destination="@id/nav_stock_detail" />
+        <action
+            android:id="@+id/action_nav_stock_to_nav_add_stock"
+            app:destination="@id/nav_add_stock" />
     </fragment>
+
+    <fragment
+        android:id="@+id/nav_add_stock"
+        android:name="com.example.loja_social.ui.stock.StockFragment"
+        android:label="Adicionar Stock"
+        tools:layout="@layout/fragment_stock" />
 
     <fragment
         android:id="@+id/nav_stock_list"
@@ -56,6 +65,9 @@
         <action
             android:id="@+id/action_nav_stock_list_to_nav_stock_detail"
             app:destination="@id/nav_stock_detail" />
+        <action
+            android:id="@+id/action_nav_stock_list_to_nav_add_stock"
+            app:destination="@id/nav_add_stock" />
     </fragment>
 
     <fragment
