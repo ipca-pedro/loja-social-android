@@ -13,13 +13,13 @@
         android:roundIcon="@mipmap/ipca_logo"
         android:label="IPCA"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Loja_social"
+        android:theme="@style/Theme.LojaSocial" 
         tools:targetApi="31"
         android:usesCleartextTraffic="true">
 
         <!-- Ecrã de Login (ponto de entrada) -->
         <activity
-            android:name="com.example.loja_social.ui.login.LoginActivity"
+            android:name=".ui.login.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,7 +29,7 @@
 
         <!-- Ecrã principal -->
         <activity
-            android:name="com.example.loja_social.ui.main.MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="false" />
     </application>
 

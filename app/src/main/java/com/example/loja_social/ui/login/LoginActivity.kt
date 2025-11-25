@@ -1,28 +1,31 @@
+
 package com.example.loja_social.ui.login
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.loja_social.SessionManager
 import com.example.loja_social.api.RetrofitInstance
-import com.example.loja_social.databinding.ActivityLoginBinding
 import com.example.loja_social.repository.LoginRepository
 import com.example.loja_social.ui.main.MainActivity
+import com.example.loja_social.ui.theme.LojaSocialTheme
 import kotlinx.coroutines.launch
 
-/**
- * Activity de login.
- * Gerencia autenticação do utilizador e navegação para MainActivity após login bem-sucedido.
- * Verifica se já existe um token válido e redireciona automaticamente se houver.
- */
-class LoginActivity : AppCompatActivity() {
-
-    private lateinit var binding: ActivityLoginBinding
+class LoginActivity : ComponentActivity() {
 
     private val viewModel: LoginViewModel by viewModels {
         val apiService = RetrofitInstance.api
@@ -34,76 +37,93 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Verifica se já existe um token válido (utilizador já autenticado)
-        // Se sim, redireciona diretamente para MainActivity sem mostrar a tela de login
         val sessionManager = SessionManager(applicationContext)
         if (sessionManager.fetchAuthToken() != null) {
             navigateToMain()
-            return // Não continua a execução do onCreate
+            return
         }
 
-        // Infla o layout e configura a UI
-        binding = ActivityLoginBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        // Preenche campos com valores padrão (apenas para desenvolvimento)
-        binding.etEmail.setText("admin@lojasocial.pt")
-        binding.etPassword.setText("password123")
-
-        // Configura listener do botão de login
-        binding.btnLogin.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
-            val password = binding.etPassword.text.toString().trim()
-            viewModel.login(email, password)
+        setContent {
+            LojaSocialTheme {
+                LoginScreen(viewModel)
+            }
         }
 
-        // Observa mudanças no estado do ViewModel
+        // Observa o evento de sucesso para navegar
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    handleUiState(state)
+                    if (state is LoginUiState.Success) {
+                        navigateToMain()
+                    }
                 }
             }
         }
     }
 
-    /**
-     * Atualiza a UI baseado no estado atual do ViewModel.
-     * Gerencia visibilidade de componentes e mensagens de erro.
-     * @param state Estado atual do login
-     */
-    private fun handleUiState(state: LoginUiState) {
-        when (state) {
-            is LoginUiState.Idle -> {
-                binding.progressBar.visibility = View.GONE
-                binding.btnLogin.isEnabled = true
-                binding.cardError.visibility = View.GONE
+    private fun navigateToMain() {
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
+    }
+}
+
+@Composable
+fun LoginScreen(viewModel: LoginViewModel) {
+    val uiState by viewModel.uiState.collectAsState()
+    var email by remember { mutableStateOf("admin@lojasocial.pt") }
+    var password by remember { mutableStateOf("password123") }
+
+    val isLoading = uiState is LoginUiState.Loading
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Bem-Vindo", style = MaterialTheme.typography.h4)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (uiState is LoginUiState.Error) {
+                Text(
+                    text = (uiState as LoginUiState.Error).message,
+                    color = MaterialTheme.colors.error,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
             }
-            is LoginUiState.Loading -> {
-                binding.progressBar.visibility = View.VISIBLE
-                binding.btnLogin.isEnabled = false
-                binding.cardError.visibility = View.GONE
-            }
-            is LoginUiState.Success -> {
-                binding.progressBar.visibility = View.GONE
-                navigateToMain()
-            }
-            is LoginUiState.Error -> {
-                binding.progressBar.visibility = View.GONE
-                binding.btnLogin.isEnabled = true
-                binding.tvErrorMessage.text = state.message
-                binding.cardError.visibility = View.VISIBLE
+
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else {
+                Button(
+                    onClick = { viewModel.login(email, password) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("LOGIN")
+                }
             }
         }
-    }
-
-    /**
-     * Navega para a MainActivity após login bem-sucedido.
-     * Remove a LoginActivity da pilha para evitar voltar atrás.
-     */
-    private fun navigateToMain() {
-        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-        startActivity(intent)
-        finish() // Remove a LoginActivity da pilha
     }
 }

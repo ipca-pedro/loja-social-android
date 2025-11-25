@@ -91,4 +91,11 @@ class EntregasViewModel(
             }
         }
     }
+
+    /**
+     * Limpa a mensagem de sucesso da ação.
+     */
+    fun clearActionMessage() {
+        _uiState.value = _uiState.value.copy(actionSuccessMessage = null)
+    }
 }
