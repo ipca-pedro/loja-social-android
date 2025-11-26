@@ -23,13 +23,14 @@ fun StockScreen(viewModel: StockViewModel) {
     val context = LocalContext.current
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var categoryExpanded by remember { mutableStateOf(false) }
     var selectedProduct by remember { mutableStateOf<Produto?>(null) }
+    var productExpanded by remember { mutableStateOf(false) }
     var quantidade by remember { mutableStateOf("") }
     var dataValidade by remember { mutableStateOf("") }
 
     val productsInCategory = uiState.produtos.filter { it.categoria == selectedCategory }
 
-    // Limpa o formulário quando uma mensagem de sucesso é mostrada
     LaunchedEffect(uiState.successMessage) {
         if (uiState.successMessage != null) {
             selectedCategory = null
@@ -39,8 +40,8 @@ fun StockScreen(viewModel: StockViewModel) {
         }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Adicionar Stock") }) }) {
-        Box(modifier = Modifier.padding(it).fillMaxSize()){
+    Scaffold(topBar = { TopAppBar(title = { Text("Adicionar Stock") }) }) { padding ->
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .padding(16.dp)
@@ -48,21 +49,23 @@ fun StockScreen(viewModel: StockViewModel) {
             ) {
                 // Categoria Dropdown
                 ExposedDropdownMenuBox(
-                    expanded = false,
-                    onExpandedChange = { }
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = !categoryExpanded }
                 ) {
                     OutlinedTextField(
                         value = selectedCategory ?: "",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Categoria") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    ExposedDropdownMenu(expanded = false, onDismissRequest = { }) {
+                    ExposedDropdownMenu(expanded = categoryExpanded, onDismissRequest = { categoryExpanded = false }) {
                         uiState.categorias.forEach { category ->
                             DropdownMenuItem(onClick = {
                                 selectedCategory = category.nome
-                                selectedProduct = null
+                                selectedProduct = null // Limpa produto ao mudar categoria
+                                categoryExpanded = false
                             }) {
                                 Text(category.nome)
                             }
@@ -73,20 +76,24 @@ fun StockScreen(viewModel: StockViewModel) {
 
                 // Produto Dropdown
                 ExposedDropdownMenuBox(
-                    expanded = false,
-                    onExpandedChange = { }
+                    expanded = productExpanded,
+                    onExpandedChange = { productExpanded = !productExpanded }
                 ) {
                     OutlinedTextField(
                         value = selectedProduct?.nome ?: "",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Produto") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = productExpanded) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = selectedCategory != null
                     )
-                    ExposedDropdownMenu(expanded = false, onDismissRequest = {}) {
+                    ExposedDropdownMenu(expanded = productExpanded, onDismissRequest = { productExpanded = false }) {
                         productsInCategory.forEach { product ->
-                            DropdownMenuItem(onClick = { selectedProduct = product }) {
+                            DropdownMenuItem(onClick = {
+                                selectedProduct = product
+                                productExpanded = false
+                            }) {
                                 Text(product.nome)
                             }
                         }
@@ -102,19 +109,18 @@ fun StockScreen(viewModel: StockViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 OutlinedTextField(
-                    value = dataValidade, 
+                    value = dataValidade,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Data de Validade (Opcional)") },
-                    modifier = Modifier.fillMaxWidth().clickable { 
+                    modifier = Modifier.fillMaxWidth().clickable {
                         showDatePickerDialog(context, dataValidade) { dataValidade = it }
                     }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Mensagens e Botão
                 if (uiState.errorMessage != null) {
                     Text(uiState.errorMessage!!, color = MaterialTheme.colors.error)
                 }
@@ -136,8 +142,8 @@ fun StockScreen(viewModel: StockViewModel) {
                     Text(if (uiState.isFormLoading) "A ADICIONAR..." else "ADICIONAR STOCK")
                 }
             }
-            if(uiState.isLoading){
-                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
         }
     }
@@ -150,7 +156,7 @@ private fun showDatePickerDialog(context: android.content.Context, initialDate: 
             val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             calendar.time = sdf.parse(initialDate)!!
         }
-    } catch (e: Exception) { }
+    } catch (e: Exception) { /* usa data atual se o parse falhar */ }
 
     DatePickerDialog(
         context,
@@ -164,4 +170,3 @@ private fun showDatePickerDialog(context: android.content.Context, initialDate: 
         datePicker.minDate = System.currentTimeMillis()
     }.show()
 }
-

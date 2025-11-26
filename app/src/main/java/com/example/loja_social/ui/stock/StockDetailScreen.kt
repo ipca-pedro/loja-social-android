@@ -66,7 +66,7 @@ fun StockDetailScreen(viewModel: StockDetailViewModel) {
             lote = showEditDialog!!,
             onDismiss = { showEditDialog = null },
             onSave = { loteId, quantidade, data ->
-                viewModel.updateLote(loteId.toString(), quantidade, data)
+                viewModel.updateLote(loteId, quantidade, data)
                 showEditDialog = null
             }
         )
@@ -115,6 +115,7 @@ fun LoteItemRow(lote: LoteIndividual, onEditClick: () -> Unit, onDeleteClick: ()
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Lote #${lote.id}", fontWeight = FontWeight.Bold)
+                Text("Entrada: ${lote.dataEntrada}", fontSize = 14.sp)
                 Text("Quantidade: ${lote.quantidadeAtual}", fontSize = 14.sp)
                 lote.dataValidade?.let {
                     Text("Validade: $it", fontSize = 14.sp)
