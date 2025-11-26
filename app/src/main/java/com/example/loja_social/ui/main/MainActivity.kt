@@ -133,7 +133,11 @@ class MainActivity : ComponentActivity() {
                 val viewModel: com.example.loja_social.ui.dashboard.DashboardViewModel = viewModel(
                     factory = DashboardViewModelFactory(DashboardRepository(apiService))
                 )
-                DashboardScreen(viewModel)
+                DashboardScreen(
+                    viewModel = viewModel,
+                    onNavigateToAlerts = { navController.navigate(Screen.Stock.route) },
+                    onNavigateToEntregas = { navController.navigate(Screen.Entregas.route) }
+                )
             }
             
             composable(Screen.Entregas.route) {

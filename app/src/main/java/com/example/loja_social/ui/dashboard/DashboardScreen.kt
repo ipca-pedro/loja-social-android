@@ -1,5 +1,6 @@
 package com.example.loja_social.ui.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -16,7 +17,11 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel) {
+fun DashboardScreen(
+    viewModel: DashboardViewModel,
+    onNavigateToAlerts: () -> Unit,
+    onNavigateToEntregas: () -> Unit
+) {
     val uiState by viewModel.uiState.collectAsState()
     val pullRefreshState = rememberPullRefreshState(uiState.isLoading, { viewModel.refresh() })
 
@@ -38,7 +43,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                 if (uiState.errorMessage != null) {
                     ErrorCard(errorMessage = uiState.errorMessage!!)
                 } else {
-                    DashboardContent(uiState)
+                    DashboardContent(uiState, onNavigateToAlerts, onNavigateToEntregas)
                 }
             }
 
@@ -48,24 +53,31 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
 }
 
 @Composable
-fun DashboardContent(uiState: DashboardUiState) {
+fun DashboardContent(
+    uiState: DashboardUiState, 
+    onNavigateToAlerts: () -> Unit, 
+    onNavigateToEntregas: () -> Unit
+) {
     if (uiState.isLoading && uiState.alertas.isEmpty()) {
         // Mostra o indicador de progresso apenas no carregamento inicial
         CircularProgressIndicator(modifier = Modifier.padding(top = 64.dp))
     } else {
         Column {
-            DashboardCard("Alertas de Validade", uiState.alertas.size.toString())
+            DashboardCard("Alertas de Validade", uiState.alertas.size.toString(), onClick = onNavigateToAlerts)
             Spacer(modifier = Modifier.height(16.dp))
-            DashboardCard("Entregas Agendadas", uiState.entregasAgendadasCount.toString())
+            DashboardCard("Entregas Agendadas", uiState.entregasAgendadasCount.toString(), onClick = onNavigateToEntregas)
         }
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun DashboardCard(title: String, count: String) {
+fun DashboardCard(title: String, count: String, onClick: () -> Unit) {
     Card(
         elevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -94,4 +106,3 @@ fun ErrorCard(errorMessage: String) {
         )
     }
 }
-
