@@ -1,20 +1,19 @@
 package com.example.loja_social.ui.beneficiarios
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.loja_social.ui.components.*
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeneficiariosScreen(viewModel: BeneficiariosViewModel, onNavigateToDetail: (String?) -> Unit) {
     val uiState by viewModel.uiState.collectAsState()
@@ -22,38 +21,57 @@ fun BeneficiariosScreen(viewModel: BeneficiariosViewModel, onNavigateToDetail: (
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Beneficiários") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Beneficiários") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
         floatingActionButton = { 
-            FloatingActionButton(onClick = { onNavigateToDetail(null) }) {
+            FloatingActionButton(
+                onClick = { onNavigateToDetail(null) },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Beneficiário")
             }
         }
     ) { padding ->
-        Column(modifier = Modifier
-            .padding(padding)
-            .padding(16.dp)) {
-            
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             SearchAndFilter(viewModel)
-            Spacer(modifier = Modifier.height(16.dp))
 
             when {
-                isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
+                isLoading -> LoadingState()
                 errorMessage != null -> {
-                    Text(errorMessage!!, color = MaterialTheme.colors.error)
+                    Text(
+                        errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
                 uiState.isEmpty() -> {
-                    Text("Nenhum beneficiário encontrado.")
+                    EmptyState(
+                        title = "Nenhum beneficiário encontrado",
+                        subtitle = "Adicione o primeiro beneficiário usando o botão +",
+                        icon = Icons.Default.Person
+                    )
                 }
                 else -> {
-                    LazyColumn {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(uiState) { beneficiario ->
-                            BeneficiarioRow(beneficiario) { 
-                                onNavigateToDetail(beneficiario.id.toString()) 
-                            }
+                            LojaSocialListItem(
+                                title = beneficiario.nomeCompleto,
+                                subtitle = beneficiario.numEstudante ?: "Sem número de estudante",
+                                status = beneficiario.estado ?: "inativo",
+                                onClick = { onNavigateToDetail(beneficiario.id.toString()) }
+                            )
                         }
                     }
                 }
@@ -62,75 +80,52 @@ fun BeneficiariosScreen(viewModel: BeneficiariosViewModel, onNavigateToDetail: (
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchAndFilter(viewModel: BeneficiariosViewModel) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf<String?>(null) }
 
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { 
                 searchQuery = it
                 viewModel.setSearchQuery(it)
             },
-            label = { Text("Pesquisar...") },
-            modifier = Modifier.fillMaxWidth()
+            label = { Text("Pesquisar beneficiários...") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = selectedFilter == null,
                 onClick = { 
                     selectedFilter = null
                     viewModel.setFilterState(null)
-                }
-            ) {
-                Text("Todos")
-            }
+                },
+                label = { Text("Todos") }
+            )
             FilterChip(
                 selected = selectedFilter == "ativo",
                 onClick = { 
                     selectedFilter = "ativo"
                     viewModel.setFilterState("ativo")
-                }
-            ) {
-                Text("Ativo")
-            }
+                },
+                label = { Text("Ativo") }
+            )
             FilterChip(
                 selected = selectedFilter == "inativo",
                 onClick = { 
                     selectedFilter = "inativo"
                     viewModel.setFilterState("inativo")
-                }
-            ) {
-                Text("Inativo")
-            }
-        }
-    }
-}
-
-@Composable
-fun BeneficiarioRow(beneficiario: com.example.loja_social.api.Beneficiario, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable(onClick = onClick),
-        elevation = 2.dp
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(beneficiario.nomeCompleto, fontWeight = FontWeight.Bold)
-                Text(beneficiario.numEstudante ?: "", color = Color.Gray)
-            }
-            Text(
-                beneficiario.estado ?: "", 
-                color = if (beneficiario.estado == "ativo") Color.Green else Color.Red,
-                fontWeight = FontWeight.Bold
+                },
+                label = { Text("Inativo") }
             )
         }
     }
 }
+
+
 

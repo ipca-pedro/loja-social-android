@@ -6,9 +6,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,9 +35,13 @@ import com.example.loja_social.ui.theme.LojaSocialTheme
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Home)
-    object Entregas : Screen("entregas", "Entregas", Icons.Default.List)
+    object Entregas : Screen("entregas?filter={filter}", "Entregas", Icons.Default.List) {
+        fun createRoute(filter: String? = null) = if (filter != null) "entregas?filter=$filter" else "entregas"
+    }
     object Beneficiarios : Screen("beneficiarios", "Beneficiários", Icons.Default.Person)
-    object Stock : Screen("stock", "Stock", Icons.Default.ShoppingCart)
+    object Stock : Screen("stock?filter={filter}", "Stock", Icons.Default.ShoppingCart) {
+        fun createRoute(filter: String? = null) = if (filter != null) "stock?filter=$filter" else "stock"
+    }
     object Logout : Screen("logout", "Logout", Icons.Default.ExitToApp)
 
     // Rotas sem ícone na barra
@@ -72,12 +76,12 @@ class MainActivity : ComponentActivity() {
 
         Scaffold(
             bottomBar = {
-                BottomNavigation {
+                NavigationBar {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = navBackStackEntry?.destination?.route
 
                     bottomNavItems.forEach { screen ->
-                        BottomNavigationItem(
+                        NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.label) },
                             label = { Text(screen.label) },
                             selected = currentRoute == screen.route,
@@ -85,7 +89,12 @@ class MainActivity : ComponentActivity() {
                                 if (screen.route == Screen.Logout.route) {
                                     showLogoutDialog = true
                                 } else {
-                                    navController.navigate(screen.route) { 
+                                    val route = when (screen) {
+                                        Screen.Entregas -> Screen.Entregas.createRoute()
+                                        Screen.Stock -> Screen.Stock.createRoute()
+                                        else -> screen.route
+                                    }
+                                    navController.navigate(route) { 
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -135,15 +144,29 @@ class MainActivity : ComponentActivity() {
                 )
                 DashboardScreen(
                     viewModel = viewModel,
-                    onNavigateToAlerts = { navController.navigate(Screen.Stock.route) },
-                    onNavigateToEntregas = { navController.navigate(Screen.Entregas.route) }
+                    onNavigateToAlerts = { navController.navigate(Screen.Stock.createRoute("alerts")) },
+                    onNavigateToEntregas = { navController.navigate(Screen.Entregas.createRoute("today")) }
                 )
             }
             
-            composable(Screen.Entregas.route) {
+            composable(
+                route = Screen.Entregas.route,
+                arguments = listOf(
+                    navArgument("filter") { nullable = true; type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val filter = backStackEntry.arguments?.getString("filter")
                 val viewModel: EntregasViewModel = viewModel(
                     factory = EntregasViewModelFactory(EntregaRepository(apiService))
                 )
+                
+                // Apply filter if coming from dashboard
+                LaunchedEffect(filter) {
+                    if (filter == "today") {
+                        viewModel.filterByToday()
+                    }
+                }
+                
                 EntregasScreen(
                     viewModel = viewModel,
                     onAgendarClick = { navController.navigate(Screen.AgendarEntrega.route) }
@@ -204,10 +227,24 @@ class MainActivity : ComponentActivity() {
             }
             
             // Fluxo de Stock
-            composable(Screen.Stock.route) {
+            composable(
+                route = Screen.Stock.route,
+                arguments = listOf(
+                    navArgument("filter") { nullable = true; type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val filter = backStackEntry.arguments?.getString("filter")
                 val viewModel: StockListViewModel = viewModel(
                     factory = StockListViewModelFactory(StockRepository(apiService))
                 )
+                
+                // Apply filter if coming from dashboard
+                LaunchedEffect(filter) {
+                    if (filter == "alerts") {
+                        viewModel.setFilterType("validade_proxima")
+                    }
+                }
+                
                 StockListScreen(
                     viewModel = viewModel,
                     onNavigateToDetail = { navController.navigate(Screen.StockDetail.createRoute(it.produtoId, it.produto)) },

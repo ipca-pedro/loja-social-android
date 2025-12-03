@@ -1,18 +1,19 @@
 package com.example.loja_social.ui.beneficiarios
 
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.loja_social.api.BeneficiarioRequest
@@ -20,6 +21,7 @@ import com.example.loja_social.api.RetrofitHelper
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.repository.BeneficiarioRepository
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeneficiarioDetailScreen(
     viewModel: BeneficiarioDetailViewModel,
@@ -70,7 +72,11 @@ fun BeneficiarioDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { padding ->
@@ -94,12 +100,14 @@ fun BeneficiarioDetailScreen(
                         // Mensagens de erro/sucesso
                         uiState.errorMessage?.let {
                             Card(
-                                backgroundColor = MaterialTheme.colors.error,
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                ),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = it,
-                                    color = MaterialTheme.colors.onError,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.padding(16.dp)
                                 )
                             }
@@ -107,12 +115,14 @@ fun BeneficiarioDetailScreen(
 
                         uiState.successMessage?.let {
                             Card(
-                                backgroundColor = Color(0xFF2E7D32),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                ),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = it,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.padding(16.dp)
                                 )
                             }
@@ -147,8 +157,8 @@ fun BeneficiarioDetailScreen(
                             value = anoCurricular,
                             onValueChange = { anoCurricular = it },
                             label = { Text("Ano Curricular") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number
                             ),
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isSaving
@@ -166,8 +176,8 @@ fun BeneficiarioDetailScreen(
                             value = email,
                             onValueChange = { email = it },
                             label = { Text("Email") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email
                             ),
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isSaving
@@ -177,8 +187,8 @@ fun BeneficiarioDetailScreen(
                             value = telefone,
                             onValueChange = { telefone = it },
                             label = { Text("Telefone") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone
                             ),
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isSaving
@@ -228,7 +238,8 @@ fun BeneficiarioDetailScreen(
                                 },
                                 enabled = !uiState.isSaving,
                                 colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = MaterialTheme.colors.error
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             ) {

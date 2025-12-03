@@ -8,22 +8,23 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.loja_social.api.Beneficiario
 import com.example.loja_social.api.LoteIndividual
 import java.util.*
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgendarEntregaScreen(
     viewModel: AgendarEntregaViewModel,
@@ -40,7 +41,7 @@ fun AgendarEntregaScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is AgendarEntregaEvent.ShowSuccessMessage -> {
-                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(context, event.message, android.widget.Toast.LENGTH_LONG).show()
                     onNavigateBack()
                 }
             }
@@ -62,7 +63,11 @@ fun AgendarEntregaScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Agendar Nova Entrega") },
-                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") } }
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") } },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { padding ->
@@ -90,8 +95,8 @@ fun AgendarEntregaScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Itens para Entrega", style = MaterialTheme.typography.h6)
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            Text("Itens para Entrega", style = MaterialTheme.typography.titleLarge)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(uiState.itensSelecionados, key = { it.lote.id }) { item ->
@@ -103,7 +108,7 @@ fun AgendarEntregaScreen(
             }
             
             if (uiState.errorMessage != null) {
-                Text(uiState.errorMessage!!, color = MaterialTheme.colors.error, modifier = Modifier.padding(vertical = 8.dp))
+                Text(uiState.errorMessage!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(vertical = 8.dp))
             }
 
             Button(
@@ -131,7 +136,7 @@ fun AgendarEntregaScreen(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelecionarItemDialog(
     lotes: List<LoteIndividual>,
@@ -155,16 +160,17 @@ fun SelecionarItemDialog(
                         readOnly = true,
                         label = { Text("Selecionar Lote") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         lotes.forEach { lote ->
-                            DropdownMenuItem(onClick = {
-                                selectedLote = lote
-                                expanded = false
-                            }) {
-                                Text("${lote.produto} (Qtd: ${lote.quantidadeAtual}, Val: ${lote.dataValidade ?: "N/A"})")
-                            }
+                            DropdownMenuItem(
+                                text = { Text("${lote.produto} (Qtd: ${lote.quantidadeAtual}, Val: ${lote.dataValidade ?: "N/A"})") },
+                                onClick = {
+                                    selectedLote = lote
+                                    expanded = false
+                                }
+                            )
                         }
                     }
                 }
@@ -173,7 +179,7 @@ fun SelecionarItemDialog(
                     value = quantidade,
                     onValueChange = { quantidade = it },
                     label = { Text("Quantidade a Entregar") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -186,7 +192,7 @@ fun SelecionarItemDialog(
                     if (selectedLote != null && qtd > 0 && qtd <= stockDisponivel) {
                         onAddItem(selectedLote!!, qtd)
                     } else {
-                        Toast.makeText(context, "Quantidade inválida ou superior ao stock.", Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, "Quantidade inválida ou superior ao stock.", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 },
                 enabled = selectedLote != null && (quantidade.toIntOrNull() ?: 0) > 0
@@ -196,7 +202,7 @@ fun SelecionarItemDialog(
     )
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeneficiarioSelector(
     beneficiarios: List<Beneficiario>,
@@ -213,15 +219,18 @@ fun BeneficiarioSelector(
             readOnly = true,
             label = { Text("Selecione um Beneficiário") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().menuAnchor()
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             beneficiarios.forEach { beneficiario ->
-                DropdownMenuItem(onClick = {
-                    selectedBeneficiario = beneficiario
-                    onBeneficiarioSelected(beneficiario)
-                    expanded = false
-                }) { Text(text = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})") }
+                DropdownMenuItem(
+                    text = { Text(text = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})") },
+                    onClick = {
+                        selectedBeneficiario = beneficiario
+                        onBeneficiarioSelected(beneficiario)
+                        expanded = false
+                    }
+                )
             }
         }
     }
@@ -238,7 +247,7 @@ fun DatePickerField(
     Surface(
         modifier = modifier.clickable { showDatePicker(context, onDateSelected) },
         shape = RoundedCornerShape(4.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -247,25 +256,25 @@ fun DatePickerField(
             Text(
                 text = if (date.isEmpty()) "Data de Agendamento" else date,
                 modifier = Modifier.weight(1f),
-                color = if (date.isEmpty()) MaterialTheme.colors.onSurface.copy(ContentAlpha.medium) else MaterialTheme.colors.onSurface
+                color = if (date.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
             )
             Icon(
                 imageVector = Icons.Default.DateRange,
                 contentDescription = "Selecionar Data",
-                tint = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 private fun showDatePicker(context: android.content.Context, onDateSelected: (String) -> Unit) {
-    val calendar = Calendar.getInstance()
-    DatePickerDialog(
+    val calendar = java.util.Calendar.getInstance()
+    android.app.DatePickerDialog(
         context,
         { _, year, month, dayOfMonth -> onDateSelected(String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)) },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
+        calendar.get(java.util.Calendar.YEAR),
+        calendar.get(java.util.Calendar.MONTH),
+        calendar.get(java.util.Calendar.DAY_OF_MONTH)
     ).apply {
         datePicker.minDate = System.currentTimeMillis()
     }.show()
@@ -280,7 +289,7 @@ fun ItemEntregaRow(
         Text(text = item.lote.produto, modifier = Modifier.weight(1f))
         Text(text = "Qtd: ${item.quantidade}", modifier = Modifier.padding(horizontal = 8.dp))
         IconButton(onClick = onRemoveClick) {
-            Icon(Icons.Default.Delete, "Remover Item", tint = MaterialTheme.colors.error)
+            Icon(Icons.Default.Delete, "Remover Item", tint = MaterialTheme.colorScheme.error)
         }
     }
 }

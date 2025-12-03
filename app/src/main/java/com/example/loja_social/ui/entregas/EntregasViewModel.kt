@@ -93,6 +93,18 @@ class EntregasViewModel(
     }
 
     /**
+     * Filtra entregas para mostrar apenas as de hoje.
+     */
+    fun filterByToday() {
+        val today = java.time.LocalDate.now().toString()
+        val currentEntregas = _uiState.value.entregas
+        val todayEntregas = currentEntregas.filter { entrega ->
+            entrega.dataAgendamento.startsWith(today)
+        }
+        _uiState.value = _uiState.value.copy(entregas = todayEntregas)
+    }
+
+    /**
      * Limpa a mensagem de sucesso da ação.
      */
     fun clearActionMessage() {
