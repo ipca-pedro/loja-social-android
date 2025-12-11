@@ -14,12 +14,14 @@ class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor 
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 
-        // Ver se o URL do pedido começa com o caminho de admin
-        val isAdminRoute = originalRequest.url.encodedPath.startsWith("/api/admin/")
-        val isAuthRoute = originalRequest.url.encodedPath.startsWith("/api/auth/")
-
-        // Se NÃO for uma rota de admin, deixa passar sem token
-        if (!isAdminRoute || isAuthRoute) {
+        // Verificar se é uma rota que precisa de autenticação
+        val path = originalRequest.url.encodedPath
+        val isPublicRoute = path.startsWith("/api/public/") || path.startsWith("/api/auth/") || path == "/health"
+        
+        Log.d("AuthInterceptor", "Request para: $path, É pública: $isPublicRoute")
+        
+        // Se for uma rota pública, deixa passar sem token
+        if (isPublicRoute) {
             return chain.proceed(originalRequest)
         }
 
@@ -28,11 +30,12 @@ class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor 
 
         // Se não tivermos token, deixamos seguir (a API vai rejeitar com 401)
         if (token == null) {
-            Log.w("AuthInterceptor", "Tentativa de aceder rota admin sem token: ${originalRequest.url}")
+            Log.w("AuthInterceptor", "Tentativa de aceder rota protegida sem token: ${originalRequest.url}")
             return chain.proceed(originalRequest)
         }
 
         // Adicionar o Header "Authorization" ao pedido
+        Log.d("AuthInterceptor", "Adicionando token Bearer para: $path")
         val newRequest = originalRequest.newBuilder()
             .header("Authorization", "Bearer $token")
             .build()

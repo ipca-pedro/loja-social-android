@@ -18,15 +18,25 @@ class SessionManager(context: Context) {
         private const val PREFS_NAME = "LojaSocialPrefs"
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_COLABORADOR_ID = "colaborador_id"
+        private const val KEY_USER_ROLE = "user_role"
     }
 
     /**
      * Guarda o token JWT e extrai o ID do colaborador a partir dele.
      * @param token O token JWT recebido da API.
+     * @param role O role do utilizador ("admin" ou "beneficiario").
      */
-    fun saveAuthToken(token: String) {
+    fun saveAuthToken(token: String, role: String? = null) {
+        android.util.Log.d("SessionManager", "Guardando token e role: '$role'")
         val editor = prefs.edit()
         editor.putString(KEY_AUTH_TOKEN, token)
+        
+        if (role != null) {
+            editor.putString(KEY_USER_ROLE, role)
+            android.util.Log.d("SessionManager", "Role '$role' guardado com sucesso")
+        } else {
+            android.util.Log.w("SessionManager", "Role é null, não foi guardado")
+        }
 
         // Descodifica o token para extrair o ID do colaborador
         try {
@@ -55,6 +65,29 @@ class SessionManager(context: Context) {
     fun fetchColaboradorId(): String? {
         return prefs.getString(KEY_COLABORADOR_ID, null)
     }
+    
+    /**
+     * Obtém o role do utilizador guardado.
+     */
+    fun fetchUserRole(): String? {
+        val role = prefs.getString(KEY_USER_ROLE, null)
+        android.util.Log.d("SessionManager", "Role recuperado: '$role'")
+        return role
+    }
+    
+    /**
+     * Verifica se o utilizador é administrador.
+     */
+    fun isAdmin(): Boolean {
+        return fetchUserRole() == "admin"
+    }
+    
+    /**
+     * Verifica se o utilizador é beneficiário.
+     */
+    fun isBeneficiario(): Boolean {
+        return fetchUserRole() == "beneficiario"
+    }
 
     /**
      * Apaga todos os dados da sessão (usado para o Logout).
@@ -63,6 +96,7 @@ class SessionManager(context: Context) {
         val editor = prefs.edit()
         editor.remove(KEY_AUTH_TOKEN)
         editor.remove(KEY_COLABORADOR_ID)
+        editor.remove(KEY_USER_ROLE)
         editor.apply()
     }
 

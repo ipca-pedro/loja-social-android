@@ -13,8 +13,10 @@ class LoginRepository(private val apiService: ApiService) {
      * Autentica um utilizador com email e password.
      * @param email Email do utilizador
      * @param password Password do utilizador
+     * @param userType Tipo de utilizador ("admin" ou "beneficiario")
      * @return Resposta da API com token JWT se o login for bem-sucedido
      */
-    suspend fun login(email: String, password: String) = apiService.login(LoginRequest(email, password))
+    suspend fun login(email: String, password: String, userType: String) = 
+        apiService.login(LoginRequest(email, password, userType))
 
 }

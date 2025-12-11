@@ -28,8 +28,9 @@ class LoginViewModel(
      * 
      * @param email Email do utilizador
      * @param password Password do utilizador
+     * @param userType Tipo de utilizador ("admin" ou "beneficiario")
      */
-    fun login(email: String, password: String) {
+    fun login(email: String, password: String, userType: String) {
         if (_uiState.value == LoginUiState.Loading) return
 
         if (email.isEmpty() || password.isEmpty()) {
@@ -39,13 +40,16 @@ class LoginViewModel(
 
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
+            Log.d("LoginViewModel", "Iniciando login - Email: $email, UserType: $userType")
             try {
-                val response = loginRepository.login(email, password)
-                // LÓGICA CORRIGIDA E SIMPLIFICADA
+                val response = loginRepository.login(email, password, userType)
+                Log.d("LoginViewModel", "Resposta da API - Success: ${response.success}, Token: ${response.token?.take(20)}..., Role: ${response.user?.role}")
+                Log.d("LoginViewModel", "User: ${response.user}")
+                
                 if (response.success && response.token != null) {
-                    // A "magia" acontece aqui: saveAuthToken agora também guarda o ID
-                    sessionManager.saveAuthToken(response.token)
-                    Log.d("LoginViewModel", "Login bem-sucedido! Sessão guardada.")
+                    val role = response.user?.role
+                    sessionManager.saveAuthToken(response.token, role)
+                    Log.d("LoginViewModel", "Token guardado! Role guardado: ${sessionManager.fetchUserRole()}")
                     _uiState.value = LoginUiState.Success
                 } else {
                     Log.d("LoginViewModel", "Login falhou: ${response.message}")
@@ -53,7 +57,13 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("LoginViewModel", "Erro de exceção durante o login", e)
-                _uiState.value = LoginUiState.Error("Falha na ligação: ${e.message}")
+                val errorMessage = when {
+                    e.message?.contains("401") == true -> "Credenciais inválidas. Verifique o email e ${if (userType == "beneficiario") "NIF" else "password"}."
+                    e.message?.contains("404") == true -> "Utilizador não encontrado."
+                    e.message?.contains("500") == true -> "Erro no servidor. Tente novamente."
+                    else -> "Falha na ligação: ${e.message}"
+                }
+                _uiState.value = LoginUiState.Error(errorMessage)
             }
         }
     }

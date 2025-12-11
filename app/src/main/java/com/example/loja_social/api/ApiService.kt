@@ -174,4 +174,13 @@ interface ApiService {
     suspend fun concluirEntrega(
         @Path("id") entregaId: String
     ): ConcluirEntregaResponse
+
+    // ===== ROTAS DE BENEFICIÁRIO (PROTEGIDAS) =====
+    
+    /**
+     * Obtém as entregas do beneficiário autenticado.
+     * Usa o endpoint de admin mas filtra pelo beneficiário logado.
+     */
+    @GET("api/admin/entregas")
+    suspend fun getMinhasEntregas(): EntregasResponse
 }

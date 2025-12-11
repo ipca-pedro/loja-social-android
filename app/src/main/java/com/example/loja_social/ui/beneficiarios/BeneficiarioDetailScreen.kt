@@ -205,6 +205,44 @@ fun BeneficiarioDetailScreen(
                             enabled = !uiState.isSaving
                         )
 
+                        // Seletor de Estado
+                        var expandedEstado by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = expandedEstado,
+                            onExpandedChange = { expandedEstado = !expandedEstado }
+                        ) {
+                            OutlinedTextField(
+                                value = estado,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Estado") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedEstado) },
+                                enabled = !uiState.isSaving
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedEstado,
+                                onDismissRequest = { expandedEstado = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Ativo") },
+                                    onClick = {
+                                        estado = "ativo"
+                                        expandedEstado = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Inativo") },
+                                    onClick = {
+                                        estado = "inativo"
+                                        expandedEstado = false
+                                    }
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Botões de ação
@@ -229,25 +267,7 @@ fun BeneficiarioDetailScreen(
                             Text(if (uiState.isSaving) "A GUARDAR..." else "GUARDAR")
                         }
 
-                        // Botão de desativar (apenas em modo edição)
-                        if (uiState.beneficiario != null && uiState.beneficiario?.estado == "ativo") {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = {
-                                    viewModel.deactivateBeneficiario()
-                                },
-                                enabled = !uiState.isSaving,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.Delete, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("DESATIVAR BENEFICIÁRIO")
-                            }
-                        }
+
                     }
                 }
             }

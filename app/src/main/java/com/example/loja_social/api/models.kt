@@ -36,7 +36,8 @@ data class Campanha(
  */
 data class LoginRequest(
     @SerializedName("email") val email: String,
-    @SerializedName("password") val password: String
+    @SerializedName("password") val password: String,
+    @SerializedName("userType") val userType: String // "admin" ou "beneficiario"
 )
 
 /**
@@ -46,7 +47,19 @@ data class LoginRequest(
 data class LoginResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
-    @SerializedName("token") val token: String?
+    @SerializedName("token") val token: String?,
+    @SerializedName("user") val user: LoginUser?
+)
+
+/**
+ * Dados do utilizador retornados no login.
+ */
+data class LoginUser(
+    @SerializedName("id") val id: String,
+    @SerializedName("nome") val nome: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("role") val role: String,
+    @SerializedName("num_estudante") val numEstudante: String?
 )
 
 
@@ -386,6 +399,17 @@ data class StockSummaryItem(
     @SerializedName("produto") val produto: String?,
     @SerializedName("disponibilidade") val disponibilidade: Int?,
     @SerializedName("validade_proxima") val validadeProxima: String?
+)
+
+// ===== MODELOS DE BENEFICIÁRIO =====
+
+/**
+ * Resposta da API para as entregas de um beneficiário específico.
+ */
+data class MinhasEntregasResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<Entrega>,
+    @SerializedName("message") val message: String?
 )
 
 // ===== MODELOS DE CONTACTO PÚBLICO =====

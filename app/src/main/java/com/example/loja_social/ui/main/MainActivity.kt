@@ -32,6 +32,9 @@ import com.example.loja_social.ui.entregas.*
 import com.example.loja_social.ui.login.LoginActivity
 import com.example.loja_social.ui.stock.*
 import com.example.loja_social.ui.theme.LojaSocialTheme
+import com.example.loja_social.ui.beneficiario.BeneficiarioMainViewModel
+import com.example.loja_social.ui.beneficiario.BeneficiarioMainViewModelFactory
+import android.util.Log
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Home)
@@ -61,10 +64,49 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val sessionManager = SessionManager(applicationContext)
+        val token = sessionManager.fetchAuthToken()
+        val role = sessionManager.fetchUserRole()
+        
+        Log.d("MainActivity", "Token: ${token?.take(20)}..., Role: $role")
+        Log.d("MainActivity", "isAdmin: ${sessionManager.isAdmin()}, isBeneficiario: ${sessionManager.isBeneficiario()}")
+        
+        // Verificar se o utilizador está autenticado
+        if (token == null) {
+            Log.d("MainActivity", "Sem token, redirecionando para LoginActivity")
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
 
         setContent {
             LojaSocialTheme {
-                MainAppScreen()
+                // Verificar role do utilizador e mostrar interface apropriada
+                Log.d("MainActivity", "Verificando role para navegação...")
+                val userRole = sessionManager.fetchUserRole()
+                Log.d("MainActivity", "Role atual: '$userRole'")
+                Log.d("MainActivity", "isAdmin(): ${sessionManager.isAdmin()}")
+                Log.d("MainActivity", "isBeneficiario(): ${sessionManager.isBeneficiario()}")
+                
+                when (userRole) {
+                    "admin" -> {
+                        Log.d("MainActivity", "Utilizador é admin, mostrando MainAppScreen")
+                        MainAppScreen()
+                    }
+                    "beneficiario" -> {
+                        Log.d("MainActivity", "Utilizador é beneficiário, mostrando BeneficiarioAppScreen")
+                        BeneficiarioAppScreen()
+                    }
+                    null -> {
+                        Log.w("MainActivity", "Role é null, assumindo admin por defeito")
+                        MainAppScreen() // Assumir admin se role for null
+                    }
+                    else -> {
+                        Log.w("MainActivity", "Role desconhecido: '$userRole', assumindo admin")
+                        MainAppScreen() // Assumir admin para roles desconhecidos
+                    }
+                }
             }
         }
     }
@@ -289,6 +331,34 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    @Composable
+    fun BeneficiarioAppScreen() {
+        val context = LocalContext.current
+        
+        // Garantir que Retrofit está inicializado
+        LaunchedEffect(Unit) {
+            if (!RetrofitInstance.isInitialized()) {
+                RetrofitHelper.ensureInitialized(context.applicationContext)
+            }
+        }
+        
+        val apiService = try {
+            RetrofitInstance.api
+        } catch (e: UninitializedPropertyAccessException) {
+            RetrofitHelper.ensureInitialized(context.applicationContext)
+            RetrofitInstance.api
+        }
+        
+        val viewModel: BeneficiarioMainViewModel = viewModel(
+            factory = BeneficiarioMainViewModelFactory(apiService)
+        )
+        
+        com.example.loja_social.ui.beneficiario.BeneficiarioMainScreen(
+            viewModel = viewModel,
+            onLogoutClick = { performLogout() }
+        )
+    }
+    
     private fun performLogout() {
         SessionManager(applicationContext).clearAuthToken()
         val intent = Intent(this, LoginActivity::class.java)
