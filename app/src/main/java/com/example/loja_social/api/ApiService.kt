@@ -1,5 +1,6 @@
 package com.example.loja_social.api
 
+
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -86,6 +87,15 @@ interface ApiService {
      */
     @GET("api/admin/categorias")
     suspend fun getCategorias(): CategoriasResponse
+
+    /**
+     * Cria um novo tipo de produto.
+     * @param request Dados do produto (nome, descrição, categoria)
+     */
+    @POST("api/admin/produtos")
+    suspend fun createProduct(
+        @Body request: CreateProductRequest
+    ): CreateProductResponse
 
     /**
      * Obtém a lista de todos os produtos.

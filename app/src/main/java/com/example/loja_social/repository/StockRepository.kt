@@ -3,6 +3,7 @@ package com.example.loja_social.repository
 import com.example.loja_social.api.AddStockRequest
 import com.example.loja_social.api.AddStockResponse
 import com.example.loja_social.api.ApiService
+import com.example.loja_social.api.CampanhasResponse
 import com.example.loja_social.api.CategoriasResponse
 import com.example.loja_social.api.DeleteStockResponse
 import com.example.loja_social.api.LotesResponse
@@ -38,6 +39,27 @@ class StockRepository(private val apiService: ApiService) {
     suspend fun getProdutos(): ProdutosResponse {
         return withContext(Dispatchers.IO) {
             apiService.getProdutos()
+        }
+    }
+
+    /**
+     * Cria um novo produto.
+     * @param request Dados do produto a criar
+     * @return Resposta da API
+     */
+    suspend fun createProduct(request: com.example.loja_social.api.CreateProductRequest): com.example.loja_social.api.CreateProductResponse {
+        return withContext(Dispatchers.IO) {
+            apiService.createProduct(request)
+        }
+    }
+
+    /**
+     * Obtém a lista de todas as campanhas disponíveis.
+     * @return Resposta da API com a lista de campanhas
+     */
+    suspend fun getCampanhas(): CampanhasResponse {
+        return withContext(Dispatchers.IO) {
+            apiService.getCampanhas()
         }
     }
 

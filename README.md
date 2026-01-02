@@ -120,9 +120,6 @@ data class ContactoRequest(
 ## 🚀 4. Definição da API (Retrofit)
 
 ```kotlin
-import retrofit2.Response
-import retrofit2.http.*
-
 interface ApiService {
 
     // --- Rotas Públicas ---
@@ -148,19 +145,15 @@ interface ApiService {
     // --- Rotas Administrativas (Protegidas) ---
 
     @GET("api/beneficiarios")
-    suspend fun getBeneficiarios(
-        @Header("Authorization") authToken: String
-    ): List<Beneficiario>
+    suspend fun getBeneficiarios(): List<Beneficiario>
 
     @POST("api/stock")
     suspend fun addStockItem(
-        @Header("Authorization") authToken: String,
         @Body request: AddStockRequest
     ): Response<Unit>
 
     @PUT("api/entregas/{id}/concluir")
     suspend fun concluirEntrega(
-        @Header("Authorization") authToken: String,
         @Path("id") entregaId: Int
     ): Response<Unit>
 

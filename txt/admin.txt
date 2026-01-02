@@ -192,6 +192,32 @@ router.post('/stock', async (req, res) => {
   }
 });
 
+// POST /api/produtos - Criar um novo tipo de produto
+router.post('/produtos', async (req, res) => {
+  try {
+    const { nome, descricao, categoria_id } = req.body;
+    
+    if (!nome || !categoria_id) {
+      return res.status(400).json({ success: false, message: 'Nome e categoria são obrigatórios' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO produtos (nome, descricao, categoria_id)
+      VALUES ($1, $2, $3)
+      RETURNING id, nome, descricao, categoria_id
+    `, [nome, descricao, categoria_id]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Produto criado com sucesso',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao criar produto:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
 // GET /api/produtos - Listar tipos de produto
 router.get('/produtos', async (req, res) => {
   try {

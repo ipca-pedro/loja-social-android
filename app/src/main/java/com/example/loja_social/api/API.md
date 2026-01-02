@@ -270,6 +270,32 @@ json
 }
 
 
+#### POST /api/admin/produtos
+Cria um novo "tipo" de produto. Requer o `nome` do produto e o `categoria_id`.
+
+*Body (JSON a Enviar)*:
+json
+{
+    "nome": "Arroz Agulha",
+    "descricao": "Pacote de 1kg",
+    "categoria_id": 2
+}
+
+
+*Resposta de Sucesso (201 Created)*:
+json
+{
+    "success": true,
+    "message": "Produto criado com sucesso",
+    "data": {
+        "id": 3,
+        "nome": "Arroz Agulha",
+        "descricao": "Pacote de 1kg",
+        "categoria": "Massas e Arroz"
+    }
+}
+
+
 #### POST /api/admin/stock
 Adiciona um novo "lote" de stock ao inventário. O colaborador_id é retirado do token automaticamente.
 

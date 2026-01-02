@@ -173,6 +173,24 @@ data class ProdutosResponse(
 )
 
 /**
+ * Requisição para criar um novo tipo de produto.
+ */
+data class CreateProductRequest(
+    @SerializedName("nome") val nome: String,
+    @SerializedName("descricao") val descricao: String?,
+    @SerializedName("categoria_id") val categoriaId: Int
+)
+
+/**
+ * Resposta da API após criar um produto.
+ */
+data class CreateProductResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: Produto?
+)
+
+/**
  * Requisição para adicionar novo stock (criar um lote).
  */
 data class AddStockRequest(
