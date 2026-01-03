@@ -367,7 +367,9 @@ class MainActivity : ComponentActivity() {
             }
 
             composable(Screen.Relatorios.route) {
-                com.example.loja_social.ui.relatorios.RelatoriosScreen()
+                com.example.loja_social.ui.relatorios.RelatoriosScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }

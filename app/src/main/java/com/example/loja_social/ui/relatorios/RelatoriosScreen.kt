@@ -24,9 +24,14 @@ import com.example.loja_social.api.RelatorioStockItem
 import com.example.loja_social.api.RelatorioValidadeItem
 import kotlinx.coroutines.launch
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RelatoriosScreen(
-    viewModel: RelatoriosViewModel = viewModel()
+    viewModel: RelatoriosViewModel = viewModel(),
+    onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -39,18 +44,31 @@ fun RelatoriosScreen(
     var dataInicio by remember { mutableStateOf("") }
     var dataFim by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Exportar Relatórios (PDF)",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Relatórios") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header removed as it is now in TopBar
         
         Card(
             modifier = Modifier.fillMaxWidth()
@@ -139,6 +157,7 @@ fun RelatoriosScreen(
         // Note: In a real app, strict One-Shot events are better, but here we can check if content is not empty
         // and trigger the PDF generation if a flag is set?
         // Let's manually trigger generation if data is present for simplicity:
+        }
     }
     
     // LaunchedEffect to watch for data changes and generate PDF if ready
