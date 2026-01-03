@@ -9,163 +9,154 @@ import com.example.loja_social.api.UpdateStockRequest
 import com.example.loja_social.repository.StockRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * Estado da UI da tela de detalhes de um produto de stock.
- * @param isLoading Indica se está a carregar dados iniciais
- * @param stockItem Dados agregados do produto (quantidade total, categoria, etc.)
- * @param lotes Lista de lotes individuais deste produto
- * @param errorMessage Mensagem de erro a exibir (null se não houver erro)
- * @param successMessage Mensagem de sucesso a exibir (null se não houver sucesso)
- */
 data class StockDetailUiState(
     val isLoading: Boolean = true,
     val stockItem: StockItem? = null,
     val lotes: List<LoteIndividual> = emptyList(),
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val stockDataChanged: Boolean = false // Flag para indicar que o stock foi alterado
 )
 
-/**
- * ViewModel para a tela de detalhes de um produto de stock.
- * Gerencia a exibição de dados agregados e lotes individuais, e operações CRUD nos lotes.
- * 
- * @param repository Repository para operações de stock
- * @param produtoId O ID do produto a exibir
- */
 class StockDetailViewModel(
     private val repository: StockRepository,
     private val produtoId: Int
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StockDetailUiState())
-    val uiState: StateFlow<StockDetailUiState> = _uiState
+    val uiState: StateFlow<StockDetailUiState> = _uiState.asStateFlow()
 
     init {
         fetchStockDetail()
     }
 
-    /**
-     * Busca os dados do produto e seus lotes individuais.
-     * Faz duas chamadas à API: uma para dados agregados e outra para lotes individuais.
-     */
     private fun fetchStockDetail() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                // Busca dados agregados do produto (quantidade total, categoria, etc.)
                 val stockResponse = repository.getStock()
-                // Busca lotes individuais deste produto
                 val lotesResponse = repository.getLotesByProduto(produtoId)
-                
+
                 if (stockResponse.success && lotesResponse.success) {
-                    // Encontra o produto específico pelo ID na lista agregada
                     val produto = stockResponse.data.find { it.produtoId == produtoId }
                     if (produto != null) {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            stockItem = produto,
-                            lotes = lotesResponse.data
-                        )
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                stockItem = produto,
+                                lotes = lotesResponse.data.sortedBy { lote -> lote.dataValidade }
+                            )
+                        }
                     } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = "Produto não encontrado"
-                        )
+                        _uiState.update { it.copy(isLoading = false, errorMessage = "Produto não encontrado") }
                     }
                 } else {
                     val errorMsg = stockResponse.message ?: lotesResponse.message ?: "Erro ao carregar detalhes"
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = errorMsg)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
                 }
             } catch (e: Exception) {
                 Log.e("StockDetailVM", "Falha ao carregar detalhes", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Falha de ligação: ${e.message ?: "Erro desconhecido"}"
-                )
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Falha de ligação: ${e.message}") }
             }
         }
     }
 
-    /**
-     * Atualiza um lote de stock existente.
-     * Permite alterar a quantidade e a data de validade.
-     * Após sucesso, recarrega os dados para refletir as mudanças.
-     * 
-     * @param loteId O ID (UUID) do lote a atualizar
-     * @param quantidadeAtual A nova quantidade do lote
-     * @param dataValidade A nova data de validade (formato yyyy-MM-dd ou null)
-     */
-    fun updateLote(loteId: String, quantidadeAtual: Int, dataValidade: String?) {
-        viewModelScope.launch {
-            try {
-                val request = UpdateStockRequest(quantidadeAtual, dataValidade)
-                val response = repository.updateStock(loteId, request)
-                if (response.success) {
-                    _uiState.value = _uiState.value.copy(
-                        successMessage = response.message ?: "Lote atualizado com sucesso"
-                    )
-                    // Recarregar dados
-                    fetchStockDetail()
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = response.message ?: "Erro ao atualizar lote"
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e("StockDetailVM", "Erro ao atualizar lote", e)
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Falha de ligação: ${e.message ?: "Erro desconhecido"}"
-                )
-            }
-        }
-    }
-
-    /**
-     * Remove um lote de stock.
-     * Após sucesso, recarrega os dados para remover o lote da lista.
-     * 
-     * @param loteId O ID (UUID) do lote a remover
-     */
     fun deleteLote(loteId: String) {
         viewModelScope.launch {
+            _uiState.update { it.copy(errorMessage = null, successMessage = null) }
             try {
-                val response = repository.deleteStock(loteId)
+                val response = repository.deleteLote(loteId)
                 if (response.success) {
-                    _uiState.value = _uiState.value.copy(
-                        successMessage = response.message ?: "Lote removido com sucesso"
-                    )
-                    // Recarrega os dados para atualizar a lista
-                    fetchStockDetail()
+                    // Remove o lote da lista localmente e aciona a flag
+                    val updatedLotes = _uiState.value.lotes.filterNot { it.id == loteId }
+                    _uiState.update {
+                        it.copy(
+                            lotes = updatedLotes,
+                            stockDataChanged = true,
+                            successMessage = response.message ?: "Lote removido com sucesso"
+                        )
+                    }
+                    // Recarrega o stockItem para atualizar a contagem total
+                    fetchStockItemData()
                 } else {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = response.message ?: "Erro ao remover lote"
-                    )
+                    _uiState.update { it.copy(errorMessage = response.message ?: "Erro ao remover lote") }
                 }
             } catch (e: Exception) {
                 Log.e("StockDetailVM", "Erro ao remover lote", e)
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Falha de ligação: ${e.message ?: "Erro desconhecido"}"
-                )
+                _uiState.update { it.copy(errorMessage = "Falha de ligação: ${e.message}") }
             }
         }
     }
 
-    /**
-     * Limpa as mensagens de erro e sucesso do estado.
-     * Útil para resetar o feedback visual após o utilizador interagir com a UI.
-     */
-    fun clearMessages() {
-        _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null)
+    fun reportDamagedUnit(lote: LoteIndividual) {
+        val newQuantity = lote.quantidadeAtual - 1
+        if (newQuantity < 0) {
+            _uiState.update { it.copy(errorMessage = "Não existem unidades para remover.") }
+            return
+        }
+
+        val newDamagedQuantity = lote.quantidadeDanificada + 1
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+            try {
+                val request = UpdateStockRequest(
+                    quantidadeAtual = newQuantity,
+                    quantidadeDanificada = newDamagedQuantity,
+                    dataValidade = lote.dataValidade
+                )
+                val response = repository.updateStock(lote.id, request)
+
+                if (response.success) {
+                    val updatedLotes = _uiState.value.lotes.map {
+                        if (it.id == lote.id) {
+                            it.copy(quantidadeAtual = newQuantity, quantidadeDanificada = newDamagedQuantity)
+                        } else {
+                            it
+                        }
+                    }
+                    _uiState.update {
+                        it.copy(
+                            lotes = updatedLotes,
+                            stockDataChanged = true,
+                            successMessage = response.message ?: "Unidade danificada reportada com sucesso."
+                        )
+                    }
+                    fetchStockItemData()
+                } else {
+                    _uiState.update { it.copy(errorMessage = response.message ?: "Erro ao reportar unidade danificada.") }
+                }
+            } catch (e: Exception) {
+                Log.e("StockDetailVM", "Erro ao reportar unidade danificada.", e)
+                _uiState.update { it.copy(errorMessage = "Falha de ligação: ${e.message}") }
+            }
+        }
     }
 
-    /**
-     * Recarrega os dados do produto e seus lotes.
-     * Útil para atualizar após operações externas ou pull-to-refresh.
-     */
-    fun refresh() {
-        fetchStockDetail()
+    // Função auxiliar para atualizar apenas os dados do stock item (ex: contagem total)
+    private fun fetchStockItemData() {
+        viewModelScope.launch {
+            try {
+                val stockResponse = repository.getStock()
+                if (stockResponse.success) {
+                    val produto = stockResponse.data.find { it.produtoId == produtoId }
+                    _uiState.update { it.copy(stockItem = produto) }
+                }
+            } catch (e: Exception) {
+                Log.e("StockDetailVM", "Falha ao recarregar stock item", e)
+            }
+        }
+    }
+
+    fun onRefreshHandled() {
+        _uiState.update { it.copy(stockDataChanged = false) }
+    }
+
+    fun clearMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 }
-

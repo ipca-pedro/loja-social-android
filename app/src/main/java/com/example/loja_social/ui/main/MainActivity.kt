@@ -328,7 +328,14 @@ class MainActivity : ComponentActivity() {
                 val viewModel: StockDetailViewModel = viewModel(factory = StockDetailViewModelFactory(StockRepository(apiService), produtoId))
                 StockDetailScreen(
                     viewModel = viewModel,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { 
+                        if (viewModel.uiState.value.stockDataChanged) {
+                            navController.getBackStackEntry(Screen.Dashboard.route).savedStateHandle.set("should_refresh_dashboard", true)
+                            navController.getBackStackEntry(Screen.Stock.route).savedStateHandle.set("should_refresh_stock", true)
+                            viewModel.onRefreshHandled() // Resetar a flag
+                        }
+                        navController.popBackStack()
+                    }
                 )
             }
         }

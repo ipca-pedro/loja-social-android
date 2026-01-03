@@ -363,8 +363,9 @@ data class StockItem(
  * Requisição para atualizar um lote de stock.
  */
 data class UpdateStockRequest(
-    @SerializedName("quantidade_atual") val quantidadeAtual: Int,
-    @SerializedName("data_validade") val dataValidade: String?
+    @SerializedName("quantidade_atual") val quantidadeAtual: Int?,
+    @SerializedName("data_validade") val dataValidade: String?,
+    @SerializedName("quantidade_danificada") val quantidadeDanificada: Int?
 )
 
 /**
@@ -402,6 +403,7 @@ data class LoteIndividual(
     @SerializedName("id") val id: String,
     @SerializedName("quantidade_inicial") val quantidadeInicial: Int,
     @SerializedName("quantidade_atual") val quantidadeAtual: Int,
+    @SerializedName("quantidade_danificada") val quantidadeDanificada: Int,
     @SerializedName("data_entrada") val dataEntrada: String,
     @SerializedName("data_validade") val dataValidade: String?,
     @SerializedName("produto") val produto: String,

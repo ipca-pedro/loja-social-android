@@ -145,12 +145,10 @@ interface ApiService {
 
     /**
      * Remove um lote de stock.
-     * @param stockId ID do lote a remover
+     * @param id ID do lote a remover
      */
-    @DELETE("api/admin/stock/{id}")
-    suspend fun deleteStock(
-        @Path("id") stockId: String
-    ): DeleteStockResponse
+    @DELETE("api/stock/{id}")
+    suspend fun deleteLote(@Path("id") id: String): ApiResponse<Any>
 
     /**
      * Obtém a lista de alertas de validade (produtos próximos do vencimento).

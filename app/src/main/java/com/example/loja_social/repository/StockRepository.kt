@@ -3,9 +3,9 @@ package com.example.loja_social.repository
 import com.example.loja_social.api.AddStockRequest
 import com.example.loja_social.api.AddStockResponse
 import com.example.loja_social.api.ApiService
+import com.example.loja_social.api.ApiResponse
 import com.example.loja_social.api.CampanhasResponse
 import com.example.loja_social.api.CategoriasResponse
-import com.example.loja_social.api.DeleteStockResponse
 import com.example.loja_social.api.LotesResponse
 import com.example.loja_social.api.ProdutosResponse
 import com.example.loja_social.api.StockResponse
@@ -100,12 +100,12 @@ class StockRepository(private val apiService: ApiService) {
 
     /**
      * Remove um lote de stock.
-     * @param stockId O ID (UUID) do lote a remover
+     * @param loteId O ID do lote a remover
      * @return Resposta da API confirmando a remoção
      */
-    suspend fun deleteStock(stockId: String): DeleteStockResponse {
+    suspend fun deleteLote(loteId: String): ApiResponse<Any> {
         return withContext(Dispatchers.IO) {
-            apiService.deleteStock(stockId)
+            apiService.deleteLote(loteId)
         }
     }
 

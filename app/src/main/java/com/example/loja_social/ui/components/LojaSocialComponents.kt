@@ -187,7 +187,8 @@ fun LojaSocialListItem(
     trailing: String? = null,
     status: String? = null,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    actions: @Composable (RowScope.() -> Unit)? = null
 ) {
     Card(
         modifier = modifier
@@ -215,16 +216,21 @@ fun LojaSocialListItem(
                 }
             }
             
-            Column(horizontalAlignment = Alignment.End) {
-                if (status != null) {
-                    StatusChip(status = status)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
+                    if (status != null) {
+                        StatusChip(status = status)
+                    }
+                    if (trailing != null) {
+                        Text(
+                            text = trailing,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-                if (trailing != null) {
-                    Text(
-                        text = trailing,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                if (actions != null) {
+                    actions()
                 }
             }
         }
