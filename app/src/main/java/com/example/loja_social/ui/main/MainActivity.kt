@@ -35,6 +35,10 @@ import com.example.loja_social.ui.entregas.*
 import com.example.loja_social.ui.login.LoginActivity
 import com.example.loja_social.ui.stock.*
 import com.example.loja_social.ui.theme.LojaSocialTheme
+import com.example.loja_social.ui.campanhas.CampanhasScreen
+import com.example.loja_social.ui.campanhas.CampanhasViewModel
+import com.example.loja_social.ui.campanhas.CampanhasViewModelFactory
+import com.example.loja_social.repository.CampanhaRepository
 import android.util.Log
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -56,13 +60,14 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object StockDetail : Screen("stockDetail/{produtoId}/{produtoNome}", "Detalhes do Stock", Icons.Default.ShoppingCart) {
         fun createRoute(produtoId: Int, produtoNome: String) = "stockDetail/$produtoId/$produtoNome"
     }
+    object Campanhas : Screen("campanhas", "Campanhas", Icons.Default.Event)
     object AgendarEntrega : Screen("agendarEntrega", "Agendar Entrega", Icons.Default.Add)
     object EntregaDetail : Screen("entregaDetail/{entregaId}/{estado}", "Detalhes da Entrega", Icons.Default.List) {
         fun createRoute(entregaId: String, estado: String) = "entregaDetail/$entregaId/$estado"
     }
 }
 
-val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Logout)
+val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas, Screen.Logout)
 
 class MainActivity : ComponentActivity() {
 
@@ -337,6 +342,15 @@ class MainActivity : ComponentActivity() {
                         navController.popBackStack()
                     }
                 )
+            }
+            }
+
+            composable(Screen.Campanhas.route) {
+                val repository = CampanhaRepository(apiService)
+                val viewModel: CampanhasViewModel = viewModel(
+                    factory = CampanhasViewModelFactory(repository)
+                )
+                CampanhasScreen(viewModel = viewModel)
             }
         }
     }
