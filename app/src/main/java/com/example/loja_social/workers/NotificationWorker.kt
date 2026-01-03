@@ -23,26 +23,28 @@ class NotificationWorker(
 
     override suspend fun doWork(): Result {
         Log.d("NotificationWorker", "Fetching alerts in background...")
+        var hasAlerts = false
         
         try {
-            // Ensure Retrofit is initialized (it might not be if app was killed and started by Worker)
-            // RetrofitHelper.ensureInitialized(applicationContext) // Assuming we have this or similar
-            // For now, rely on RetrofitInstance defaults or if it needs context, we might have issues if not careful.
-            // But RetrofitInstance in this project seems static.
-            
+            // Ensure Retrofit is initialized
+            com.example.loja_social.api.RetrofitHelper.ensureInitialized(applicationContext)
+
             // 1. Check Stock Expiry
             val stockResponse = RetrofitInstance.api.getAlertasValidade()
             if (stockResponse.success) {
                 val expiringItems = stockResponse.data
-                val nearbyExpiry = expiringItems.filter { it.diasRestantes <= 7 } // Alert for items expiring in next 7 days
+                val nearbyExpiry = expiringItems.filter { it.diasRestantes <= 7 }
                 
                 if (nearbyExpiry.isNotEmpty()) {
+                    hasAlerts = true
                     showNotification(
                         1,
                         "Atenção: Validade de Stock",
                         "${nearbyExpiry.size} produtos expiram em breve! Verifique o stock."
                     )
                 }
+            } else {
+                 Log.e("NotificationWorker", "Stock API Failed: ${stockResponse.message}")
             }
 
             // 2. Check Deliveries for Today
@@ -54,6 +56,7 @@ class NotificationWorker(
                 }
 
                 if (todaysDeliveries.isNotEmpty()) {
+                    hasAlerts = true
                     showNotification(
                         2,
                         "Entregas Agendadas Hoje",
@@ -62,9 +65,23 @@ class NotificationWorker(
                 }
             }
 
+             // DEBUG only: Se não encontrou nada real, manda notificação de teste para confirmar que o Worker correu
+            if (!hasAlerts) {
+                 showNotification(
+                    3,
+                    "Teste de Notificação",
+                    "Sistema operacional. Nenhum alerta urgente encontrado."
+                )
+            }
+
             return Result.success()
         } catch (e: Exception) {
             Log.e("NotificationWorker", "Error in background work", e)
+             showNotification(
+                4,
+                "Erro na Verificação",
+                "Falha ao verificar alertas: ${e.message}"
+            )
             return Result.retry()
         }
     }
