@@ -83,7 +83,7 @@ fun StockListScreen(
                             LojaSocialListItem(
                                 title = stockItem.produto,
                                 subtitle = "Qtd: ${stockItem.quantidadeTotal} | Lotes: ${stockItem.lotes}",
-                                trailing = stockItem.validadeProxima?.let { "Validade: $it" },
+                                trailing = stockItem.validadeProxima?.let { "Validade: ${it.substringBefore("T")}" },
                                 onClick = { onNavigateToDetail(stockItem) }
                             )
                         }
