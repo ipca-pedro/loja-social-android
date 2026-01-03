@@ -83,4 +83,7 @@ dependencies {
 
     // Calendar Compose
     implementation("com.kizitonwose.calendar:compose:2.5.1")
+
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

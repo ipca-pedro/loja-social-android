@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -55,6 +56,11 @@ fun DashboardScreen(
                 actions = {
                     IconButton(onClick = onNavigateToReports) {
                         Icon(Icons.Default.Description, contentDescription = "Relatórios")
+                    }
+                    // TODO: Remover em produção
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    IconButton(onClick = { com.example.loja_social.ui.main.testBackgroundWorkNow(context) }) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Testar Notificação")
                     }
                 }
             )

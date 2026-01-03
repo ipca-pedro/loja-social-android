@@ -21,18 +21,18 @@ Com base nos requisitos fornecidos e no estado atual do código (backend e mobil
 
 ### 2. Sistema de Notificações
 *   **Requisito:** *"receber notificações de lembretes"* (entregas) e *"alertas de validade"* (push/local notifications).
-*   **Estado Atual:**
-    *   Existem ecrãs que listam entregas e produtos a expirar.
-    *   **NÃO existem notificações nativas** (a app não avisa se estiver fechada ou em background).
-*   **Solução:** Implementar `WorkManager` no Android para verificar datas periodicamente e lançar notificações locais.
+*   **Estado Atual:** ✅ **Implementado** (WorkManager).
+    *   Verifica a cada 4 horas.
+    *   Avisa de: Entregas agendadas para o dia e produtos a expirar (próximos 7 dias).
+*   **Ação:** Testar em dispositivo real (emuladores podem não mostrar notificações sem configuração extra).
+
 
 ### 3. Exportação de Relatórios
 *   **Requisito:** *"Exportação de relatórios... possibilidade de gerar e extrair relatórios"*
-*   **Estado Atual:** Inexistente.
-*   **Solução:** Criar funcionalidade para gerar PDF ou CSV de:
-    *   Entregas por período.
-    *   Stock total vs Campanhas.
-    *   Produtos fora de validade/lixo.
+*   **Estado Atual:** ✅ **Implementado** (Android + Backend).
+    *   Backend: Rotas `/relatorios/entregas`, `/stock`, `/validade`.
+    *   Mobile: Ecrã `RelatoriosScreen` gera PDF.
+*   **Ação:** Validar funcionamento no dispositivo.
 
 ### 4. Gestão de Quebras/Produtos Estragados
 *   **Requisito:** *"O produto caiu e estragou-se, o técnico pode eliminar o produto, indicando que foi para o lixo"*

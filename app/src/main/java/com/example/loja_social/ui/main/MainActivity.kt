@@ -61,7 +61,10 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     }
     object AddStock : Screen("addStock", "Adicionar Stock", Icons.Default.Add)
     object StockDetail : Screen("stockDetail/{produtoId}/{produtoNome}", "Detalhes do Stock", Icons.Default.ShoppingCart) {
-        fun createRoute(produtoId: Int, produtoNome: String) = "stockDetail/$produtoId/$produtoNome"
+        fun createRoute(produtoId: Int, produtoNome: String): String {
+            val encodedNome = java.net.URLEncoder.encode(produtoNome, java.nio.charset.StandardCharsets.UTF_8.toString())
+            return "stockDetail/$produtoId/$encodedNome"
+        }
     }
     object Campanhas : Screen("campanhas", "Campanhas", Icons.Default.Event)
     object AgendarEntrega : Screen("agendarEntrega", "Agendar Entrega", Icons.Default.Add)
@@ -160,6 +163,12 @@ class MainActivity : ComponentActivity() {
         
         NavHost(navController = navController, startDestination = Screen.Dashboard.route, modifier = modifier) {
             composable(Screen.Dashboard.route) { backStackEntry ->
+                // Schedule WorkManager
+                LaunchedEffect(Unit) {
+                    scheduleBackgroundWork(context)
+                    requestNotificationPermission(context)
+                }
+
                 val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_dashboard")
                 val viewModel: DashboardViewModel = viewModel(factory = DashboardViewModelFactory(DashboardRepository(apiService), StockRepository(apiService)))
 
@@ -392,4 +401,35 @@ class MainActivity : ComponentActivity() {
         startActivity(intent)
         finish()
     }
+}
+
+private fun scheduleBackgroundWork(context: android.content.Context) {
+    val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.loja_social.workers.NotificationWorker>(4, java.util.concurrent.TimeUnit.HOURS)
+        .setInitialDelay(10, java.util.concurrent.TimeUnit.SECONDS) // Delay first run slightly
+        .build()
+
+    androidx.work.WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+        "LojaSocialNotifications",
+        androidx.work.ExistingPeriodicWorkPolicy.KEEP, // Keep existing if already scheduled
+        workRequest
+    )
+}
+
+private fun requestNotificationPermission(context: android.content.Context) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+             if (context is android.app.Activity) {
+                 androidx.core.app.ActivityCompat.requestPermissions(context, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+             }
+        }
+    }
+}
+
+fun testBackgroundWorkNow(context: android.content.Context) {
+    val workRequest = androidx.work.OneTimeWorkRequestBuilder<com.example.loja_social.workers.NotificationWorker>()
+        .build()
+
+    androidx.work.WorkManager.getInstance(context).enqueue(workRequest)
+    
+    android.widget.Toast.makeText(context, "A verificar notificações... Aguarde.", android.widget.Toast.LENGTH_LONG).show()
 }
