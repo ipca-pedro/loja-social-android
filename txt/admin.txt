@@ -597,16 +597,25 @@ router.get('/relatorios/validade', async (req, res) => {
         si.quantidade_danificada,
         si.data_validade,
         CASE 
-          WHEN si.data_validade < CURRENT_DATE THEN 'Expirado'
           WHEN si.quantidade_danificada > 0 THEN 'Danificado'
+          WHEN si.data_validade < CURRENT_DATE THEN 'Expirado'
+          WHEN si.data_validade <= CURRENT_DATE + INTERVAL '7 days' THEN 'Crítico'
+          WHEN si.data_validade <= CURRENT_DATE + INTERVAL '15 days' THEN 'Atenção'
+          WHEN si.data_validade <= CURRENT_DATE + INTERVAL '30 days' THEN 'Brevemente'
           ELSE 'OK'
         END as estado_item
       FROM stock_items si
       JOIN produtos p ON si.produto_id = p.id
       LEFT JOIN categorias cat ON p.categoria_id = cat.id
-      WHERE (si.data_validade < CURRENT_DATE AND si.quantidade_atual > 0)
+      WHERE (si.data_validade <= CURRENT_DATE + INTERVAL '30 days' AND si.quantidade_atual > 0)
          OR (si.quantidade_danificada > 0)
-      ORDER BY si.data_validade ASC
+      ORDER BY 
+        CASE 
+            WHEN si.data_validade < CURRENT_DATE THEN 1
+            WHEN si.quantidade_danificada > 0 THEN 2
+            ELSE 3
+        END,
+        si.data_validade ASC
     `;
     
     const result = await pool.query(query);
@@ -720,9 +729,21 @@ router.get('/relatorios/stock/pdf', async (req, res) => {
 router.get('/relatorios/validade/pdf', async (req, res) => {
    try {
     const query = `
-      SELECT p.nome, si.data_validade, si.quantidade_danificada 
+      SELECT 
+        p.nome, 
+        si.data_validade, 
+        si.quantidade_danificada,
+        CASE 
+          WHEN si.quantidade_danificada > 0 THEN 'Danificado'
+          WHEN si.data_validade < CURRENT_DATE THEN 'Expirado'
+          WHEN si.data_validade <= CURRENT_DATE + INTERVAL '7 days' THEN 'Crítico'
+          WHEN si.data_validade <= CURRENT_DATE + INTERVAL '15 days' THEN 'Atenção'
+          ELSE 'Brevemente'
+        END as estado_desc
       FROM stock_items si JOIN produtos p ON si.produto_id = p.id 
-      WHERE (si.data_validade < CURRENT_DATE AND si.quantidade_atual > 0) OR (si.quantidade_danificada > 0)
+      WHERE (si.data_validade <= CURRENT_DATE + INTERVAL '30 days' AND si.quantidade_atual > 0) 
+         OR (si.quantidade_danificada > 0)
+      ORDER BY si.data_validade ASC
     `;
     const result = await pool.query(query);
 
@@ -736,10 +757,11 @@ router.get('/relatorios/validade/pdf', async (req, res) => {
 
     const rows = result.rows.map(r => [
         r.nome, 
-        r.data_validade ? new Date(r.data_validade).toISOString().split('T')[0] : 'N/A', 
-        r.quantidade_danificada
+        r.data_validade ? new Date(r.data_validade).toISOString().split('T')[0] : '-', 
+        r.estado_desc,
+        r.quantidade_danificada || 0
     ]);
-    drawTable(doc, rows, 50, 100, [200, 150, 100], ['Produto', 'Validade', 'Qtd Danificada']);
+    drawTable(doc, rows, 50, 100, [180, 100, 100, 80], ['Produto', 'Validade', 'Estado', 'Qtd Danif.']);
 
     doc.end();
    } catch(e) {
