@@ -1,0 +1,53 @@
+# Análise de Gaps do Projeto vs Requisitos SAS
+
+Com base nos requisitos fornecidos e no estado atual do código (backend e mobile), aqui está a análise do que está implementado e do que está em falta ou precisa de atenção.
+
+## ✅ Implementado
+
+*   **Autenticação:** O sistema permite login (email/password). Embora o requisito mencione "Código de Acesso", a autenticação por credenciais cumpre o propósito de identificar o técnico.
+*   **Gestão de Beneficiários:** Listagem, Criação e Edição com todos os campos solicitados (incluindo notas adicionais).
+*   **Gestão de Stock (Básico):** Inserção de produtos, categorias e lotes com validade e associação a campanhas.
+*   **Gestão de Campanhas:** CRUD de campanhas funcional.
+*   **Agendamento de Entregas:** É possível agendar entregas para beneficiários.
+*   **Listas e Filtros:** Listagens de stock e beneficiários funcionais.
+
+## ⚠️ Em Falta Crítica (Gaps Principais)
+
+### 1. Atualização Automática de Stock (Critical)
+*   **Requisito:** *"após atualização do estado da entrega... deverá ocorrer a atualização automática do stock existente"*
+*   **Estado Atual:** O backend apenas marca a entrega como "entregue". **Não existe lógica para desconta a quantidade entregue do stock.**
+*   **Impacto:** O stock físico deixará de coincidir com o digital rapidamente.
+*   **Solução:** Alterar o endpoint [concluirEntrega](file:///c:/Projetos/loja-social-android/app/src/main/java/com/example/loja_social/api/ApiService.kt#191-199) para subtrair as quantidades dos itens de stock associados.
+
+### 2. Sistema de Notificações
+*   **Requisito:** *"receber notificações de lembretes"* (entregas) e *"alertas de validade"* (push/local notifications).
+*   **Estado Atual:**
+    *   Existem ecrãs que listam entregas e produtos a expirar.
+    *   **NÃO existem notificações nativas** (a app não avisa se estiver fechada ou em background).
+*   **Solução:** Implementar `WorkManager` no Android para verificar datas periodicamente e lançar notificações locais.
+
+### 3. Exportação de Relatórios
+*   **Requisito:** *"Exportação de relatórios... possibilidade de gerar e extrair relatórios"*
+*   **Estado Atual:** Inexistente.
+*   **Solução:** Criar funcionalidade para gerar PDF ou CSV de:
+    *   Entregas por período.
+    *   Stock total vs Campanhas.
+    *   Produtos fora de validade/lixo.
+
+### 4. Gestão de Quebras/Produtos Estragados
+*   **Requisito:** *"O produto caiu e estragou-se, o técnico pode eliminar o produto, indicando que foi para o lixo"*
+*   **Estado Atual:** Existe apenas a opção de "Apagar Lote" (Hard Delete). Não há registo histórico de "perda" vs "consumo".
+*   **Solução:** Ao apagar/editar stock, perguntar o motivo e, idealmente, mover para uma tabela de histórico de "Saídas de Stock" em vez de apagar o registo.
+
+## 💡 Sugestões (Opcionais / Nice to have)
+
+*   **Leitura de Código de Barras:** Sugerido nos requisitos para agilizar entradas/saídas. Atualmente é tudo manual.
+*   **Login com Código Pin:** O requisito falava em código de acesso visual. O sistema atual usa Email/Password clássico.
+
+---
+
+## Próximos Passos Recomendados
+
+1.  **Resolver a Lógica de Stock:** É o ponto mais crítico para a integridade dos dados.
+2.  **Notificações Locais:** Para dar vida aos alertas de validade e entregas.
+3.  **Relatórios:** Implementar pelo menos um relatório básico (PDF).
