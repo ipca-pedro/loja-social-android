@@ -9,14 +9,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.example.loja_social.api.Categoria
 import com.example.loja_social.api.Produto
 import com.example.loja_social.ui.components.LoadingState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StockScreen(viewModel: StockViewModel, navController: NavController) {
+fun StockScreen(
+    viewModel: StockViewModel, 
+    onNavigateBack: () -> Unit
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     var produtoSelecionado by remember { mutableStateOf<Produto?>(null) }
@@ -29,12 +31,10 @@ fun StockScreen(viewModel: StockViewModel, navController: NavController) {
     var showCreateProductDialog by remember { mutableStateOf(false) }
 
     // Efeito para navegação após sucesso
-    LaunchedEffect(uiState.stockAddedSuccessfully) {
-        if (uiState.stockAddedSuccessfully) {
-            // Avisa o ecrã anterior para recarregar os dados
-            navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_stock", true)
-            navController.popBackStack()
-            viewModel.navigationDone()
+    LaunchedEffect(uiState.stockDataChanged) {
+        if (uiState.stockDataChanged) {
+            onNavigateBack()
+            viewModel.onRefreshHandled()
         }
     }
 
@@ -54,7 +54,7 @@ fun StockScreen(viewModel: StockViewModel, navController: NavController) {
             TopAppBar(
                 title = { Text("Adicionar Stock") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },

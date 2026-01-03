@@ -80,4 +80,7 @@ dependencies {
 
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // Calendar Compose
+    implementation("com.kizitonwose.calendar:compose:2.5.1")
 }

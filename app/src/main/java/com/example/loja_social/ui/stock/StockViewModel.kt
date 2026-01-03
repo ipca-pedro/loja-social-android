@@ -24,7 +24,7 @@ data class StockUiState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val isFormLoading: Boolean = false,
-    val stockAddedSuccessfully: Boolean = false // Estado para controlar a navegação
+    val stockDataChanged: Boolean = false // Flag para indicar que o stock foi alterado
 )
 
 class StockViewModel(
@@ -97,7 +97,7 @@ class StockViewModel(
                 val request = AddStockRequest(produtoId, quantidadeInt, dataFormatada, campanhaId)
                 val response = repository.addStock(request)
                 if (response.success) {
-                    _uiState.update { it.copy(stockAddedSuccessfully = true) } // Aciona o evento de navegação
+                    _uiState.update { it.copy(stockDataChanged = true) } // Aciona o evento
                 } else {
                     _uiState.update { it.copy(errorMessage = response.message ?: "Erro ao adicionar stock.") }
                 }
@@ -136,11 +136,8 @@ class StockViewModel(
         }
     }
 
-    /**
-     * Informa o ViewModel que o evento de navegação foi consumido.
-     */
-    fun navigationDone() {
-        _uiState.update { it.copy(stockAddedSuccessfully = false) }
+    fun onRefreshHandled() {
+        _uiState.update { it.copy(stockDataChanged = false) }
     }
 
     fun clearMessages() {

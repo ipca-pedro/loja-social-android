@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
         NavHost(navController = navController, startDestination = Screen.Dashboard.route, modifier = modifier) {
             composable(Screen.Dashboard.route) { backStackEntry ->
                 val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_dashboard")
-                val viewModel: DashboardViewModel = viewModel(factory = DashboardViewModelFactory(DashboardRepository(apiService)))
+                val viewModel: DashboardViewModel = viewModel(factory = DashboardViewModelFactory(DashboardRepository(apiService), StockRepository(apiService)))
 
                 LaunchedEffect(shouldRefresh) {
                     if (shouldRefresh == true) {
@@ -163,8 +163,17 @@ class MainActivity : ComponentActivity() {
 
                 DashboardScreen(
                     viewModel = viewModel,
-                    onNavigateToAlerts = { navController.navigate(Screen.Stock.createRoute("alerts")) },
-                    onNavigateToEntregas = { navController.navigate(Screen.Entregas.createRoute(filter = "today")) }
+                    onNavigateToAlerts = { alerta ->
+                        val productId = viewModel.getProductIdFromAlert(alerta)
+                        if (productId != null) {
+                            navController.navigate(Screen.StockDetail.createRoute(productId, alerta.produto))
+                        } else {
+                            navController.navigate(Screen.Stock.createRoute("alerts"))
+                        }
+                    },
+                    onNavigateToEntregaDetail = { entregaId, estado ->
+                        navController.navigate(Screen.EntregaDetail.createRoute(entregaId, estado))
+                    }
                 )
             }
             
@@ -289,13 +298,23 @@ class MainActivity : ComponentActivity() {
                 StockListScreen(
                     viewModel = viewModel,
                     onNavigateToDetail = { navController.navigate(Screen.StockDetail.createRoute(it.produtoId, it.produto)) },
-                    onNavigateToAdd = { navController.navigate(Screen.AddStock.route) }
+                    onNavigateToAdd = { navController.navigate(Screen.AddStock.route) },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             
             composable(Screen.AddStock.route) {
                 val viewModel: StockViewModel = viewModel(factory = StockViewModelFactory(StockRepository(apiService)))
-                StockScreen(viewModel = viewModel, navController = navController)
+                StockScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = {
+                        if (viewModel.uiState.value.stockDataChanged) {
+                            navController.getBackStackEntry(Screen.Dashboard.route).savedStateHandle.set("should_refresh_dashboard", true)
+                            navController.getBackStackEntry(Screen.Stock.route).savedStateHandle.set("should_refresh_stock", true)
+                        }
+                        navController.popBackStack()
+                    }
+                )
             }
             
             composable(
@@ -307,7 +326,10 @@ class MainActivity : ComponentActivity() {
             ) { backStackEntry ->
                 val produtoId = backStackEntry.arguments?.getInt("produtoId") ?: 0
                 val viewModel: StockDetailViewModel = viewModel(factory = StockDetailViewModelFactory(StockRepository(apiService), produtoId))
-                StockDetailScreen(viewModel)
+                StockDetailScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }
