@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -43,14 +44,15 @@ import android.util.Log
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Home)
-    object Entregas : Screen("entregas?filter={filter}", "Entregas", Icons.Default.List) {
+    object Entregas : Screen("entregas?filter={filter}", "Entregas", Icons.AutoMirrored.Filled.List) {
         fun createRoute(filter: String? = null) = if (filter != null) "entregas?filter=$filter" else "entregas"
     }
     object Beneficiarios : Screen("beneficiarios", "Beneficiários", Icons.Default.Person)
     object Stock : Screen("stock?filter={filter}", "Stock", Icons.Default.ShoppingCart) {
         fun createRoute(filter: String? = null) = if (filter != null) "stock?filter=$filter" else "stock"
     }
-    object Logout : Screen("logout", "Logout", Icons.Default.ExitToApp)
+
+    object Logout : Screen("logout", "Logout", Icons.AutoMirrored.Filled.ExitToApp)
 
     // Rotas sem ícone na barra
     object BeneficiarioDetail : Screen("beneficiarioDetail?beneficiarioId={beneficiarioId}&title={title}", "Detalhes", Icons.Default.Person) {
@@ -62,7 +64,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     }
     object Campanhas : Screen("campanhas", "Campanhas", Icons.Default.Event)
     object AgendarEntrega : Screen("agendarEntrega", "Agendar Entrega", Icons.Default.Add)
-    object EntregaDetail : Screen("entregaDetail/{entregaId}/{estado}", "Detalhes da Entrega", Icons.Default.List) {
+    object EntregaDetail : Screen("entregaDetail/{entregaId}/{estado}", "Detalhes da Entrega", Icons.AutoMirrored.Filled.List) {
         fun createRoute(entregaId: String, estado: String) = "entregaDetail/$entregaId/$estado"
     }
 }
@@ -342,7 +344,6 @@ class MainActivity : ComponentActivity() {
                         navController.popBackStack()
                     }
                 )
-            }
             }
 
             composable(Screen.Campanhas.route) {

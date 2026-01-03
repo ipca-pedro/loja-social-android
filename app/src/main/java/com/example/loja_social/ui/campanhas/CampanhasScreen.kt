@@ -17,8 +17,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.loja_social.ui.components.LoadingState
+import com.example.loja_social.ui.components.EmptyState
+import com.example.loja_social.ui.components.StatusChip
 import com.example.loja_social.api.Campanha
-import com.example.loja_social.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -47,11 +47,11 @@ class AgendarEntregaViewModel(
                 val lotesResponse = stockRepository.getAllLotes()
 
                 if (beneficiariosResponse.success && lotesResponse.success) {
-                    val activeBeneficiarios = beneficiariosResponse.data?.filter { it.estado == "ativo" } ?: emptyList()
+                    val activeBeneficiarios = beneficiariosResponse.data.filter { it.estado == "ativo" }
                     _uiState.update { 
                         it.copy(
                             beneficiarios = activeBeneficiarios,
-                            lotesDisponiveis = lotesResponse.data ?: emptyList()
+                            lotesDisponiveis = lotesResponse.data
                         )
                     }
                 } else {

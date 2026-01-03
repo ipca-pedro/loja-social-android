@@ -41,8 +41,8 @@ class SessionManager(context: Context) {
         // Descodifica o token para extrair o ID do colaborador
         try {
             val payload = decodeJwtPayload(token)
-            val colaboradorId = payload.optString("id", null)
-            if (colaboradorId != null) {
+            val colaboradorId = payload.optString("id")
+            if (colaboradorId.isNotEmpty()) {
                 editor.putString(KEY_COLABORADOR_ID, colaboradorId)
             }
         } catch (e: Exception) {

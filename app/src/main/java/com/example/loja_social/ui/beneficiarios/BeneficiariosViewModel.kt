@@ -118,7 +118,7 @@ class BeneficiariosViewModel(
         // Aplica filtro de estado primeiro (se especificado)
         if (filter != null) {
             filtered = filtered.filter { beneficiario ->
-                val estado = beneficiario.estado?.lowercase() ?: "inativo"
+                val estado = beneficiario.estado.lowercase()
                 estado == filter.lowercase()
             }
         }
@@ -127,7 +127,7 @@ class BeneficiariosViewModel(
         if (query.isNotEmpty()) {
             val queryLower = query.lowercase()
             filtered = filtered.filter { beneficiario ->
-                beneficiario.nomeCompleto?.lowercase()?.contains(queryLower) == true ||
+                beneficiario.nomeCompleto.lowercase().contains(queryLower) ||
                 beneficiario.email?.lowercase()?.contains(queryLower) == true ||
                 beneficiario.numEstudante?.lowercase()?.contains(queryLower) == true ||
                 beneficiario.nif?.contains(query) == true // NIF sem lowercase para manter formato

@@ -7,6 +7,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,7 +31,7 @@ fun BeneficiarioMainScreen(
                 title = { Text("Minhas Entregas") },
                 actions = {
                     IconButton(onClick = onLogoutClick) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Sair")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sair")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -82,7 +84,7 @@ fun BeneficiarioMainScreen(
                         EmptyState(
                             title = "Nenhuma entrega encontrada",
                             subtitle = "Não tem entregas agendadas no momento",
-                            icon = Icons.Default.Assignment
+                            icon = Icons.AutoMirrored.Filled.Assignment
                         )
                     }
                 }

@@ -69,7 +69,7 @@ fun BeneficiariosScreen(viewModel: BeneficiariosViewModel, onNavigateToDetail: (
                             LojaSocialListItem(
                                 title = beneficiario.nomeCompleto,
                                 subtitle = beneficiario.numEstudante ?: "Sem número de estudante",
-                                status = beneficiario.estado ?: "inativo",
+                                status = beneficiario.estado,
                                 onClick = { onNavigateToDetail(beneficiario.id.toString()) }
                             )
                         }

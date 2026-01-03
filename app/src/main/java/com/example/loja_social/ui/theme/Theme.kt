@@ -39,6 +39,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun LojaSocialTheme(
+    @Suppress("UNUSED_PARAMETER")
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {

@@ -15,7 +15,8 @@ import com.google.gson.annotations.SerializedName
  */
 data class CampanhasResponse(
     @SerializedName("success") val success: Boolean,
-    @SerializedName("data") val data: List<Campanha>
+    @SerializedName("data") val data: List<Campanha>,
+    @SerializedName("message") val message: String?
 )
 
 /**
