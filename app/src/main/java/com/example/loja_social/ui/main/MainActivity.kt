@@ -32,12 +32,6 @@ import com.example.loja_social.ui.dashboard.DashboardScreen
 import com.example.loja_social.ui.dashboard.DashboardViewModel
 import com.example.loja_social.ui.dashboard.DashboardViewModelFactory
 import com.example.loja_social.ui.entregas.*
-import com.example.loja_social.ui.reports.ReportsViewModel
-import com.example.loja_social.ui.reports.ReportsViewModelFactory
-import com.example.loja_social.ui.campanhas.CampanhasScreen
-import com.example.loja_social.ui.campanhas.CampanhasViewModel
-import com.example.loja_social.ui.campanhas.CampanhasViewModelFactory
-import com.example.loja_social.repository.CampanhaRepository
 import com.example.loja_social.ui.login.LoginActivity
 import com.example.loja_social.ui.stock.*
 import com.example.loja_social.ui.theme.LojaSocialTheme
@@ -62,15 +56,13 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object StockDetail : Screen("stockDetail/{produtoId}/{produtoNome}", "Detalhes do Stock", Icons.Default.ShoppingCart) {
         fun createRoute(produtoId: Int, produtoNome: String) = "stockDetail/$produtoId/$produtoNome"
     }
-    object Campanhas : Screen("campanhas", "Campanhas", Icons.Default.Event)
     object AgendarEntrega : Screen("agendarEntrega", "Agendar Entrega", Icons.Default.Add)
     object EntregaDetail : Screen("entregaDetail/{entregaId}/{estado}", "Detalhes da Entrega", Icons.Default.List) {
         fun createRoute(entregaId: String, estado: String) = "entregaDetail/$entregaId/$estado"
     }
-    object BeneficiarioMain : Screen("beneficiarioMain", "Beneficiário", Icons.Default.Home) // Added for the new bottomNavItems structure
 }
 
-val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas, Screen.Logout)
+val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Logout)
 
 class MainActivity : ComponentActivity() {
 

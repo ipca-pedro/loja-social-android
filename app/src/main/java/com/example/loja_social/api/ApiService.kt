@@ -21,15 +21,6 @@ interface ApiService {
     @GET("api/public/campanhas")
     suspend fun getCampanhas(): CampanhasResponse
 
-    @POST("api/admin/campanhas")
-    suspend fun createCampanha(@Body request: CampanhaRequest): SingleCampanhaResponse
-
-    @PUT("api/admin/campanhas/{id}")
-    suspend fun updateCampanha(@Path("id") id: String, @Body request: CampanhaRequest): SingleCampanhaResponse
-
-    @DELETE("api/admin/campanhas/{id}")
-    suspend fun deleteCampanha(@Path("id") id: String): ApiResponse<Any>
-
     /**
      * Obtém o resumo público de stock disponível.
      */

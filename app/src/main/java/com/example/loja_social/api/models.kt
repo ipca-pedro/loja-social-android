@@ -15,8 +15,7 @@ import com.google.gson.annotations.SerializedName
  */
 data class CampanhasResponse(
     @SerializedName("success") val success: Boolean,
-    @SerializedName("data") val data: List<Campanha>,
-    @SerializedName("message") val message: String?
+    @SerializedName("data") val data: List<Campanha>
 )
 
 /**
@@ -27,28 +26,7 @@ data class Campanha(
     @SerializedName("nome") val nome: String,
     @SerializedName("descricao") val descricao: String?,
     @SerializedName("data_inicio") val dataInicio: String,
-    @SerializedName("data_fim") val dataFim: String,
-    @SerializedName("ativo") val ativo: Boolean? = true
-)
-
-/**
- * Requisição para criar ou atualizar uma campanha.
- */
-data class CampanhaRequest(
-    @SerializedName("nome") val nome: String,
-    @SerializedName("descricao") val descricao: String?,
-    @SerializedName("data_inicio") val dataInicio: String,
-    @SerializedName("data_fim") val dataFim: String,
-    @SerializedName("ativo") val ativo: Boolean?
-)
-
-/**
- * Resposta da API para uma única campanha (após criar/editar).
- */
-data class SingleCampanhaResponse(
-    @SerializedName("success") val success: Boolean,
-    @SerializedName("message") val message: String?,
-    @SerializedName("data") val data: Campanha?
+    @SerializedName("data_fim") val dataFim: String
 )
 
 // ===== MODELOS DE AUTENTICAÇÃO =====
