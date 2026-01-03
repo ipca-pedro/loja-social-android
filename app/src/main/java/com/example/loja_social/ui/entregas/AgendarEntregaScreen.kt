@@ -20,31 +20,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.loja_social.SessionManager
 import com.example.loja_social.api.Beneficiario
 import com.example.loja_social.api.LoteIndividual
+import com.example.loja_social.ui.main.Screen
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgendarEntregaScreen(
     viewModel: AgendarEntregaViewModel,
-    onScheduleClick: (String) -> Unit,
-    onNavigateBack: () -> Unit
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var dataAgendamento by remember { mutableStateOf("") }
     var showItemDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        viewModel.onFragmentReady()
-        viewModel.events.collect { event ->
-            when (event) {
-                is AgendarEntregaEvent.ShowSuccessMessage -> {
-                    android.widget.Toast.makeText(context, event.message, android.widget.Toast.LENGTH_LONG).show()
-                    onNavigateBack()
-                }
-            }
+    LaunchedEffect(uiState.schedulingSuccess) {
+        if (uiState.schedulingSuccess) {
+            Toast.makeText(context, "Entrega agendada com sucesso!", Toast.LENGTH_SHORT).show()
+            // Avisa o ecrã de Entregas para recarregar
+            navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_entregas", true)
+            // Avisa o Dashboard para recarregar
+            navController.getBackStackEntry(Screen.Dashboard.route).savedStateHandle.set("should_refresh_dashboard", true)
+            
+            navController.popBackStack()
+            viewModel.onNavigationHandled()
         }
     }
 
@@ -63,7 +66,7 @@ fun AgendarEntregaScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Agendar Nova Entrega") },
-                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") } },
+                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") } },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -120,7 +123,13 @@ fun AgendarEntregaScreen(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
-                onClick = { onScheduleClick(dataAgendamento) },
+                onClick = { 
+                    val sessionManager = SessionManager(context)
+                    val colaboradorId = sessionManager.fetchColaboradorId()
+                    if (colaboradorId != null) {
+                        viewModel.agendarEntrega(colaboradorId, dataAgendamento)
+                    }
+                },
                 enabled = uiState.selectedBeneficiarioId != null && uiState.itensSelecionados.isNotEmpty() && dataAgendamento.isNotBlank() && !uiState.isScheduling,
                 modifier = Modifier.fillMaxWidth()
             ) {

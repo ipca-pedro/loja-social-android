@@ -6,39 +6,27 @@ import androidx.lifecycle.viewModelScope
 import com.example.loja_social.api.AddStockRequest
 import com.example.loja_social.api.Campanha
 import com.example.loja_social.api.Categoria
+import com.example.loja_social.api.CreateProductRequest
 import com.example.loja_social.api.Produto
 import com.example.loja_social.repository.StockRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
-/**
- * Estado da UI do formulário de adicionar stock.
- * @param isLoading Indica se está a carregar dados iniciais
- * @param categorias Lista de categorias disponíveis para seleção
- * @param produtos Lista de produtos disponíveis para seleção
- * @param campanhas Lista de campanhas disponíveis para seleção
- * @param errorMessage Mensagem de erro a exibir
- * @param successMessage Mensagem de sucesso a exibir
- * @param isFormLoading Indica se está a processar o envio do formulário
- */
 data class StockUiState(
     val isLoading: Boolean = true,
     val categorias: List<Categoria> = emptyList(),
     val produtos: List<Produto> = emptyList(),
-    val campanhas: List<Campanha> = emptyList(), // Novo campo
+    val campanhas: List<Campanha> = emptyList(),
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val isFormLoading: Boolean = false
+    val isFormLoading: Boolean = false,
+    val stockAddedSuccessfully: Boolean = false // Estado para controlar a navegação
 )
 
-/**
- * ViewModel para o formulário de adicionar novo stock.
- * Gerencia o carregamento de dados e o envio de novos lotes.
- */
 class StockViewModel(
     private val repository: StockRepository
 ) : ViewModel() {
@@ -47,57 +35,46 @@ class StockViewModel(
     val uiState: StateFlow<StockUiState> = _uiState
 
     init {
-        fetchInitialData()
-    }
-
-    /**
-     * Busca todos os dados necessários (categorias, produtos, campanhas) para o formulário.
-     */
-    private fun fetchInitialData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            try {
-                // Carrega todos os dados em paralelo
-                val categoriasResponse = repository.getCategorias()
-                val produtosResponse = repository.getProdutos()
-                val campanhasResponse = repository.getCampanhas() // Nova chamada
-
-                if (categoriasResponse.success && produtosResponse.success && campanhasResponse.success) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        categorias = categoriasResponse.data,
-                        produtos = produtosResponse.data,
-                        campanhas = campanhasResponse.data // Guardar campanhas no estado
-                    )
-                } else {
-                    val errorMessages = buildList {
-                        if (!campanhasResponse.success) add("Erro ao carregar campanhas")
-                        if (!categoriasResponse.success) add(categoriasResponse.message ?: "Erro ao carregar categorias")
-                        if (!produtosResponse.success) add(produtosResponse.message ?: "Erro ao carregar produtos")
-                    }
-                    val errorMsg = errorMessages.joinToString("; ").ifEmpty { "Erro ao carregar dados." }
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = errorMsg)
-                }
-            } catch (e: Exception) {
-                Log.e("StockVM", "Falha de rede ao carregar dados iniciais", e)
-                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "Falha de ligação: ${e.message}")
-            }
+            fetchInitialData()
         }
     }
 
-    /**
-     * Processa o envio do formulário para adicionar novo stock.
-     * @param produtoId O ID do produto selecionado
-     * @param quantidade A quantidade a adicionar
-     * @param dataValidade A data de validade no formato DD/MM/AAAA (opcional)
-     * @param campanhaId O ID da campanha selecionada (opcional)
-     */
-    fun addStockItem(produtoId: Int, quantidade: String, dataValidade: String, campanhaId: String?) {
-        if (_uiState.value.isFormLoading) return
+    private suspend fun fetchInitialData() {
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        try {
+            val categoriasResponse = repository.getCategorias()
+            val produtosResponse = repository.getProdutos()
+            val campanhasResponse = repository.getCampanhas()
 
+            if (categoriasResponse.success && produtosResponse.success && campanhasResponse.success) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        categorias = categoriasResponse.data,
+                        produtos = produtosResponse.data,
+                        campanhas = campanhasResponse.data
+                    )
+                }
+            } else {
+                val errorMessages = buildList {
+                    if (!campanhasResponse.success) add("Erro ao carregar campanhas")
+                    if (!categoriasResponse.success) add(categoriasResponse.message ?: "Erro ao carregar categorias")
+                    if (!produtosResponse.success) add(produtosResponse.message ?: "Erro ao carregar produtos")
+                }
+                val errorMsg = errorMessages.joinToString("; ").ifEmpty { "Erro ao carregar dados." }
+                _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
+            }
+        } catch (e: Exception) {
+            Log.e("StockVM", "Falha de rede ao carregar dados iniciais", e)
+            _uiState.update { it.copy(isLoading = false, errorMessage = "Falha de ligação: ${e.message}") }
+        }
+    }
+
+    fun addStockItem(produtoId: Int, quantidade: String, dataValidade: String, campanhaId: String?) {
         val quantidadeInt = quantidade.toIntOrNull()
         if (quantidadeInt == null || quantidadeInt <= 0) {
-            _uiState.value = _uiState.value.copy(errorMessage = "A quantidade deve ser um número inteiro positivo.")
+            _uiState.update { it.copy(errorMessage = "A quantidade deve ser um número inteiro positivo.") }
             return
         }
 
@@ -105,88 +82,68 @@ class StockViewModel(
             if (dataValidade.isNotBlank()) {
                 val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                 val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val date = inputFormat.parse(dataValidade.trim())
-                if (date != null) outputFormat.format(date) else throw IllegalArgumentException("Data inválida")
+                inputFormat.parse(dataValidade.trim())?.let { outputFormat.format(it) }
             } else {
                 null
             }
         } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(isFormLoading = false, errorMessage = "Formato de data inválido. Use DD/MM/AAAA.")
+            _uiState.update { it.copy(errorMessage = "Formato de data inválido. Use DD/MM/AAAA.") }
             return
         }
 
-        val request = AddStockRequest(
-            produtoId = produtoId,
-            quantidadeInicial = quantidadeInt,
-            dataValidade = dataFormatada,
-            campanhaId = campanhaId // Passar o ID da campanha
-        )
-
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isFormLoading = true, errorMessage = null, successMessage = null)
+            _uiState.update { it.copy(isFormLoading = true, errorMessage = null, successMessage = null) }
             try {
+                val request = AddStockRequest(produtoId, quantidadeInt, dataFormatada, campanhaId)
                 val response = repository.addStock(request)
                 if (response.success) {
-                    val loteInfo = if (response.data?.id != null) "Lote: ${response.data.id.take(4)}..." else ""
-                    val dataInfo = if (dataFormatada != null) " com validade até $dataValidade" else ""
-                    _uiState.value = _uiState.value.copy(
-                        isFormLoading = false,
-                        successMessage = "Stock adicionado com sucesso! $loteInfo$dataInfo"
-                    )
+                    _uiState.update { it.copy(stockAddedSuccessfully = true) } // Aciona o evento de navegação
                 } else {
-                    _uiState.value = _uiState.value.copy(isFormLoading = false, errorMessage = response.message ?: "Erro ao adicionar stock.")
+                    _uiState.update { it.copy(errorMessage = response.message ?: "Erro ao adicionar stock.") }
                 }
             } catch (e: Exception) {
                 Log.e("StockVM", "Erro de rede ao adicionar stock", e)
-                _uiState.value = _uiState.value.copy(isFormLoading = false, errorMessage = "Falha de ligação: ${e.message}")
+                _uiState.update { it.copy(errorMessage = "Falha de ligação: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isFormLoading = false) }
             }
         }
     }
 
-    fun clearMessages() {
-        _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null)
-    }
-
-    /**
-     * Cria um novo produto e atualiza a lista de produtos.
-     */
-    fun createProduct(nome: String, descricao: String, categoriaId: Int) {
-        if (_uiState.value.isFormLoading) return
-
+    fun createProduct(nome: String, descricao: String?, categoriaId: Int) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isFormLoading = true, errorMessage = null, successMessage = null)
+            _uiState.update { it.copy(isFormLoading = true, errorMessage = null, successMessage = null) }
             try {
-                val request = com.example.loja_social.api.CreateProductRequest(nome, descricao, categoriaId)
+                val request = CreateProductRequest(nome, descricao, categoriaId)
                 val response = repository.createProduct(request)
-                
-                if (response.success) {
-                    // Atualizar a lista de produtos
-                    val produtosResponse = repository.getProdutos()
-                    if (produtosResponse.success) {
-                        _uiState.value = _uiState.value.copy(
-                            isFormLoading = false,
-                            produtos = produtosResponse.data,
-                            successMessage = "Produto '${response.data?.nome}' criado com sucesso!"
-                        )
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isFormLoading = false, 
-                            successMessage = "Produto criado, mas erro ao atualizar lista: ${produtosResponse.message}"
+                if (response.success && response.data != null) {
+                    val newProductList = _uiState.value.produtos + response.data
+                    _uiState.update {
+                        it.copy(
+                            produtos = newProductList.sortedBy { p -> p.nome },
+                            successMessage = response.message ?: "Produto criado com sucesso!"
                         )
                     }
                 } else {
-                    _uiState.value = _uiState.value.copy(
-                        isFormLoading = false,
-                        errorMessage = response.message ?: "Erro ao criar produto."
-                    )
+                    _uiState.update { it.copy(errorMessage = response.message ?: "Erro ao criar produto.") }
                 }
             } catch (e: Exception) {
-                Log.e("StockVM", "Erro ao criar produto", e)
-                _uiState.value = _uiState.value.copy(
-                    isFormLoading = false,
-                    errorMessage = "Falha de ligação: ${e.message}"
-                )
+                Log.e("StockVM", "Erro de rede ao criar produto", e)
+                _uiState.update { it.copy(errorMessage = "Falha de ligação: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isFormLoading = false) }
             }
         }
+    }
+
+    /**
+     * Informa o ViewModel que o evento de navegação foi consumido.
+     */
+    fun navigationDone() {
+        _uiState.update { it.copy(stockAddedSuccessfully = false) }
+    }
+
+    fun clearMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 }

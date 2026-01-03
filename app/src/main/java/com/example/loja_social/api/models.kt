@@ -262,6 +262,16 @@ data class EntregasResponse(
 )
 
 /**
+ * Detalhes de um item específico de uma entrega.
+ */
+data class EntregaDetailItem(
+    @SerializedName("quantidade_entregue") val quantidadeEntregue: Int,
+    @SerializedName("produto") val produto: String,
+    @SerializedName("categoria") val categoria: String?,
+    @SerializedName("data_validade") val dataValidade: String?
+)
+
+/**
  * Requisição para agendar uma nova entrega.
  */
 data class AgendarEntregaRequest(

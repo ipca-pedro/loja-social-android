@@ -1,4 +1,3 @@
-
 package com.example.loja_social.ui.main
 
 import android.content.Intent
@@ -14,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,15 +25,16 @@ import com.example.loja_social.SessionManager
 import com.example.loja_social.api.RetrofitHelper
 import com.example.loja_social.api.RetrofitInstance
 import com.example.loja_social.repository.*
+import com.example.loja_social.ui.beneficiario.BeneficiarioMainViewModel
+import com.example.loja_social.ui.beneficiario.BeneficiarioMainViewModelFactory
 import com.example.loja_social.ui.beneficiarios.*
 import com.example.loja_social.ui.dashboard.DashboardScreen
+import com.example.loja_social.ui.dashboard.DashboardViewModel
 import com.example.loja_social.ui.dashboard.DashboardViewModelFactory
 import com.example.loja_social.ui.entregas.*
 import com.example.loja_social.ui.login.LoginActivity
 import com.example.loja_social.ui.stock.*
 import com.example.loja_social.ui.theme.LojaSocialTheme
-import com.example.loja_social.ui.beneficiario.BeneficiarioMainViewModel
-import com.example.loja_social.ui.beneficiario.BeneficiarioMainViewModelFactory
 import android.util.Log
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -56,6 +57,9 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
         fun createRoute(produtoId: Int, produtoNome: String) = "stockDetail/$produtoId/$produtoNome"
     }
     object AgendarEntrega : Screen("agendarEntrega", "Agendar Entrega", Icons.Default.Add)
+    object EntregaDetail : Screen("entregaDetail/{entregaId}/{estado}", "Detalhes da Entrega", Icons.Default.List) {
+        fun createRoute(entregaId: String, estado: String) = "entregaDetail/$entregaId/$estado"
+    }
 }
 
 val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Logout)
@@ -69,12 +73,7 @@ class MainActivity : ComponentActivity() {
         val token = sessionManager.fetchAuthToken()
         val role = sessionManager.fetchUserRole()
         
-        Log.d("MainActivity", "Token: ${token?.take(20)}..., Role: $role")
-        Log.d("MainActivity", "isAdmin: ${sessionManager.isAdmin()}, isBeneficiario: ${sessionManager.isBeneficiario()}")
-        
-        // Verificar se o utilizador está autenticado
         if (token == null) {
-            Log.d("MainActivity", "Sem token, redirecionando para LoginActivity")
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
             return
@@ -82,29 +81,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LojaSocialTheme {
-                // Verificar role do utilizador e mostrar interface apropriada
-                Log.d("MainActivity", "Verificando role para navegação...")
-                val userRole = sessionManager.fetchUserRole()
-                Log.d("MainActivity", "Role atual: '$userRole'")
-                Log.d("MainActivity", "isAdmin(): ${sessionManager.isAdmin()}")
-                Log.d("MainActivity", "isBeneficiario(): ${sessionManager.isBeneficiario()}")
-                
-                when (userRole) {
-                    "admin" -> {
-                        Log.d("MainActivity", "Utilizador é admin, mostrando MainAppScreen")
-                        MainAppScreen()
-                    }
-                    "beneficiario" -> {
-                        Log.d("MainActivity", "Utilizador é beneficiário, mostrando BeneficiarioAppScreen")
-                        BeneficiarioAppScreen()
-                    }
-                    null -> {
-                        Log.w("MainActivity", "Role é null, assumindo admin por defeito")
-                        MainAppScreen() // Assumir admin se role for null
-                    }
+                when (role) {
+                    "admin" -> MainAppScreen()
+                    "beneficiario" -> BeneficiarioAppScreen()
                     else -> {
-                        Log.w("MainActivity", "Role desconhecido: '$userRole', assumindo admin")
-                        MainAppScreen() // Assumir admin para roles desconhecidos
+                        // Fallback para o caso de role ser null ou desconhecido
+                        startActivity(Intent(this, LoginActivity::class.java))
+                        finish()
                     }
                 }
             }
@@ -126,17 +109,15 @@ class MainActivity : ComponentActivity() {
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.label) },
                             label = { Text(screen.label) },
-                            selected = currentRoute == screen.route,
+                            selected = currentRoute?.startsWith(screen.route.substringBefore("?")) ?: false,
                             onClick = {
                                 if (screen.route == Screen.Logout.route) {
                                     showLogoutDialog = true
                                 } else {
-                                    val route = when (screen) {
-                                        Screen.Entregas -> Screen.Entregas.createRoute()
-                                        Screen.Stock -> Screen.Stock.createRoute()
-                                        else -> screen.route
-                                    }
-                                    navController.navigate(route) { 
+                                    navController.navigate(screen.route.substringBefore("?")) { 
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -165,81 +146,104 @@ class MainActivity : ComponentActivity() {
     fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
         val context = LocalContext.current
         
-        // Garantir que Retrofit está inicializado
-        LaunchedEffect(Unit) {
-            if (!RetrofitInstance.isInitialized()) {
-                RetrofitHelper.ensureInitialized(context.applicationContext)
-            }
-        }
-        
-        val apiService = try {
-            RetrofitInstance.api
-        } catch (e: UninitializedPropertyAccessException) {
-            RetrofitHelper.ensureInitialized(context.applicationContext)
-            RetrofitInstance.api
-        }
+        RetrofitHelper.ensureInitialized(context.applicationContext)
+        val apiService = RetrofitInstance.api
         
         NavHost(navController = navController, startDestination = Screen.Dashboard.route, modifier = modifier) {
-            composable(Screen.Dashboard.route) {
-                val viewModel: com.example.loja_social.ui.dashboard.DashboardViewModel = viewModel(
-                    factory = DashboardViewModelFactory(DashboardRepository(apiService))
-                )
+            composable(Screen.Dashboard.route) { backStackEntry ->
+                val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_dashboard")
+                val viewModel: DashboardViewModel = viewModel(factory = DashboardViewModelFactory(DashboardRepository(apiService)))
+
+                LaunchedEffect(shouldRefresh) {
+                    if (shouldRefresh == true) {
+                        viewModel.fetchDashboardData()
+                        backStackEntry.savedStateHandle.remove<Boolean>("should_refresh_dashboard")
+                    }
+                }
+
                 DashboardScreen(
                     viewModel = viewModel,
                     onNavigateToAlerts = { navController.navigate(Screen.Stock.createRoute("alerts")) },
-                    onNavigateToEntregas = { navController.navigate(Screen.Entregas.createRoute("today")) }
+                    onNavigateToEntregas = { navController.navigate(Screen.Entregas.createRoute(filter = "today")) }
                 )
             }
             
             composable(
                 route = Screen.Entregas.route,
-                arguments = listOf(
-                    navArgument("filter") { nullable = true; type = NavType.StringType }
-                )
+                arguments = listOf(navArgument("filter") { nullable = true; type = NavType.StringType })
             ) { backStackEntry ->
+                val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_entregas")
                 val filter = backStackEntry.arguments?.getString("filter")
-                val viewModel: EntregasViewModel = viewModel(
-                    factory = EntregasViewModelFactory(EntregaRepository(apiService))
-                )
+                val returnTab = backStackEntry.savedStateHandle.get<String>("return_tab")
+                val viewModel: EntregasViewModel = viewModel(factory = EntregasViewModelFactory(EntregaRepository(apiService)))
                 
-                // Apply filter if coming from dashboard
-                LaunchedEffect(filter) {
-                    if (filter == "today") {
+                LaunchedEffect(shouldRefresh) {
+                    if (shouldRefresh == true) {
+                        viewModel.fetchEntregas() 
+                        backStackEntry.savedStateHandle.remove<Boolean>("should_refresh_entregas")
+                    }
+                }
+
+                LaunchedEffect(returnTab, filter) {
+                    if (returnTab != null) {
+                        val tab = if (returnTab == "agendada") EntregaFilterType.AGENDADAS else EntregaFilterType.ENTREGUES
+                        viewModel.selectTab(tab)
+                        backStackEntry.savedStateHandle.remove<String>("return_tab")
+                    } else if (filter == "today") {
                         viewModel.filterByToday()
                     }
                 }
-                
+
                 EntregasScreen(
                     viewModel = viewModel,
-                    onAgendarClick = { navController.navigate(Screen.AgendarEntrega.route) }
+                    onAgendarClick = { navController.navigate(Screen.AgendarEntrega.route) },
+                    onNavigateBack = {
+                        if (viewModel.needsDashboardRefresh()) {
+                            navController.getBackStackEntry(Screen.Dashboard.route).savedStateHandle.set("should_refresh_dashboard", true)
+                        }
+                        navController.popBackStack()
+                    },
+                    onEntregaClick = { entregaId, estado ->
+                        navController.navigate(Screen.EntregaDetail.createRoute(entregaId, estado))
+                    }
                 )
+            }
+
+            composable(
+                route = Screen.EntregaDetail.route,
+                arguments = listOf(
+                    navArgument("entregaId") { type = NavType.StringType },
+                    navArgument("estado") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val entregaId = backStackEntry.arguments?.getString("entregaId")
+                val estado = backStackEntry.arguments?.getString("estado")
+                if (entregaId != null) {
+                    val viewModel: EntregaDetailViewModel = viewModel(
+                        factory = EntregaDetailViewModelFactory(entregaId, EntregaRepository(apiService))
+                    )
+                    EntregaDetailScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = { 
+                            if (estado != null) {
+                                navController.previousBackStackEntry?.savedStateHandle?.set("return_tab", estado)
+                            }
+                            navController.popBackStack() 
+                        }
+                    )
+                }
             }
             
             composable(Screen.AgendarEntrega.route) {
-                val viewModel: AgendarEntregaViewModel = viewModel(
-                    factory = AgendarEntregaViewModelFactory(
-                        AgendarEntregaRepository(apiService),
-                        StockRepository(apiService)
-                    )
-                )
-                val sessionManager = SessionManager(context)
+                val viewModel: AgendarEntregaViewModel = viewModel(factory = AgendarEntregaViewModelFactory(AgendarEntregaRepository(apiService), StockRepository(apiService)))
                 AgendarEntregaScreen(
                     viewModel = viewModel,
-                    onScheduleClick = { dataAgendamento ->
-                        val colaboradorId = sessionManager.fetchColaboradorId()
-                        if (colaboradorId != null) {
-                            viewModel.agendarEntrega(colaboradorId, dataAgendamento)
-                        }
-                    },
-                    onNavigateBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             
-            // Fluxo de Beneficiários
             composable(Screen.Beneficiarios.route) {
-                val viewModel: BeneficiariosViewModel = viewModel(
-                    factory = BeneficiariosViewModelFactory(BeneficiarioRepository(apiService))
-                )
+                val viewModel: BeneficiariosViewModel = viewModel(factory = BeneficiariosViewModelFactory(BeneficiarioRepository(apiService)))
                 BeneficiariosScreen(viewModel) { beneficiarioId ->
                     val title = if(beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
                     navController.navigate(Screen.BeneficiarioDetail.createRoute(beneficiarioId, title))
@@ -255,12 +259,7 @@ class MainActivity : ComponentActivity() {
             ) { backStackEntry ->
                 val beneficiarioId = backStackEntry.arguments?.getString("beneficiarioId")
                 val title = backStackEntry.arguments?.getString("title") ?: "Detalhes"
-                val viewModel: BeneficiarioDetailViewModel = viewModel(
-                    factory = BeneficiarioDetailViewModelFactory(
-                        BeneficiarioRepository(apiService),
-                        beneficiarioId
-                    )
-                )
+                val viewModel: BeneficiarioDetailViewModel = viewModel(factory = BeneficiarioDetailViewModelFactory(BeneficiarioRepository(apiService), beneficiarioId))
                 BeneficiarioDetailScreen(
                     viewModel = viewModel,
                     title = title,
@@ -268,23 +267,23 @@ class MainActivity : ComponentActivity() {
                 )
             }
             
-            // Fluxo de Stock
             composable(
                 route = Screen.Stock.route,
-                arguments = listOf(
-                    navArgument("filter") { nullable = true; type = NavType.StringType }
-                )
+                arguments = listOf(navArgument("filter") { nullable = true; type = NavType.StringType })
             ) { backStackEntry ->
+                val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_stock")
                 val filter = backStackEntry.arguments?.getString("filter")
-                val viewModel: StockListViewModel = viewModel(
-                    factory = StockListViewModelFactory(StockRepository(apiService))
-                )
+                val viewModel: StockListViewModel = viewModel(factory = StockListViewModelFactory(StockRepository(apiService)))
                 
-                // Apply filter if coming from dashboard
-                LaunchedEffect(filter) {
-                    if (filter == "alerts") {
-                        viewModel.setFilterType("validade_proxima")
+                LaunchedEffect(shouldRefresh) {
+                    if (shouldRefresh == true) {
+                        viewModel.fetchStock()
+                        backStackEntry.savedStateHandle.remove<Boolean>("should_refresh_stock")
                     }
+                }
+
+                LaunchedEffect(filter) {
+                    if (filter == "alerts") viewModel.setFilterType("validade_proxima")
                 }
                 
                 StockListScreen(
@@ -295,10 +294,8 @@ class MainActivity : ComponentActivity() {
             }
             
             composable(Screen.AddStock.route) {
-                val viewModel: StockViewModel = viewModel(
-                    factory = StockViewModelFactory(StockRepository(apiService))
-                )
-                StockScreen(viewModel)
+                val viewModel: StockViewModel = viewModel(factory = StockViewModelFactory(StockRepository(apiService)))
+                StockScreen(viewModel = viewModel, navController = navController)
             }
             
             composable(
@@ -309,12 +306,7 @@ class MainActivity : ComponentActivity() {
                 )
             ) { backStackEntry ->
                 val produtoId = backStackEntry.arguments?.getInt("produtoId") ?: 0
-                val viewModel: StockDetailViewModel = viewModel(
-                    factory = StockDetailViewModelFactory(
-                        StockRepository(apiService),
-                        produtoId
-                    )
-                )
+                val viewModel: StockDetailViewModel = viewModel(factory = StockDetailViewModelFactory(StockRepository(apiService), produtoId))
                 StockDetailScreen(viewModel)
             }
         }
@@ -327,31 +319,14 @@ class MainActivity : ComponentActivity() {
             title = { Text("Confirmar Logout") },
             text = { Text("Tem certeza que deseja sair?") },
             confirmButton = { Button(onClick = onConfirm) { Text("Sair") } },
-            dismissButton = { Button(onClick = onDismiss) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
         )
     }
 
     @Composable
     fun BeneficiarioAppScreen() {
-        val context = LocalContext.current
-        
-        // Garantir que Retrofit está inicializado
-        LaunchedEffect(Unit) {
-            if (!RetrofitInstance.isInitialized()) {
-                RetrofitHelper.ensureInitialized(context.applicationContext)
-            }
-        }
-        
-        val apiService = try {
-            RetrofitInstance.api
-        } catch (e: UninitializedPropertyAccessException) {
-            RetrofitHelper.ensureInitialized(context.applicationContext)
-            RetrofitInstance.api
-        }
-        
-        val viewModel: BeneficiarioMainViewModel = viewModel(
-            factory = BeneficiarioMainViewModelFactory(apiService)
-        )
+        val apiService = RetrofitInstance.api
+        val viewModel: BeneficiarioMainViewModel = viewModel(factory = BeneficiarioMainViewModelFactory(apiService))
         
         com.example.loja_social.ui.beneficiario.BeneficiarioMainScreen(
             viewModel = viewModel,

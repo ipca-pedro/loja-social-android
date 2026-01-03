@@ -1,7 +1,9 @@
 package com.example.loja_social.repository
 
+import com.example.loja_social.api.ApiResponse
 import com.example.loja_social.api.ApiService
 import com.example.loja_social.api.ConcluirEntregaResponse
+import com.example.loja_social.api.EntregaDetailItem
 import com.example.loja_social.api.EntregasResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,6 +21,15 @@ class EntregaRepository(private val apiService: ApiService) {
     suspend fun getEntregas(): EntregasResponse {
         return withContext(Dispatchers.IO) {
             apiService.getEntregas()
+        }
+    }
+
+    /**
+     * Obtém os detalhes (itens) de uma entrega específica.
+     */
+    suspend fun getEntregaDetails(entregaId: String): ApiResponse<List<EntregaDetailItem>> {
+        return withContext(Dispatchers.IO) {
+            apiService.getEntregaDetails(entregaId)
         }
     }
 
