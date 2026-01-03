@@ -33,6 +33,15 @@ fun CampanhasScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf<Campanha?>(null) }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Gestão de Campanhas") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -51,12 +60,6 @@ fun CampanhasScreen(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = "Gestão de Campanhas",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
 
                 if (uiState.isLoading) {
                     LoadingState()
@@ -176,7 +179,7 @@ fun CampanhaItem(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                StatusChip(status = if (campanha.ativo == true) "Ativo" else "Inativo")
+                StatusChip(status = if (campanha.ativo != false) "Ativo" else "Inativo")
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -190,7 +193,7 @@ fun CampanhaItem(
             }
             
             Text(
-                text = "De ${campanha.dataInicio} até ${campanha.dataFim}",
+                text = "De ${campanha.dataInicio.take(10)} até ${campanha.dataFim.take(10)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
