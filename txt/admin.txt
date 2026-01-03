@@ -526,4 +526,95 @@ router.delete('/campanhas/:id', async (req, res) => {
   }
 });
 
+// ===== RELATÓRIOS (RF5 & GAPS) =====
+
+// GET /api/admin/relatorios/entregas - Relatório de Entregas por Período
+router.get('/relatorios/entregas', async (req, res) => {
+  try {
+    const { inicio, fim } = req.query;
+    
+    let query = `
+      SELECT e.id, e.data_agendamento, e.estado, 
+             b.nome_completo as beneficiario, b.num_estudante,
+             c.nome as colaborador
+      FROM entregas e
+      LEFT JOIN beneficiarios b ON e.beneficiario_id = b.id
+      LEFT JOIN colaboradores c ON e.colaborador_id = c.id
+    `;
+    
+    const params = [];
+    if (inicio && fim) {
+      query += ` WHERE e.data_agendamento BETWEEN $1 AND $2`;
+      params.push(inicio, fim);
+    }
+    
+    query += ` ORDER BY e.data_agendamento DESC`;
+    
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro no relatório de entregas:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/admin/relatorios/stock - Relatório de Stock vs Campanhas
+router.get('/relatorios/stock', async (req, res) => {
+  try {
+    // Agrupar stock por campanha e produto
+    const query = `
+      SELECT 
+        COALESCE(camp.nome, 'Sem Campanha (Stock Regular)') as campanha_nome,
+        p.nome as produto_nome,
+        cat.nome as categoria_nome,
+        SUM(si.quantidade_atual) as quantidade_total,
+        SUM(si.quantidade_inicial) as quantidade_recolhida
+      FROM stock_items si
+      JOIN produtos p ON si.produto_id = p.id
+      LEFT JOIN categorias cat ON p.categoria_id = cat.id
+      LEFT JOIN campanhas camp ON si.campanha_id = camp.id
+      GROUP BY camp.nome, p.nome, cat.nome
+      ORDER BY camp.nome, cat.nome, p.nome
+    `;
+    
+    const result = await pool.query(query);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro no relatório de stock:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/admin/relatorios/validade - Relatório de Produtos Expirados/Danificados
+router.get('/relatorios/validade', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        si.id,
+        p.nome as produto_nome,
+        cat.nome as categoria_nome,
+        si.quantidade_atual,
+        si.quantidade_danificada,
+        si.data_validade,
+        CASE 
+          WHEN si.data_validade < CURRENT_DATE THEN 'Expirado'
+          WHEN si.quantidade_danificada > 0 THEN 'Danificado'
+          ELSE 'OK'
+        END as estado_item
+      FROM stock_items si
+      JOIN produtos p ON si.produto_id = p.id
+      LEFT JOIN categorias cat ON p.categoria_id = cat.id
+      WHERE (si.data_validade < CURRENT_DATE AND si.quantidade_atual > 0)
+         OR (si.quantidade_danificada > 0)
+      ORDER BY si.data_validade ASC
+    `;
+    
+    const result = await pool.query(query);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro no relatório de validade:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
 module.exports = router;

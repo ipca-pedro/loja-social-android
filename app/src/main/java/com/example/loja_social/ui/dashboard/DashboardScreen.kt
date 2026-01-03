@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +39,8 @@ import java.util.*
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onNavigateToAlerts: (alerta: AlertaValidade) -> Unit,
-    onNavigateToEntregaDetail: (entregaId: String, estado: String) -> Unit
+    onNavigateToEntregaDetail: (entregaId: String, estado: String) -> Unit,
+    onNavigateToReports: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -49,7 +51,12 @@ fun DashboardScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    IconButton(onClick = onNavigateToReports) {
+                        Icon(Icons.Default.Description, contentDescription = "Relatórios")
+                    }
+                }
             )
         }
     ) { padding ->

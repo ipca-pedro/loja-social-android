@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -67,6 +68,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object EntregaDetail : Screen("entregaDetail/{entregaId}/{estado}", "Detalhes da Entrega", Icons.AutoMirrored.Filled.List) {
         fun createRoute(entregaId: String, estado: String) = "entregaDetail/$entregaId/$estado"
     }
+    object Relatorios : Screen("relatorios", "Relatórios", Icons.Default.Description)
 }
 
 val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas, Screen.Logout)
@@ -180,7 +182,8 @@ class MainActivity : ComponentActivity() {
                     },
                     onNavigateToEntregaDetail = { entregaId, estado ->
                         navController.navigate(Screen.EntregaDetail.createRoute(entregaId, estado))
-                    }
+                    },
+                    onNavigateToReports = { navController.navigate(Screen.Relatorios.route) }
                 )
             }
             
@@ -352,6 +355,10 @@ class MainActivity : ComponentActivity() {
                     factory = CampanhasViewModelFactory(repository)
                 )
                 CampanhasScreen(viewModel = viewModel)
+            }
+
+            composable(Screen.Relatorios.route) {
+                com.example.loja_social.ui.relatorios.RelatoriosScreen()
             }
         }
     }

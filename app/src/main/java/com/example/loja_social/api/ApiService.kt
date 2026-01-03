@@ -205,4 +205,18 @@ interface ApiService {
      */
     @GET("api/admin/entregas")
     suspend fun getMinhasEntregas(): EntregasResponse
+
+    // ===== RELATÓRIOS =====
+    
+    @GET("api/admin/relatorios/entregas")
+    suspend fun getRelatorioEntregas(
+        @retrofit2.http.Query("inicio") inicio: String?,
+        @retrofit2.http.Query("fim") fim: String?
+    ): RelatorioEntregasResponse
+
+    @GET("api/admin/relatorios/stock")
+    suspend fun getRelatorioStock(): RelatorioStockResponse
+
+    @GET("api/admin/relatorios/validade")
+    suspend fun getRelatorioValidade(): RelatorioValidadeResponse
 }

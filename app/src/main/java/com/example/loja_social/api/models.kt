@@ -480,7 +480,6 @@ data class ContactoRequest(
  */
 data class ContactoResponse(
     @SerializedName("success") val success: Boolean,
-    @SerializedName("message") val message: String?,
     @SerializedName("data") val data: ContactoData?
 )
 
@@ -489,4 +488,60 @@ data class ContactoResponse(
  */
 data class ContactoData(
     @SerializedName("id") val id: Int
+)
+
+// ===== MODELOS DE RELATÓRIOS =====
+
+/**
+ * Resposta para o relatório de entregas.
+ */
+data class RelatorioEntregasResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<RelatorioEntregaItem>,
+    @SerializedName("message") val message: String?
+)
+
+data class RelatorioEntregaItem(
+    @SerializedName("id") val id: String,
+    @SerializedName("data_agendamento") val dataAgendamento: String,
+    @SerializedName("estado") val estado: String,
+    @SerializedName("beneficiario") val beneficiario: String?,
+    @SerializedName("num_estudante") val numEstudante: String?,
+    @SerializedName("colaborador") val colaborador: String?
+)
+
+/**
+ * Resposta para o relatório de stock.
+ */
+data class RelatorioStockResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<RelatorioStockItem>,
+    @SerializedName("message") val message: String?
+)
+
+data class RelatorioStockItem(
+    @SerializedName("campanha_nome") val campanhaNome: String,
+    @SerializedName("produto_nome") val produtoNome: String,
+    @SerializedName("categoria_nome") val categoriaNome: String?,
+    @SerializedName("quantidade_total") val quantidadeTotal: Int,
+    @SerializedName("quantidade_recolhida") val quantidadeRecolhida: Int
+)
+
+/**
+ * Resposta para o relatório de validade/lixo.
+ */
+data class RelatorioValidadeResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<RelatorioValidadeItem>,
+    @SerializedName("message") val message: String?
+)
+
+data class RelatorioValidadeItem(
+    @SerializedName("id") val id: String,
+    @SerializedName("produto_nome") val produtoNome: String,
+    @SerializedName("categoria_nome") val categoriaNome: String?,
+    @SerializedName("quantidade_atual") val quantidadeAtual: Int,
+    @SerializedName("quantidade_danificada") val quantidadeDanificada: Int,
+    @SerializedName("data_validade") val dataValidade: String?,
+    @SerializedName("estado_item") val estadoItem: String
 )
