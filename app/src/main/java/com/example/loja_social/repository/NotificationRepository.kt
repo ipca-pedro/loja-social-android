@@ -21,4 +21,12 @@ class NotificationRepository(private val apiService: ApiService) {
             ApiResponse(success = false, message = e.message, data = null)
         }
     }
+
+    suspend fun marcarTodasComoLidas(): ApiResponse<Any> {
+        return try {
+            apiService.marcarTodasNotificacoesLidas()
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message, data = null)
+        }
+    }
 }

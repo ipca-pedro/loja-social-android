@@ -247,4 +247,7 @@ interface ApiService {
 
     @PUT("api/admin/notificacoes/{id}/lida")
     suspend fun marcarNotificacaoLida(@Path("id") id: String): ApiResponse<Notificacao>
+
+    @PUT("api/admin/notificacoes/ler_todas")
+    suspend fun marcarTodasNotificacoesLidas(): ApiResponse<Any>
 }

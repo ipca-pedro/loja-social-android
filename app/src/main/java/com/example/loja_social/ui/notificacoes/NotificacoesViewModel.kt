@@ -24,6 +24,7 @@ class NotificacoesViewModel(private val repository: NotificationRepository) : Vi
 
     init {
         fetchNotificacoes()
+        markAllRead()
     }
 
     fun fetchNotificacoes() {
@@ -51,6 +52,16 @@ class NotificacoesViewModel(private val repository: NotificationRepository) : Vi
                 }
             } else {
                 // Opcional: Mostrar erro
+            }
+        }
+    }
+    private fun markAllRead() {
+        viewModelScope.launch {
+            repository.marcarTodasComoLidas()
+            // Atualizar UI local para refletir que tudo foi lido
+            _uiState.update { state ->
+                val updatedList = state.notificacoes.map { it.copy(lida = true) }
+                state.copy(notificacoes = updatedList)
             }
         }
     }

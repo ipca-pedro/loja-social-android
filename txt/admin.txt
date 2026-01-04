@@ -1005,13 +1005,29 @@ router.get('/notificacoes', async (req, res) => {
     const result = await pool.query(`
       SELECT id, titulo, mensagem, lida, data_criacao, entrega_id
       FROM notificacoes
-      WHERE beneficiario_id = $1 OR colaborador_id = $1
+      WHERE beneficiario_id = $1
       ORDER BY data_criacao DESC
     `, [req.user.id]);
     
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Erro ao listar notificações:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// PUT /api/notificacoes/ler_todas - Marcar TODAS como lidas
+router.put('/notificacoes/ler_todas', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      UPDATE notificacoes 
+      SET lida = true 
+      WHERE beneficiario_id = $1 AND lida = false
+    `, [req.user.id]);
+
+    res.json({ success: true, count: result.rowCount });
+  } catch (error) {
+    console.error('Erro ao marcar todas notificações:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
@@ -1024,7 +1040,7 @@ router.put('/notificacoes/:id/lida', async (req, res) => {
     const result = await pool.query(`
       UPDATE notificacoes 
       SET lida = true 
-      WHERE id = $1 AND (beneficiario_id = $2 OR colaborador_id = $2)
+      WHERE id = $1 AND beneficiario_id = $2
       RETURNING id, lida
     `, [id, req.user.id]);
 

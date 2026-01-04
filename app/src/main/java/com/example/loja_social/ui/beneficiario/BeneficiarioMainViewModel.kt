@@ -18,7 +18,8 @@ data class BeneficiarioMainUiState(
     val errorMessage: String? = null,
     val selectedDate: LocalDate = LocalDate.now(),
     val datasComEntregas: Set<LocalDate> = emptySet(),
-    val entregasDoDia: List<Entrega> = emptyList() // Entregas apenas do dia selecionado
+    val entregasDoDia: List<Entrega> = emptyList(), // Entregas apenas do dia selecionado
+    val unreadCount: Int = 0 
 )
 
 class BeneficiarioMainViewModel(
@@ -43,6 +44,12 @@ class BeneficiarioMainViewModel(
                 // Carregar campanhas ativas
                 val campanhasResponse = apiService.getCampanhas()
 
+                // Carregar notificações (para badge)
+                val notificacoesResponse = apiService.getNotificacoes() // Requer que getNotificacoes exista na ApiService (já existe no NotificationRepository mas preciso acessar aqui ou injetar repo)
+                // BeneficiarioMainViewModel recebe ApiService. Posso chamar direto se a rota estiver lá.
+                // A rota getNotificacoes está na ApiService (Step 1489/1499).
+
+
                 // Processar datas
                 val entregas = entregasResponse.data
                 val datas = entregas.mapNotNull { 
@@ -55,7 +62,10 @@ class BeneficiarioMainViewModel(
                     isLoading = false,
                     minhasEntregas = entregas,
                     campanhasAtivas = campanhasResponse.data,
-                    datasComEntregas = datas
+                    datasComEntregas = datas,
+                    unreadCount = if (notificacoesResponse.success && notificacoesResponse.data != null) {
+                        notificacoesResponse.data.count { !it.lida }
+                    } else 0
                 )
                 // Filtrar para o dia atual inicialmente
                 selectDate(_uiState.value.selectedDate)

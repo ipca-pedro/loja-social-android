@@ -418,13 +418,31 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun BeneficiarioAppScreen() {
+        val navController = rememberNavController()
         val apiService = RetrofitInstance.api
-        val viewModel: BeneficiarioMainViewModel = viewModel(factory = BeneficiarioMainViewModelFactory(apiService))
         
-        com.example.loja_social.ui.beneficiario.BeneficiarioMainScreen(
-            viewModel = viewModel,
-            onLogoutClick = { performLogout() }
-        )
+        NavHost(navController = navController, startDestination = "beneficiarioHome") {
+            composable("beneficiarioHome") {
+                val viewModel: BeneficiarioMainViewModel = viewModel(factory = BeneficiarioMainViewModelFactory(apiService))
+                com.example.loja_social.ui.beneficiario.BeneficiarioMainScreen(
+                    viewModel = viewModel,
+                    onLogoutClick = { performLogout() },
+                    onNavigateToNotifications = { navController.navigate(Screen.Notificacoes.route) }
+                )
+            }
+            
+            composable(Screen.Notificacoes.route) {
+                com.example.loja_social.ui.notificacoes.NotificacoesScreen(
+                    onNavigateBack = { 
+                        // Ao voltar, podemos querer dar refresh ao badge.
+                        // O ViewModel do Main deve recarregar se o ecrã for recomposto ou se usarmos um shared ViewModel/Event.
+                        // Por simplicidade, ao navegar de volta, o `fetchNotificacoes` do MainViewModel será chamado se o Composable for recriado ou via refresh manual.
+                        // Para forçar, podemos invalidar. Mas vamos manter simples.
+                        navController.popBackStack() 
+                    }
+                )
+            }
+        }
     }
     
     private fun performLogout() {

@@ -22,7 +22,8 @@ import com.example.loja_social.ui.components.*
 @Composable
 fun BeneficiarioMainScreen(
     viewModel: BeneficiarioMainViewModel,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onNavigateToNotifications: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -31,11 +32,16 @@ fun BeneficiarioMainScreen(
             TopAppBar(
                 title = { Text("Área do Beneficiário") },
                 actions = {
-                    // Notificações - Tarefa 2
-                    // Notificações - Tarefa 2
-                    // TODO: Implementar navegação para ecrã de notificações
-                    IconButton(onClick = { /* Navegar para notificações */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                    IconButton(onClick = onNavigateToNotifications) {
+                        BadgedBox(
+                            badge = {
+                                if (uiState.unreadCount > 0) {
+                                    Badge { Text("${uiState.unreadCount}") }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                        }
                     }
                     IconButton(onClick = onLogoutClick) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sair")
