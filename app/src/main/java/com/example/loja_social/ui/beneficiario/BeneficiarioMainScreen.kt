@@ -25,7 +25,6 @@ fun BeneficiarioMainScreen(
     onLogoutClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {

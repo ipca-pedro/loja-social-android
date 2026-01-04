@@ -31,7 +31,6 @@ class NotificationWorker(
             com.example.loja_social.api.RetrofitHelper.ensureInitialized(context)
             
             val prefs: SharedPreferences = context.getSharedPreferences("loja_social_prefs", Context.MODE_PRIVATE)
-            val lastKnownId = prefs.getString("last_notification_id", "") ?: ""
 
             // 1. Fetch Notifications from API
             val response = RetrofitInstance.api.getNotificacoes()
