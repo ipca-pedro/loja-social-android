@@ -253,7 +253,22 @@ router.get('/categorias', async (req, res) => {
 // GET /api/stock - Listar stock agrupado por produto para Android
 router.get('/stock', async (req, res) => {
   try {
-    const result = await pool.query('SELECT p.id as produto_id, p.nome as produto, c.nome as categoria, SUM(s.quantidade_atual) as quantidade_total, COUNT(s.id) as lotes, MIN(s.data_validade) as validade_proxima FROM stock_items s JOIN produtos p ON s.produto_id = p.id LEFT JOIN categorias c ON p.categoria_id = c.id WHERE s.quantidade_atual > 0 GROUP BY p.id, p.nome, c.nome HAVING SUM(s.quantidade_atual) > 0 ORDER BY p.nome ASC');
+    const result = await pool.query(`
+      SELECT 
+        p.id as produto_id, 
+        p.nome as produto, 
+        c.nome as categoria, 
+        SUM(s.quantidade_atual - s.quantidade_reservada) as quantidade_total, 
+        COUNT(s.id) as lotes, 
+        MIN(s.data_validade) as validade_proxima 
+      FROM stock_items s 
+      JOIN produtos p ON s.produto_id = p.id 
+      LEFT JOIN categorias c ON p.categoria_id = c.id 
+      WHERE s.quantidade_atual > 0 
+      GROUP BY p.id, p.nome, c.nome 
+      HAVING SUM(s.quantidade_atual - s.quantidade_reservada) >= 0 
+      ORDER BY p.nome ASC
+    `);
     
     res.json({ success: true, data: result.rows });
   } catch (error) {
@@ -273,6 +288,8 @@ router.get('/stock/produto/:produto_id', async (req, res) => {
         si.id,
         si.quantidade_inicial,
         si.quantidade_atual,
+        si.quantidade_reservada,
+        (si.quantidade_atual - si.quantidade_reservada) as quantidade_disponivel,
         si.data_entrada,
         si.data_validade,
         p.nome as produto,
@@ -347,7 +364,7 @@ router.get('/alertas/validade', async (req, res) => {
 
 // ===== GESTÃO DE ENTREGAS (RF4) =====
 
-// POST /api/entregas - Agendar nova entrega
+// POST /api/entregas - Agendar nova entrega com validação de stock e reserva
 router.post('/entregas', async (req, res) => {
   try {
     const { beneficiario_id, data_agendamento, itens } = req.body;
@@ -361,6 +378,33 @@ router.post('/entregas', async (req, res) => {
     try {
       await client.query('BEGIN');
       
+      // 1. Validar Stock e Criar Reservas
+      for (const item of itens) {
+         // Verificar stock disponível (Total - Reservado)
+         const stockCheck = await client.query(
+             'SELECT quantidade_atual, quantidade_reservada FROM stock_items WHERE id = $1 FOR UPDATE', 
+             [item.stock_item_id]
+         );
+         
+         if (stockCheck.rows.length === 0) {
+             throw new Error(`Item de stock ${item.stock_item_id} não encontrado`);
+         }
+         
+         const currentStock = stockCheck.rows[0];
+         const disponivel = currentStock.quantidade_atual - currentStock.quantidade_reservada;
+         
+         if (disponivel < item.quantidade_entregue) {
+             throw new Error(`Stock insuficiente para o item ${item.stock_item_id}. Disponível: ${disponivel}, Pedido: ${item.quantidade_entregue}`);
+         }
+         
+         // Atualizar reserva
+         await client.query(
+             'UPDATE stock_items SET quantidade_reservada = quantidade_reservada + $1 WHERE id = $2',
+             [item.quantidade_entregue, item.stock_item_id]
+         );
+      }
+      
+      // 2. Criar a Entrega
       const entregaResult = await client.query(`
         INSERT INTO entregas (beneficiario_id, colaborador_id, data_agendamento)
         VALUES ($1, $2, $3)
@@ -369,6 +413,7 @@ router.post('/entregas', async (req, res) => {
       
       const entrega_id = entregaResult.rows[0].id;
       
+      // 3. Criar Detalhes
       for (const item of itens) {
         await client.query(`
           INSERT INTO detalhes_entrega (entrega_id, stock_item_id, quantidade_entregue) 
@@ -380,11 +425,15 @@ router.post('/entregas', async (req, res) => {
       
       res.status(201).json({
         success: true,
-        message: 'Entrega agendada com sucesso',
+        message: 'Entrega agendada com sucesso (Stock reservado)',
         data: { id: entrega_id }
       });
     } catch (error) {
       await client.query('ROLLBACK');
+      // Enviar mensagem de erro específica se for de validação
+      if (error.message.startsWith('Stock insuficiente') || error.message.startsWith('Item de stock')) {
+          return res.status(400).json({ success: false, message: error.message });
+      }
       throw error;
     } finally {
       client.release();
@@ -409,7 +458,55 @@ router.get('/entregas', async (req, res) => {
       ORDER BY e.data_agendamento DESC
     `);
     
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: result.rows // DELETE /api/entregas/:id - Cancelar Entrega (Remove reserva)
+router.delete('/entregas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Verificar se entrega pode ser cancelada (só agendadas)
+        const check = await client.query('SELECT estado FROM entregas WHERE id = $1', [id]);
+        if (check.rows.length === 0) {
+             throw new Error('Entrega não encontrada');
+        }
+        if (check.rows[0].estado !== 'agendada') {
+            throw new Error('Apenas entregas agendadas podem ser canceladas');
+        }
+
+        // 2. Obter itens para devolver a reserva
+        const itensResult = await client.query('SELECT stock_item_id, quantidade_entregue FROM detalhes_entrega WHERE entrega_id = $1', [id]);
+        
+        // 3. Devolver reserva (liberta o stock para outros)
+        for (const item of itensResult.rows) {
+            await client.query(
+                'UPDATE stock_items SET quantidade_reservada = quantidade_reservada - $1 WHERE id = $2',
+                [item.quantidade_entregue, item.stock_item_id]
+            );
+        }
+        
+        // 4. Apagar entrega (Cascade vai apagar detalhes)
+        await client.query('DELETE FROM entregas WHERE id = $1', [id]);
+
+        await client.query('COMMIT');
+        
+        res.json({ success: true, message: 'Entrega cancelada e reservas revertidas' });
+
+    } catch (e) {
+        await client.query('ROLLBACK');
+        if (e.message === 'Entrega não encontrada') return res.status(404).json({success: false, message: e.message});
+        if (e.message.startsWith('Apenas entregas')) return res.status(400).json({success: false, message: e.message});
+        throw e;
+    } finally {
+        client.release();
+    }
+  } catch (error) {
+     console.error('Erro ao cancelar entrega:', error);
+     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
   } catch (error) {
     console.error('Erro ao listar entregas:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
@@ -421,22 +518,49 @@ router.put('/entregas/:id/concluir', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const result = await pool.query(`
-      UPDATE entregas 
-      SET estado = 'entregue'
-      WHERE id = $1 AND estado = 'agendada'
-      RETURNING id, estado
-    `, [id]);
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Entrega não encontrada ou já concluída' });
+        // 1. Obter itens para limpar a reserva
+        const itensResult = await client.query('SELECT stock_item_id, quantidade_entregue FROM detalhes_entrega WHERE entrega_id = $1', [id]);
+        
+        // 2. Marcar como entregue
+        const updateResult = await client.query(`
+          UPDATE entregas 
+          SET estado = 'entregue'
+          WHERE id = $1 AND estado = 'agendada'
+          RETURNING id, estado
+        `, [id]);
+
+        if (updateResult.rows.length === 0) {
+          throw new Error('Entrega não encontrada ou já concluída');
+        }
+
+        // 3. Abater na reserva (Atenção: O Trigger da BD já abate na quantidade_atual, aqui só limpamos a reserva)
+        for (const item of itensResult.rows) {
+            await client.query(
+                'UPDATE stock_items SET quantidade_reservada = quantidade_reservada - $1 WHERE id = $2',
+                [item.quantidade_entregue, item.stock_item_id]
+            );
+        }
+
+        await client.query('COMMIT');
+
+        res.json({
+          success: true,
+          message: 'Entrega concluída com sucesso',
+          data: updateResult.rows[0]
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        if (error.message === 'Entrega não encontrada ou já concluída') {
+            return res.status(404).json({ success: false, message: error.message });
+        }
+        throw error;
+    } finally {
+        client.release();
     }
-
-    res.json({
-      success: true,
-      message: 'Entrega concluída com sucesso',
-      data: result.rows[0]
-    });
   } catch (error) {
     console.error('Erro ao concluir entrega:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });

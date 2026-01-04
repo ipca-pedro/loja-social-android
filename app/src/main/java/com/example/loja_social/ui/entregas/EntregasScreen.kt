@@ -71,9 +71,9 @@ fun EntregasScreen(
                     EntregaCard(
                         entrega = entrega, 
                         onClick = { onEntregaClick(entrega.id, entrega.estado) },
-                        onConcluirClick = {
-                        viewModel.concluirEntrega(entrega.id)
-                    })
+                        onConcluirClick = { viewModel.concluirEntrega(entrega.id) },
+                        onCancelarClick = { viewModel.cancelarEntrega(entrega.id) }
+                    )
                 }
             }
         }
@@ -81,7 +81,7 @@ fun EntregasScreen(
 }
 
 @Composable
-fun EntregaCard(entrega: Entrega, onClick: () -> Unit, onConcluirClick: () -> Unit) {
+fun EntregaCard(entrega: Entrega, onClick: () -> Unit, onConcluirClick: () -> Unit, onCancelarClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -94,8 +94,21 @@ fun EntregaCard(entrega: Entrega, onClick: () -> Unit, onConcluirClick: () -> Un
             
             if (entrega.estado == "agendada") {
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = onConcluirClick, modifier = Modifier.fillMaxWidth()) {
-                    Text("CONCLUIR ENTREGA")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onConcluirClick, 
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("CONCLUIR")
+                    }
+                    OutlinedButton(
+                        onClick = onCancelarClick, 
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("CANCELAR")
+                    }
                 }
             }
         }

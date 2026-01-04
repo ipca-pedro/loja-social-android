@@ -45,4 +45,10 @@ class EntregaRepository(private val apiService: ApiService) {
             apiService.concluirEntrega(entregaId)
         }
     }
+
+    suspend fun cancelarEntrega(entregaId: String): ApiResponse<Any> {
+        return withContext(Dispatchers.IO) {
+            apiService.deleteEntrega(entregaId)
+        }
+    }
 }

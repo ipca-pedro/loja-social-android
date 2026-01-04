@@ -111,7 +111,8 @@ class AgendarEntregaViewModel(
     }
 
     fun onNavigationHandled() {
-        _uiState.update { it.copy(schedulingSuccess = false) }
+        _uiState.update { it.copy(schedulingSuccess = false, itensSelecionados = emptyList(), selectedBeneficiarioId = null) }
+        fetchData() // Refresh stock data
     }
 
     fun adicionarItem(lote: LoteIndividual, quantidade: Int) {

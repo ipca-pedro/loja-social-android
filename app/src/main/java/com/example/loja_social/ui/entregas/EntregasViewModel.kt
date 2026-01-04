@@ -87,7 +87,7 @@ class EntregasViewModel(
                     dataHasChanged = true // Marca que os dados mudaram
                     _uiState.update { 
                         it.copy(
-                            actionSuccessMessage = "Entrega ${entregaId.substring(0, 4)}... concluída com sucesso! Stock abatido."
+                            actionSuccessMessage = "Entrega concluída com sucesso! Stock abatido."
                         )
                     }
                     fetchEntregas() // Recarrega a lista para mostrar o novo estado
@@ -98,6 +98,27 @@ class EntregasViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Falha de rede ao concluir entrega: ${e.message}") }
+            }
+        }
+    }
+
+    fun cancelarEntrega(entregaId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(actionSuccessMessage = null) }
+            try {
+                val response = repository.cancelarEntrega(entregaId)
+                if (response.success) {
+                    dataHasChanged = true
+                    _uiState.update { 
+                        it.copy(actionSuccessMessage = "Entrega cancelada e stock libertado!")
+                    }
+                    fetchEntregas() 
+                } else {
+                    val errorMsg = response.message ?: "Erro ao cancelar entrega"
+                    _uiState.update { it.copy(errorMessage = errorMsg) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Erro de rede: ${e.message}") }
             }
         }
     }

@@ -197,6 +197,12 @@ interface ApiService {
         @Path("id") entregaId: String
     ): ConcluirEntregaResponse
 
+    /**
+     * Cancela uma entrega agendada e remove a reserva de stock.
+     */
+    @DELETE("api/admin/entregas/{id}")
+    suspend fun deleteEntrega(@Path("id") entregaId: String): ApiResponse<Any>
+
     // ===== ROTAS DE BENEFICIÁRIO (PROTEGIDAS) =====
     
     /**
