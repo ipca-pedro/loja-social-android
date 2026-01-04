@@ -6,7 +6,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.res.painterResource
+import com.example.loja_social.R
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -128,8 +131,19 @@ fun LoginScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Image(
+                painter = painterResource(id = R.drawable.logo_ipca),
+                contentDescription = "Logo IPCA",
+                modifier = Modifier
+                    .height(80.dp)
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+            
             Text(
-                text = if (userType == "admin") "Login Administrador" else "Login Beneficiário",
+                text = if (userType == "admin") "Login Colaborador" else "Login Beneficiário",
                 style = MaterialTheme.typography.headlineMedium
             )
             Spacer(modifier = Modifier.height(24.dp))

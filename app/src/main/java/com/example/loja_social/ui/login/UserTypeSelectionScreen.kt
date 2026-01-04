@@ -1,6 +1,9 @@
 package com.example.loja_social.ui.login
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.res.painterResource
+import com.example.loja_social.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Person
@@ -24,6 +27,14 @@ fun UserTypeSelectionScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.logo_ipca),
+            contentDescription = "Logo IPCA",
+            modifier = Modifier
+                .height(100.dp)
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        )
         Text(
             text = "Loja Social",
             style = MaterialTheme.typography.headlineLarge,
@@ -64,7 +75,7 @@ fun UserTypeSelectionScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Administrador",
+                    text = "Colaborador",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
