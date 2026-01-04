@@ -33,4 +33,22 @@ class AgendarEntregaRepository(private val apiService: ApiService) {
             apiService.agendarEntrega(request)
         }
     }
+
+    suspend fun editarEntrega(id: String, request: AgendarEntregaRequest): AgendarEntregaResponse {
+        return withContext(Dispatchers.IO) {
+            apiService.editarEntrega(id, request)
+        }
+    }
+
+    suspend fun getDetalhesEntrega(id: String): com.example.loja_social.api.ApiResponse<List<com.example.loja_social.api.EntregaDetailItem>> {
+        return withContext(Dispatchers.IO) {
+            apiService.getEntregaDetails(id)
+        }
+    }
+
+    suspend fun getEntrega(id: String): com.example.loja_social.api.ApiResponse<com.example.loja_social.api.EntregaHeader> {
+        return withContext(Dispatchers.IO) {
+            apiService.getEntrega(id)
+        }
+    }
 }

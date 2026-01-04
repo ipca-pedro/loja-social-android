@@ -67,12 +67,16 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
         }
     }
     object Campanhas : Screen("campanhas", "Campanhas", Icons.Default.Event)
-    object AgendarEntrega : Screen("agendarEntrega", "Agendar Entrega", Icons.Default.Add)
+    object AgendarEntrega : Screen("agendarEntrega?deliveryId={deliveryId}", "Agendar Entrega", Icons.Default.Add) {
+        fun createRoute(deliveryId: String? = null) = if (deliveryId != null) "agendarEntrega?deliveryId=$deliveryId" else "agendarEntrega"
+    }
     object EntregaDetail : Screen("entregaDetail/{entregaId}/{estado}", "Detalhes da Entrega", Icons.AutoMirrored.Filled.List) {
         fun createRoute(entregaId: String, estado: String) = "entregaDetail/$entregaId/$estado"
     }
     object Relatorios : Screen("relatorios", "Relatórios", Icons.Default.Description)
 }
+
+
 
 val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas, Screen.Logout)
 
@@ -252,21 +256,30 @@ class MainActivity : ComponentActivity() {
                     )
                     EntregaDetailScreen(
                         viewModel = viewModel,
+                        estado = estado ?: "",
                         onNavigateBack = { 
                             if (estado != null) {
                                 navController.previousBackStackEntry?.savedStateHandle?.set("return_tab", estado)
                             }
                             navController.popBackStack() 
+                        },
+                        onEditClick = {
+                             navController.navigate(Screen.AgendarEntrega.createRoute(entregaId))
                         }
                     )
                 }
             }
             
-            composable(Screen.AgendarEntrega.route) {
+            composable(
+                route = Screen.AgendarEntrega.route,
+                arguments = listOf(navArgument("deliveryId") { nullable = true; type = NavType.StringType })
+            ) { backStackEntry ->
+                val deliveryId = backStackEntry.arguments?.getString("deliveryId")
                 val viewModel: AgendarEntregaViewModel = viewModel(factory = AgendarEntregaViewModelFactory(AgendarEntregaRepository(apiService), StockRepository(apiService)))
                 AgendarEntregaScreen(
                     viewModel = viewModel,
-                    navController = navController
+                    navController = navController,
+                    deliveryId = deliveryId
                 )
             }
             

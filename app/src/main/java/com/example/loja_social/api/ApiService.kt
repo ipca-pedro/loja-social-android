@@ -178,6 +178,9 @@ interface ApiService {
     @GET("api/admin/entregas")
     suspend fun getEntregas(): EntregasResponse
 
+    @GET("api/admin/entregas/{id}")
+    suspend fun getEntrega(@Path("id") id: String): ApiResponse<EntregaHeader>
+
     /**
      * Obtém os detalhes (itens) de uma entrega específica.
      */
@@ -190,6 +193,12 @@ interface ApiService {
      */
     @POST("api/admin/entregas")
     suspend fun agendarEntrega(
+        @Body request: AgendarEntregaRequest
+    ): AgendarEntregaResponse
+
+    @PUT("api/admin/entregas/{id}")
+    suspend fun editarEntrega(
+        @Path("id") id: String,
         @Body request: AgendarEntregaRequest
     ): AgendarEntregaResponse
 

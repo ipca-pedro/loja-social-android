@@ -31,12 +31,18 @@ import java.util.*
 @Composable
 fun AgendarEntregaScreen(
     viewModel: AgendarEntregaViewModel,
-    navController: NavController
+    navController: NavController,
+    deliveryId: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var dataAgendamento by remember { mutableStateOf("") }
     var showItemDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(deliveryId) {
+        if (deliveryId != null) {
+            viewModel.loadDeliveryForEdit(deliveryId)
+        }
+    }
 
     LaunchedEffect(uiState.schedulingSuccess) {
         if (uiState.schedulingSuccess) {
@@ -65,7 +71,7 @@ fun AgendarEntregaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Agendar Nova Entrega") },
+                title = { Text(if (deliveryId != null) "Editar Agendamento" else "Agendar Nova Entrega") },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") } },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -82,6 +88,7 @@ fun AgendarEntregaScreen(
         ) {
             BeneficiarioSelector(
                 beneficiarios = uiState.beneficiarios,
+                selectedId = uiState.selectedBeneficiarioId,
                 onBeneficiarioSelected = { beneficiario ->
                     val selectionString = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})"
                     viewModel.onBeneficiarioSelected(selectionString)
@@ -92,8 +99,8 @@ fun AgendarEntregaScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             DatePickerField(
-                date = dataAgendamento,
-                onDateSelected = { dataAgendamento = it },
+                date = uiState.dataAgendamento,
+                onDateSelected = { viewModel.onDataSelected(it) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -127,13 +134,13 @@ fun AgendarEntregaScreen(
                     val sessionManager = SessionManager(context)
                     val colaboradorId = sessionManager.fetchColaboradorId()
                     if (colaboradorId != null) {
-                        viewModel.agendarEntrega(colaboradorId, dataAgendamento)
+                        viewModel.agendarEntrega(colaboradorId)
                     }
                 },
-                enabled = uiState.selectedBeneficiarioId != null && uiState.itensSelecionados.isNotEmpty() && dataAgendamento.isNotBlank() && !uiState.isScheduling,
+                enabled = uiState.selectedBeneficiarioId != null && uiState.itensSelecionados.isNotEmpty() && uiState.dataAgendamento.isNotBlank() && !uiState.isScheduling,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (uiState.isScheduling) "A AGENDAR..." else "AGENDAR ENTREGA")
+                Text(if (uiState.isScheduling) "A GUARDAR..." else if (deliveryId != null) "GUARDAR ALTERAÇÕES" else "AGENDAR ENTREGA")
             }
         }
 
@@ -215,11 +222,13 @@ fun SelecionarItemDialog(
 @Composable
 fun BeneficiarioSelector(
     beneficiarios: List<Beneficiario>,
+    selectedId: String?,
     onBeneficiarioSelected: (Beneficiario) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedBeneficiario by remember { mutableStateOf<Beneficiario?>(null) }
+    // Encontrar o beneficiário correspondente ao ID selecionado (vindo do ViewModel)
+    val selectedBeneficiario = beneficiarios.find { it.id == selectedId }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = modifier) {
         OutlinedTextField(
@@ -235,7 +244,6 @@ fun BeneficiarioSelector(
                 DropdownMenuItem(
                     text = { Text(text = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})") },
                     onClick = {
-                        selectedBeneficiario = beneficiario
                         onBeneficiarioSelected(beneficiario)
                         expanded = false
                     }

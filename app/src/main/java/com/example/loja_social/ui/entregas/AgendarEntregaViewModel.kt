@@ -23,8 +23,10 @@ data class AgendarEntregaUiState(
     val lotesDisponiveis: List<LoteIndividual> = emptyList(),
     val itensSelecionados: List<ItemSelecionado> = emptyList(),
     val selectedBeneficiarioId: String? = null,
+    val dataAgendamento: String = "",
+    val editingDeliveryId: String? = null,
     val errorMessage: String? = null,
-    val schedulingSuccess: Boolean = false // Novo estado para sinalizar sucesso
+    val schedulingSuccess: Boolean = false
 )
 
 class AgendarEntregaViewModel(
@@ -65,12 +67,77 @@ class AgendarEntregaViewModel(
         }
     }
 
+    fun loadDeliveryForEdit(id: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, editingDeliveryId = id) }
+            try {
+                // 1. Fetch Header
+                val headerResponse = repository.getEntrega(id)
+                if (!headerResponse.success || headerResponse.data == null) {
+                    _uiState.update { it.copy(errorMessage = "Erro ao carregar entrega: ${headerResponse.message}") }
+                    return@launch
+                }
+                
+                // 2. Fetch Details
+                val detailsResponse = repository.getDetalhesEntrega(id)
+                if (!detailsResponse.success || detailsResponse.data == null) {
+                    _uiState.update { it.copy(errorMessage = "Erro ao carregar detalhes: ${detailsResponse.message}") }
+                    return@launch
+                }
+
+                // 3. Format Date (YYYY-MM-DD -> dd/MM/yyyy)
+                val rawDate = headerResponse.data.dataAgendamento.take(10) // Ensure yyyy-MM-dd
+                val formattedDate = try {
+                    val parsedDate = java.time.LocalDate.parse(rawDate, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE) // Changed to ISO_LOCAL_DATE standard parser
+                    parsedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                } catch (e: Exception) {
+                    rawDate 
+                }
+
+                // 4. Map Details to ItemSelecionado
+                val mappedItems = detailsResponse.data.map { detail ->
+                    ItemSelecionado(
+                        lote = LoteIndividual(
+                            id = detail.id,
+                            produto = detail.produto,
+                            categoria = detail.categoria,
+                            quantidadeAtual = detail.quantidadeAtual,
+                            quantidadeReservada = detail.quantidadeReservada,
+                            quantidadeDanificada = detail.quantidadeDanificada,
+                            dataValidade = detail.dataValidade,
+                            quantidadeInicial = detail.quantidadeInicial,
+                            dataEntrada = detail.dataEntrada
+                        ),
+                        quantidade = detail.quantidadeEntregue
+                    )
+                }
+
+                _uiState.update { 
+                    it.copy(
+                        selectedBeneficiarioId = headerResponse.data.beneficiarioId,
+                        dataAgendamento = formattedDate,
+                        itensSelecionados = mappedItems
+                    ) 
+                }
+
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Erro ao carregar dados de edição: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
     fun onBeneficiarioSelected(selection: String) {
         val id = _uiState.value.beneficiarios.find { b -> "${b.nomeCompleto} (${b.numEstudante ?: "N/A"})" == selection }?.id
         _uiState.update { it.copy(selectedBeneficiarioId = id, errorMessage = null) }
     }
 
-    fun agendarEntrega(colaboradorId: String, dataAgendamentoStr: String) {
+    fun onDataSelected(date: String) {
+        _uiState.update { it.copy(dataAgendamento = date, errorMessage = null) }
+    }
+
+    fun agendarEntrega(colaboradorId: String) {
         val state = _uiState.value
         if (state.isScheduling) return
         if (state.selectedBeneficiarioId == null) {
@@ -81,9 +148,13 @@ class AgendarEntregaViewModel(
             _uiState.update { it.copy(errorMessage = "Selecione pelo menos um item.") }
             return
         }
+        if (state.dataAgendamento.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Selecione uma data.") }
+            return
+        }
 
         val dataFormatada = try {
-            java.time.LocalDate.parse(dataAgendamentoStr, java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            java.time.LocalDate.parse(state.dataAgendamento, java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 .format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
         } catch (e: Exception) {
             _uiState.update { it.copy(errorMessage = "Formato de data inválido.") }
@@ -96,9 +167,14 @@ class AgendarEntregaViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isScheduling = true, errorMessage = null) }
             try {
-                val response = repository.agendarEntrega(request)
+                val response = if (state.editingDeliveryId != null) {
+                    repository.editarEntrega(state.editingDeliveryId, request)
+                } else {
+                    repository.agendarEntrega(request)
+                }
+
                 if (response.success) {
-                    _uiState.update { it.copy(schedulingSuccess = true) } // SINALIZA SUCESSO
+                    _uiState.update { it.copy(schedulingSuccess = true) } 
                 } else {
                     _uiState.update { it.copy(errorMessage = response.message) }
                 }
@@ -116,8 +192,11 @@ class AgendarEntregaViewModel(
     }
 
     fun adicionarItem(lote: LoteIndividual, quantidade: Int) {
-        if (quantidade <= 0 || quantidade > lote.quantidadeAtual) {
-            _uiState.update { it.copy(errorMessage = "Quantidade inválida. Máximo: ${lote.quantidadeAtual}") }
+        val disponivel = lote.quantidadeAtual - lote.quantidadeReservada
+        if (quantidade <= 0 || quantidade > disponivel) {
+            _uiState.update { 
+                it.copy(errorMessage = "Não é possível agendar esta quantidade. Atualmente, apenas tem $disponivel unidades disponíveis para novos agendamentos (Stock Físico Disponível: ${lote.quantidadeAtual} | Reservado: ${lote.quantidadeReservada}).") 
+            }
             return
         }
         val item = ItemSelecionado(lote, quantidade)
@@ -131,8 +210,13 @@ class AgendarEntregaViewModel(
     fun atualizarQuantidade(loteId: String, novaQuantidade: Int) {
         _uiState.update { state ->
             val item = state.itensSelecionados.find { it.lote.id == loteId }
-            if (item != null && novaQuantidade > 0 && novaQuantidade <= item.lote.quantidadeAtual) {
-                state.copy(itensSelecionados = state.itensSelecionados.map { if (it.lote.id == loteId) it.copy(quantidade = novaQuantidade) else it })
+            if (item != null && novaQuantidade > 0) {
+                val disponivel = item.lote.quantidadeAtual - item.lote.quantidadeReservada
+                if (novaQuantidade <= disponivel) {
+                    state.copy(itensSelecionados = state.itensSelecionados.map { if (it.lote.id == loteId) it.copy(quantidade = novaQuantidade) else it }, errorMessage = null)
+                } else {
+                    state.copy(errorMessage = "Não é possível agendar esta quantidade. Atualmente, apenas tem $disponivel unidades disponíveis para novos agendamentos (Stock Físico Disponível: ${item.lote.quantidadeAtual} | Reservado: ${item.lote.quantidadeReservada}).")
+                }
             } else {
                 state
             }

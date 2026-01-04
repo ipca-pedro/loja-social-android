@@ -261,6 +261,8 @@ router.get('/stock/lotes', async (req, res) => {
         si.id,
         si.quantidade_inicial,
         si.quantidade_atual,
+        si.quantidade_reservada,
+        si.quantidade_danificada,
         si.data_entrada,
         si.data_validade,
         p.nome as produto,
@@ -461,7 +463,7 @@ router.post('/entregas', async (req, res) => {
       for (const item of itens) {
          // Verificar stock disponível (Total - Reservado)
          const stockCheck = await client.query(
-             'SELECT quantidade_atual, quantidade_reservada FROM stock_items WHERE id = $1 FOR UPDATE', 
+             'SELECT quantidade_atual, quantidade_reservada, quantidade_danificada FROM stock_items WHERE id = $1 FOR UPDATE', 
              [item.stock_item_id]
          );
          
@@ -470,10 +472,11 @@ router.post('/entregas', async (req, res) => {
          }
          
          const currentStock = stockCheck.rows[0];
+         // A quantidade_atual já exclui os danificados (que foram abatidos ao reportar dano)
          const disponivel = currentStock.quantidade_atual - currentStock.quantidade_reservada;
          
          if (disponivel < item.quantidade_entregue) {
-             throw new Error(`Stock insuficiente. Existe stock físico, mas parte dele já está reservado para outras entregas.`);
+             throw new Error(`Não é possível agendar esta quantidade. Atualmente, apenas tem ${disponivel} unidades disponíveis para novos agendamentos (Stock Físico Disponível: ${currentStock.quantidade_atual} | Reservado: ${currentStock.quantidade_reservada}).`);
          }
          
          // Atualizar reserva
@@ -509,7 +512,7 @@ router.post('/entregas', async (req, res) => {
       });
     } catch (error) {
       await client.query('ROLLBACK');
-      if (error.message.startsWith('Stock insuficiente') || error.message.startsWith('Item de stock')) {
+      if (error.message.startsWith('Stock insuficiente') || error.message.startsWith('Item de stock') || error.message.startsWith('Não é possível agendar')) {
           return res.status(400).json({ success: false, message: error.message });
       }
       throw error;
@@ -577,10 +580,16 @@ router.get('/entregas/:id/detalhes', async (req, res) => {
     
     const result = await pool.query(`
       SELECT 
+        de.stock_item_id as id,
         de.quantidade_entregue,
+        si.quantidade_inicial,
+        si.quantidade_atual,
+        si.quantidade_reservada,
+        si.quantidade_danificada,
+        si.data_entrada,
+        si.data_validade,
         p.nome as produto,
-        c.nome as categoria,
-        si.data_validade
+        c.nome as categoria
       FROM detalhes_entrega de
       JOIN stock_items si ON de.stock_item_id = si.id
       JOIN produtos p ON si.produto_id = p.id
@@ -592,6 +601,25 @@ router.get('/entregas/:id/detalhes', async (req, res) => {
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Erro ao listar detalhes da entrega:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/entregas/:id - Obter cabeçalho da entrega
+router.get('/entregas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(`
+      SELECT e.id, e.beneficiario_id, e.colaborador_id, e.data_agendamento, e.estado
+      FROM entregas e
+      WHERE e.id = $1
+    `, [id]);
+    
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: 'Entrega não encontrada' });
+    
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Erro ao obter entrega:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
@@ -641,6 +669,90 @@ router.put('/entregas/:id/concluir', async (req, res) => {
     }
   } catch (error) {
     console.error('Erro ao concluir entrega:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// PUT /api/entregas/:id - Editar Agendamento
+router.put('/entregas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { beneficiario_id, data_agendamento, itens } = req.body;
+    
+    if (!beneficiario_id || !data_agendamento || !itens || itens.length === 0) {
+      return res.status(400).json({ success: false, message: 'Beneficiário, data e itens são obrigatórios' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Validar estado da entrega
+      const check = await client.query('SELECT estado FROM entregas WHERE id = $1', [id]);
+      if (check.rows.length === 0) throw new Error('Entrega não encontrada');
+      if (check.rows[0].estado !== 'agendada') throw new Error('Apenas entregas agendadas podem ser editadas');
+
+      // 2. Reverter reservas antigas
+      const oldItems = await client.query('SELECT stock_item_id, quantidade_entregue FROM detalhes_entrega WHERE entrega_id = $1 FOR UPDATE', [id]);
+      for (const item of oldItems.rows) {
+          await client.query(
+              'UPDATE stock_items SET quantidade_reservada = quantidade_reservada - $1 WHERE id = $2',
+              [item.quantidade_entregue, item.stock_item_id]
+          );
+      }
+
+      // 3. Validar e Aplicar Novas Reservas
+      for (const item of itens) {
+         const stockCheck = await client.query(
+             'SELECT quantidade_atual, quantidade_reservada FROM stock_items WHERE id = $1 FOR UPDATE', 
+             [item.stock_item_id]
+         );
+         
+         if (stockCheck.rows.length === 0) throw new Error(`Item de stock ${item.stock_item_id} não encontrado`);
+         
+         const currentStock = stockCheck.rows[0];
+         // Disponível agora considera que já reverteu o antigo, então é o estado "real" sem esta entrega
+         const disponivel = currentStock.quantidade_atual - currentStock.quantidade_reservada;
+         
+         if (disponivel < item.quantidade_entregue) {
+             throw new Error(`Não é possível guardar alterações. Stock insuficiente para o item ${item.stock_item_id}. Disponível: ${disponivel} (Físico: ${currentStock.quantidade_atual} | Reservado Outros: ${currentStock.quantidade_reservada})`);
+         }
+         
+         await client.query(
+             'UPDATE stock_items SET quantidade_reservada = quantidade_reservada + $1 WHERE id = $2',
+             [item.quantidade_entregue, item.stock_item_id]
+         );
+      }
+
+      // 4. Atualizar Cabeçalho
+      await client.query(
+          'UPDATE entregas SET beneficiario_id = $1, data_agendamento = $2 WHERE id = $3',
+          [beneficiario_id, data_agendamento, id]
+      );
+
+      // 5. Atualizar Detalhes (Apagar e Recriar)
+      await client.query('DELETE FROM detalhes_entrega WHERE entrega_id = $1', [id]);
+      for (const item of itens) {
+          await client.query(
+              'INSERT INTO detalhes_entrega (entrega_id, stock_item_id, quantidade_entregue) VALUES ($1, $2, $3)',
+              [id, item.stock_item_id, item.quantidade_entregue]
+          );
+      }
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: 'Entrega atualizada com sucesso' });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      if (error.message.startsWith('Entrega') || error.message.startsWith('Apenas') || error.message.startsWith('Não é possível') || error.message.startsWith('Item')) {
+          return res.status(400).json({ success: false, message: error.message });
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Erro ao editar entrega:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });

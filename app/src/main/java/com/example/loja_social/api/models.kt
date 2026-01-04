@@ -275,6 +275,17 @@ data class Entrega(
 )
 
 /**
+ * Dados do cabeçalho de uma entrega (usado na edição).
+ */
+data class EntregaHeader(
+    @SerializedName("id") val id: String,
+    @SerializedName("beneficiario_id") val beneficiarioId: String,
+    @SerializedName("colaborador_id") val colaboradorId: String,
+    @SerializedName("data_agendamento") val dataAgendamento: String,
+    @SerializedName("estado") val estado: String
+)
+
+/**
  * Resposta da API para a lista de entregas.
  */
 data class EntregasResponse(
@@ -287,10 +298,16 @@ data class EntregasResponse(
  * Detalhes de um item específico de uma entrega.
  */
 data class EntregaDetailItem(
+    @SerializedName("id") val id: String, // stock_item_id
     @SerializedName("quantidade_entregue") val quantidadeEntregue: Int,
     @SerializedName("produto") val produto: String,
     @SerializedName("categoria") val categoria: String?,
-    @SerializedName("data_validade") val dataValidade: String?
+    @SerializedName("data_validade") val dataValidade: String?,
+    @SerializedName("quantidade_inicial") val quantidadeInicial: Int,
+    @SerializedName("quantidade_atual") val quantidadeAtual: Int,
+    @SerializedName("quantidade_reservada") val quantidadeReservada: Int,
+    @SerializedName("quantidade_danificada") val quantidadeDanificada: Int,
+    @SerializedName("data_entrada") val dataEntrada: String
 )
 
 /**

@@ -12,11 +12,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.material.icons.filled.Edit
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntregaDetailScreen(
     viewModel: EntregaDetailViewModel,
-    onNavigateBack: () -> Unit
+    estado: String,
+    onNavigateBack: () -> Unit,
+    onEditClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -34,6 +38,13 @@ fun EntregaDetailScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
+        },
+        floatingActionButton = {
+            if (estado == "agendada") {
+                FloatingActionButton(onClick = onEditClick) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Editar Entrega")
+                }
+            }
         }
     ) { padding ->
         if (uiState.isLoading) {
