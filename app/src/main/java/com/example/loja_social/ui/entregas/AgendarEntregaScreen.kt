@@ -49,11 +49,10 @@ fun AgendarEntregaScreen(
             val message = if (deliveryId != null) "Entrega atualizada com sucesso!" else "Entrega agendada com sucesso!"
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
-            // Sinaliza para ambos os ecrãs (Lista e Detalhe) que precisam de recarregar
+            // Apenas sinaliza o ecrã anterior (Detalhe ou Lista) para recarregar.
+            // A propagação para os outros ecrãs é feita em cadeia a partir daí.
             navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_entregas", true)
-            navController.getBackStackEntry(Screen.Entregas.route.substringBefore("?")).savedStateHandle.set("should_refresh_entregas", true)
-            navController.getBackStackEntry(Screen.Dashboard.route).savedStateHandle.set("should_refresh_dashboard", true)
-            
+
             navController.popBackStack()
             viewModel.onNavigationHandled()
         }
@@ -75,13 +74,7 @@ fun AgendarEntregaScreen(
             TopAppBar(
                 title = { Text(if (deliveryId != null) "Editar Agendamento" else "Agendar Nova Entrega") },
                 navigationIcon = { 
-                    IconButton(onClick = { 
-                        // Se houver alterações não guardadas, avisa para recarregar mesmo assim
-                        if(uiState.isDirty) {
-                             navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_entregas", true)
-                        }
-                        navController.popBackStack() 
-                    }) { 
+                    IconButton(onClick = { navController.popBackStack() }) { 
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") 
                     }
                 },
@@ -105,7 +98,8 @@ fun AgendarEntregaScreen(
                     val selectionString = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})"
                     viewModel.onBeneficiarioSelected(selectionString)
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = deliveryId == null // Desativa se estiver a editar
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -227,7 +221,7 @@ fun SelecionarItemDialog(
                 enabled = selectedLote != null && (quantidade.toIntOrNull() ?: 0) > 0
             ) { Text("ADICIONAR") }
         },
-        dismissButton = { Button(onClick = onDismiss) { Text("CANCELAR") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR") } }
     )
 }
 
@@ -237,30 +231,33 @@ fun BeneficiarioSelector(
     beneficiarios: List<Beneficiario>,
     selectedId: String?,
     onBeneficiarioSelected: (Beneficiario) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // Encontrar o beneficiário correspondente ao ID selecionado (vindo do ViewModel)
     val selectedBeneficiario = beneficiarios.find { it.id == selectedId }
 
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = modifier) {
+    ExposedDropdownMenuBox(expanded = if (enabled) expanded else false, onExpandedChange = { if(enabled) expanded = !expanded }, modifier = modifier) {
         OutlinedTextField(
             value = selectedBeneficiario?.nomeCompleto ?: "",
             onValueChange = {}, 
             readOnly = true,
             label = { Text("Selecione um Beneficiário") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor()
+            trailingIcon = { if(enabled) ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            enabled = enabled
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            beneficiarios.forEach { beneficiario ->
-                DropdownMenuItem(
-                    text = { Text(text = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})") },
-                    onClick = {
-                        onBeneficiarioSelected(beneficiario)
-                        expanded = false
-                    }
-                )
+        if (enabled) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                beneficiarios.forEach { beneficiario ->
+                    DropdownMenuItem(
+                        text = { Text(text = "${beneficiario.nomeCompleto} (${beneficiario.numEstudante ?: "N/A"})") },
+                        onClick = {
+                            onBeneficiarioSelected(beneficiario)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
