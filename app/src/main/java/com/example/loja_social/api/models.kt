@@ -400,6 +400,22 @@ data class UpdateStockResponse(
 )
 
 /**
+ * Dados retornados após reportar dano (incremento atómico).
+ */
+data class ReportDamageData(
+    @SerializedName("id") val id: String,
+    @SerializedName("quantidade_atual") val quantidadeAtual: Int,
+    @SerializedName("quantidade_danificada") val quantidadeDanificada: Int,
+    @SerializedName("data_validade") val dataValidade: String?
+)
+
+data class ReportDamageResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: ReportDamageData?
+)
+
+/**
  * Resposta da API após remover um lote de stock.
  */
 data class DeleteStockResponse(
@@ -425,6 +441,7 @@ data class LoteIndividual(
     @SerializedName("id") val id: String,
     @SerializedName("quantidade_inicial") val quantidadeInicial: Int,
     @SerializedName("quantidade_atual") val quantidadeAtual: Int,
+    @SerializedName("quantidade_reservada") val quantidadeReservada: Int = 0, // Novo campo
     @SerializedName("quantidade_danificada") val quantidadeDanificada: Int,
     @SerializedName("data_entrada") val dataEntrada: String,
     @SerializedName("data_validade") val dataValidade: String?,

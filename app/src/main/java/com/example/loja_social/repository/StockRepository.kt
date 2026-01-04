@@ -98,6 +98,12 @@ class StockRepository(private val apiService: ApiService) {
         }
     }
 
+    suspend fun reportarDano(id: String): com.example.loja_social.api.ReportDamageResponse {
+        return withContext(Dispatchers.IO) {
+            apiService.reportarDano(id)
+        }
+    }
+
     /**
      * Remove um lote de stock.
      * @param loteId O ID do lote a remover

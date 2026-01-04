@@ -15,11 +15,12 @@ import kotlinx.coroutines.launch
 
 data class StockDetailUiState(
     val isLoading: Boolean = true,
+    val isOperationInProgress: Boolean = false, // Nova flag para operações pontuais
     val stockItem: StockItem? = null,
     val lotes: List<LoteIndividual> = emptyList(),
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val stockDataChanged: Boolean = false // Flag para indicar que o stock foi alterado
+    val stockDataChanged: Boolean = false 
 )
 
 class StockDetailViewModel(
@@ -33,7 +34,6 @@ class StockDetailViewModel(
     init {
         fetchStockDetail()
     }
-
     private fun fetchStockDetail() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -67,54 +67,50 @@ class StockDetailViewModel(
 
     fun deleteLote(loteId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+            _uiState.update { it.copy(isOperationInProgress = true, errorMessage = null, successMessage = null) }
             try {
                 val response = repository.deleteLote(loteId)
                 if (response.success) {
-                    // Remove o lote da lista localmente e aciona a flag
                     val updatedLotes = _uiState.value.lotes.filterNot { it.id == loteId }
                     _uiState.update {
                         it.copy(
                             lotes = updatedLotes,
                             stockDataChanged = true,
-                            successMessage = response.message ?: "Lote removido com sucesso"
+                            successMessage = response.message ?: "Lote removido com sucesso",
+                            isOperationInProgress = false
                         )
                     }
-                    // Recarrega o stockItem para atualizar a contagem total
                     fetchStockItemData()
                 } else {
-                    _uiState.update { it.copy(errorMessage = response.message ?: "Erro ao remover lote") }
+                    _uiState.update { it.copy(isOperationInProgress = false, errorMessage = response.message ?: "Erro ao remover lote") }
                 }
             } catch (e: Exception) {
                 Log.e("StockDetailVM", "Erro ao remover lote", e)
-                _uiState.update { it.copy(errorMessage = "Falha de ligação: ${e.message}") }
+                _uiState.update { it.copy(isOperationInProgress = false, errorMessage = "Falha de ligação: ${e.message}") }
             }
         }
     }
 
     fun reportDamagedUnit(lote: LoteIndividual) {
-        val newQuantity = lote.quantidadeAtual - 1
-        if (newQuantity < 0) {
+        if (lote.quantidadeAtual <= 0) {
             _uiState.update { it.copy(errorMessage = "Não existem unidades para remover.") }
             return
         }
 
-        val newDamagedQuantity = lote.quantidadeDanificada + 1
-
         viewModelScope.launch {
-            _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+            _uiState.update { it.copy(isOperationInProgress = true, errorMessage = null, successMessage = null) }
             try {
-                val request = UpdateStockRequest(
-                    quantidadeAtual = newQuantity,
-                    quantidadeDanificada = newDamagedQuantity,
-                    dataValidade = lote.dataValidade
-                )
-                val response = repository.updateStock(lote.id, request)
+                val response = repository.reportarDano(lote.id)
 
-                if (response.success) {
+                if (response.success && response.data != null) {
+                    val newData = response.data
+                    
                     val updatedLotes = _uiState.value.lotes.map {
                         if (it.id == lote.id) {
-                            it.copy(quantidadeAtual = newQuantity, quantidadeDanificada = newDamagedQuantity)
+                            it.copy(
+                                quantidadeAtual = newData.quantidadeAtual,
+                                quantidadeDanificada = newData.quantidadeDanificada
+                            )
                         } else {
                             it
                         }
@@ -123,16 +119,17 @@ class StockDetailViewModel(
                         it.copy(
                             lotes = updatedLotes,
                             stockDataChanged = true,
-                            successMessage = response.message ?: "Unidade danificada reportada com sucesso."
+                            successMessage = response.message ?: "Unidade danificada reportada com sucesso.",
+                            isOperationInProgress = false
                         )
                     }
                     fetchStockItemData()
                 } else {
-                    _uiState.update { it.copy(errorMessage = response.message ?: "Erro ao reportar unidade danificada.") }
+                    _uiState.update { it.copy(isOperationInProgress = false, errorMessage = response.message ?: "Erro ao reportar unidade danificada.") }
                 }
             } catch (e: Exception) {
                 Log.e("StockDetailVM", "Erro ao reportar unidade danificada.", e)
-                _uiState.update { it.copy(errorMessage = "Falha de ligação: ${e.message}") }
+                _uiState.update { it.copy(isOperationInProgress = false, errorMessage = "Falha de ligação: ${e.message}") }
             }
         }
     }

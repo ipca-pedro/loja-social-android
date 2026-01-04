@@ -114,21 +114,47 @@ fun StockDetailScreen(
                         )
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(uiState.lotes) { lote ->
-                                LojaSocialListItem(
-                                    title = "Lote #${lote.id}",
-                                    subtitle = "Quantidade: ${lote.quantidadeAtual} (Danificadas: ${lote.quantidadeDanificada})",
-                                    trailing = lote.dataValidade?.substringBefore("T") ?: "Sem validade",
-                                    onClick = { /* Pode ser usado para editar no futuro */ },
-                                    actions = {
-                                        IconButton(onClick = { showReportDamagedDialog = lote }) {
-                                            Icon(Icons.Default.RemoveCircleOutline, contentDescription = "Reportar Unidade Danificada", tint = MaterialTheme.colorScheme.secondary)
-                                        }
-                                        IconButton(onClick = { showDeleteDialog = lote }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Eliminar Lote", tint = MaterialTheme.colorScheme.error)
-                                        }
-                                    }
-                                )
+                                    items(uiState.lotes) { lote ->
+                                        // Regra de Segurança: Só permitir eliminar se estiver expirado
+                                        // Se dataValidade for null, assumimos que não expira, logo não se deve apagar por "validade" (ou permitir sempre? User diz "se data atual > prazo").
+                                        // Vamos assumir: Se tem data, aplica regra. Se não tem, safe to delete? Ou unsafe? 
+                                        // "O botão só deve ficar clicável se a data atual for superior à data registada" implies if date exists.
+                                        val isExpired = try {
+                                            if (lote.dataValidade != null) {
+                                                java.time.LocalDate.now().isAfter(java.time.LocalDate.parse(lote.dataValidade.substringBefore("T")))
+                                            } else {
+                                                false // Se não tem validade, não ativa por esta regra (ou true se quisermos permitir limpar velhos)
+                                            }
+                                        } catch (e: Exception) { false }
+
+                                        LojaSocialListItem(
+                                            title = "Lote #${lote.id}",
+                                            subtitle = "Qtd: ${lote.quantidadeAtual} | Res: ${lote.quantidadeReservada} | Dan: ${lote.quantidadeDanificada}",
+                                            trailing = lote.dataValidade?.substringBefore("T") ?: "Sem validade",
+                                            onClick = { /* Pode ser usado para editar no futuro */ },
+                                            actions = {
+                                                IconButton(
+                                                    onClick = { showReportDamagedDialog = lote },
+                                                    enabled = !uiState.isOperationInProgress
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.RemoveCircleOutline, 
+                                                        contentDescription = "Reportar Unidade Danificada", 
+                                                        tint = if (!uiState.isOperationInProgress) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                                    )
+                                                }
+                                                IconButton(
+                                                    onClick = { showDeleteDialog = lote },
+                                                    enabled = isExpired && !uiState.isOperationInProgress
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Delete, 
+                                                        contentDescription = "Eliminar Lote", 
+                                                        tint = if (isExpired && !uiState.isOperationInProgress) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                                    )
+                                                }
+                                            }
+                                        )
                             }
                         }
                     }

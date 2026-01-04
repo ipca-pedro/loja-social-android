@@ -313,21 +313,66 @@ router.get('/stock/produto/:produto_id', async (req, res) => {
   }
 });
 
-// PUT /api/stock/:id - Editar lote de stock
+// PUT /api/stock/:id - Editar lote de stock (incluindo danos)
 router.put('/stock/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { quantidade_atual, data_validade } = req.body;
+    const { quantidade_atual, data_validade, quantidade_danificada } = req.body;
     
-    const result = await pool.query('UPDATE stock_items SET quantidade_atual = $1, data_validade = $2 WHERE id = $3 RETURNING id, quantidade_atual, data_validade', [quantidade_atual, data_validade, id]);
+    // Constrói a query dinamicamente ou mantem simples se sempre enviarmos tudo
+    // Aqui assumimos que o Android envia o objeto atualizado
+    
+    const result = await pool.query(
+        `UPDATE stock_items 
+         SET quantidade_atual = $1, 
+             data_validade = $2, 
+             quantidade_danificada = COALESCE($3, quantidade_danificada) 
+         WHERE id = $4 
+         RETURNING id, quantidade_atual, data_validade, quantidade_danificada`, 
+        [quantidade_atual, data_validade, quantidade_danificada, id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Lote não encontrado' });
     }
 
     res.json({ success: true, message: 'Stock atualizado', data: result.rows[0] });
+// POST /api/stock/:id/danificar - Reportar unidade danificada (Atomic Increment)
+router.post('/stock/:id/danificar', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Verificar disponibilidade
+        const check = await client.query('SELECT quantidade_atual FROM stock_items WHERE id = $1 FOR UPDATE', [id]);
+        if (check.rows.length === 0) throw new Error('Lote não encontrado');
+        if (check.rows[0].quantidade_atual <= 0) throw new Error('Não existe stock disponível para reportar danos');
+
+        // 2. Atualizar atomicamente
+        const result = await client.query(`
+            UPDATE stock_items 
+            SET quantidade_atual = quantidade_atual - 1,
+                quantidade_danificada = COALESCE(quantidade_danificada, 0) + 1
+            WHERE id = $1
+            RETURNING id, quantidade_atual, quantidade_danificada, data_validade
+        `, [id]);
+
+        await client.query('COMMIT');
+        
+        res.json({ success: true, message: 'Unidade danificada reportada', data: result.rows[0] });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        if (e.message === 'Lote não encontrado') return res.status(404).json({ success: false, message: e.message });
+        if (e.message.startsWith('Não existe stock')) return res.status(400).json({ success: false, message: e.message });
+        throw e;
+    } finally {
+        client.release();
+    }
   } catch (error) {
-    console.error('Erro ao atualizar stock:', error);
+    console.error('Erro ao reportar dano:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });

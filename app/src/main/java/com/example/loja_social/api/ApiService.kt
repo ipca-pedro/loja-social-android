@@ -152,6 +152,11 @@ interface ApiService {
         @Body request: UpdateStockRequest
     ): UpdateStockResponse
 
+    @POST("api/admin/stock/{id}/danificar")
+    suspend fun reportarDano(
+        @Path("id") id: String
+    ): ReportDamageResponse
+
     /**
      * Remove um lote de stock.
      * @param id ID do lote a remover
