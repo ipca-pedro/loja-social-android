@@ -60,11 +60,8 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
         fun createRoute(beneficiarioId: String?, title: String) = "beneficiarioDetail?beneficiarioId=$beneficiarioId&title=$title"
     }
     object AddStock : Screen("addStock", "Adicionar Stock", Icons.Default.Add)
-    object StockDetail : Screen("stockDetail/{produtoId}/{produtoNome}", "Detalhes do Stock", Icons.Default.ShoppingCart) {
-        fun createRoute(produtoId: Int, produtoNome: String): String {
-            val encodedNome = java.net.URLEncoder.encode(produtoNome, java.nio.charset.StandardCharsets.UTF_8.toString())
-            return "stockDetail/$produtoId/$encodedNome"
-        }
+    object StockDetail : Screen("stockDetail/{produtoId}", "Detalhes do Stock", Icons.Default.ShoppingCart) {
+        fun createRoute(produtoId: Int) = "stockDetail/$produtoId"
     }
     object Campanhas : Screen("campanhas", "Campanhas", Icons.Default.Event)
     object AgendarEntrega : Screen("agendarEntrega?deliveryId={deliveryId}", "Agendar Entrega", Icons.Default.Add) {
@@ -75,8 +72,6 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     }
     object Relatorios : Screen("relatorios", "Relatórios", Icons.Default.Description)
 }
-
-
 
 val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas, Screen.Logout)
 
@@ -101,7 +96,6 @@ class MainActivity : ComponentActivity() {
                     "admin" -> MainAppScreen()
                     "beneficiario" -> BeneficiarioAppScreen()
                     else -> {
-                        // Fallback para o caso de role ser null ou desconhecido
                         startActivity(Intent(this, LoginActivity::class.java))
                         finish()
                     }
@@ -167,12 +161,6 @@ class MainActivity : ComponentActivity() {
         
         NavHost(navController = navController, startDestination = Screen.Dashboard.route, modifier = modifier) {
             composable(Screen.Dashboard.route) { backStackEntry ->
-                // Schedule WorkManager
-                LaunchedEffect(Unit) {
-                    scheduleBackgroundWork(context)
-                    requestNotificationPermission(context)
-                }
-
                 val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_dashboard")
                 val viewModel: DashboardViewModel = viewModel(factory = DashboardViewModelFactory(DashboardRepository(apiService), StockRepository(apiService)))
 
@@ -188,7 +176,7 @@ class MainActivity : ComponentActivity() {
                     onNavigateToAlerts = { alerta ->
                         val productId = viewModel.getProductIdFromAlert(alerta)
                         if (productId != null) {
-                            navController.navigate(Screen.StockDetail.createRoute(productId, alerta.produto))
+                            navController.navigate(Screen.StockDetail.createRoute(productId))
                         } else {
                             navController.navigate(Screen.Stock.createRoute("alerts"))
                         }
@@ -228,7 +216,7 @@ class MainActivity : ComponentActivity() {
 
                 EntregasScreen(
                     viewModel = viewModel,
-                    onAgendarClick = { navController.navigate(Screen.AgendarEntrega.route) },
+                    onAgendarClick = { navController.navigate(Screen.AgendarEntrega.createRoute()) },
                     onNavigateBack = {
                         if (viewModel.needsDashboardRefresh()) {
                             navController.getBackStackEntry(Screen.Dashboard.route).savedStateHandle.set("should_refresh_dashboard", true)
@@ -254,12 +242,24 @@ class MainActivity : ComponentActivity() {
                     val viewModel: EntregaDetailViewModel = viewModel(
                         factory = EntregaDetailViewModelFactory(entregaId, EntregaRepository(apiService))
                     )
+
+                    var wasRefreshed by remember { mutableStateOf(false) }
+                    val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_entregas")
+
+                    LaunchedEffect(shouldRefresh) {
+                        if (shouldRefresh == true) {
+                            viewModel.fetchEntregaDetails()
+                            wasRefreshed = true
+                            backStackEntry.savedStateHandle.remove<Boolean>("should_refresh_entregas")
+                        }
+                    }
+
                     EntregaDetailScreen(
                         viewModel = viewModel,
                         estado = estado ?: "",
                         onNavigateBack = { 
-                            if (estado != null) {
-                                navController.previousBackStackEntry?.savedStateHandle?.set("return_tab", estado)
+                            if (wasRefreshed) {
+                                navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_entregas", true)
                             }
                             navController.popBackStack() 
                         },
@@ -329,7 +329,7 @@ class MainActivity : ComponentActivity() {
                 
                 StockListScreen(
                     viewModel = viewModel,
-                    onNavigateToDetail = { navController.navigate(Screen.StockDetail.createRoute(it.produtoId, it.produto)) },
+                    onNavigateToDetail = { navController.navigate(Screen.StockDetail.createRoute(it.produtoId)) },
                     onNavigateToAdd = { navController.navigate(Screen.AddStock.route) },
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -352,8 +352,7 @@ class MainActivity : ComponentActivity() {
             composable(
                 route = Screen.StockDetail.route,
                 arguments = listOf(
-                    navArgument("produtoId") { type = NavType.IntType },
-                    navArgument("produtoNome") { type = NavType.StringType }
+                    navArgument("produtoId") { type = NavType.IntType }
                 )
             ) { backStackEntry ->
                 val produtoId = backStackEntry.arguments?.getInt("produtoId") ?: 0
@@ -416,35 +415,4 @@ class MainActivity : ComponentActivity() {
         startActivity(intent)
         finish()
     }
-}
-
-private fun scheduleBackgroundWork(context: android.content.Context) {
-    val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.loja_social.workers.NotificationWorker>(4, java.util.concurrent.TimeUnit.HOURS)
-        .setInitialDelay(10, java.util.concurrent.TimeUnit.SECONDS) // Delay first run slightly
-        .build()
-
-    androidx.work.WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-        "LojaSocialNotifications",
-        androidx.work.ExistingPeriodicWorkPolicy.KEEP, // Keep existing if already scheduled
-        workRequest
-    )
-}
-
-private fun requestNotificationPermission(context: android.content.Context) {
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-             if (context is android.app.Activity) {
-                 androidx.core.app.ActivityCompat.requestPermissions(context, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
-             }
-        }
-    }
-}
-
-fun testBackgroundWorkNow(context: android.content.Context) {
-    val workRequest = androidx.work.OneTimeWorkRequestBuilder<com.example.loja_social.workers.NotificationWorker>()
-        .build()
-
-    androidx.work.WorkManager.getInstance(context).enqueue(workRequest)
-    
-    android.widget.Toast.makeText(context, "A verificar notificações... Aguarde.", android.widget.Toast.LENGTH_LONG).show()
 }

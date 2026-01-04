@@ -46,10 +46,12 @@ fun AgendarEntregaScreen(
 
     LaunchedEffect(uiState.schedulingSuccess) {
         if (uiState.schedulingSuccess) {
-            Toast.makeText(context, "Entrega agendada com sucesso!", Toast.LENGTH_SHORT).show()
-            // Avisa o ecrã de Entregas para recarregar
+            val message = if (deliveryId != null) "Entrega atualizada com sucesso!" else "Entrega agendada com sucesso!"
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+            // Sinaliza para ambos os ecrãs (Lista e Detalhe) que precisam de recarregar
             navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_entregas", true)
-            // Avisa o Dashboard para recarregar
+            navController.getBackStackEntry(Screen.Entregas.route.substringBefore("?")).savedStateHandle.set("should_refresh_entregas", true)
             navController.getBackStackEntry(Screen.Dashboard.route).savedStateHandle.set("should_refresh_dashboard", true)
             
             navController.popBackStack()
@@ -72,7 +74,17 @@ fun AgendarEntregaScreen(
         topBar = {
             TopAppBar(
                 title = { Text(if (deliveryId != null) "Editar Agendamento" else "Agendar Nova Entrega") },
-                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") } },
+                navigationIcon = { 
+                    IconButton(onClick = { 
+                        // Se houver alterações não guardadas, avisa para recarregar mesmo assim
+                        if(uiState.isDirty) {
+                             navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_entregas", true)
+                        }
+                        navController.popBackStack() 
+                    }) { 
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") 
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -112,7 +124,8 @@ fun AgendarEntregaScreen(
                 items(uiState.itensSelecionados, key = { it.lote.id }) { item ->
                     ItemEntregaRow(
                         item = item,
-                        onRemoveClick = { viewModel.removerItem(item.lote.id) }
+                        onRemoveClick = { viewModel.removerItem(item.lote.id) },
+                        isEditing = deliveryId != null
                     )
                 }
             }
@@ -300,13 +313,16 @@ private fun showDatePicker(context: android.content.Context, onDateSelected: (St
 @Composable
 fun ItemEntregaRow(
     item: ItemSelecionado,
-    onRemoveClick: () -> Unit
+    onRemoveClick: () -> Unit,
+    isEditing: Boolean
 ) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text = item.lote.produto, modifier = Modifier.weight(1f))
         Text(text = "Qtd: ${item.quantidade}", modifier = Modifier.padding(horizontal = 8.dp))
-        IconButton(onClick = onRemoveClick) {
-            Icon(Icons.Default.Delete, "Remover Item", tint = MaterialTheme.colorScheme.error)
+        if (!isEditing) {
+            IconButton(onClick = onRemoveClick) {
+                Icon(Icons.Default.Delete, "Remover Item", tint = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }
