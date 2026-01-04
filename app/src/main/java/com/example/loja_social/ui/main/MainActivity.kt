@@ -71,6 +71,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
         fun createRoute(entregaId: String, estado: String) = "entregaDetail/$entregaId/$estado"
     }
     object Relatorios : Screen("relatorios", "Relatórios", Icons.Default.Description)
+    object Notificacoes : Screen("notificacoes", "Notificações", Icons.Default.Notifications)
 }
 
 val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas, Screen.Logout)
@@ -136,6 +137,18 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+            },
+            topBar = {
+                // Global Top Bar (Optional, but good for Notifications)
+                @OptIn(ExperimentalMaterial3Api::class)
+                CenterAlignedTopAppBar(
+                    title = { Text("Loja Social") },
+                    actions = {
+                        IconButton(onClick = { navController.navigate(Screen.Notificacoes.route) }) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                        }
+                    }
+                )
             }
         ) { innerPadding ->
             AppNavHost(navController = navController, modifier = Modifier.padding(innerPadding))
@@ -382,6 +395,12 @@ class MainActivity : ComponentActivity() {
                 com.example.loja_social.ui.relatorios.RelatoriosScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
+            }
+            
+            composable(Screen.Notificacoes.route) {
+                 com.example.loja_social.ui.notificacoes.NotificacoesScreen(
+                     onNavigateBack = { navController.popBackStack() }
+                 )
             }
         }
     }

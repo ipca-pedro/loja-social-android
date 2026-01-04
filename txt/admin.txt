@@ -503,6 +503,13 @@ router.post('/entregas', async (req, res) => {
         `, [entrega_id, item.stock_item_id, item.quantidade_entregue]);
       }
       
+      
+      // 4. Criar Notificação
+      await client.query(`
+        INSERT INTO notificacoes (beneficiario_id, entrega_id, titulo, mensagem)
+        VALUES ($1, $2, $3, $4)
+      `, [beneficiario_id, entrega_id, 'Nova Entrega Agendada', `Tens uma entrega agendada para ${data_agendamento}.`]);
+      
       await client.query('COMMIT');
       
       res.status(201).json({
@@ -738,6 +745,12 @@ router.put('/entregas/:id', async (req, res) => {
               [id, item.stock_item_id, item.quantidade_entregue]
           );
       }
+
+      // 6. Criar Notificação de Atualização
+      await client.query(`
+        INSERT INTO notificacoes (beneficiario_id, entrega_id, titulo, mensagem)
+        VALUES ($1, $2, $3, $4)
+      `, [beneficiario_id, id, 'Entrega Atualizada', `O teu agendamento para ${data_agendamento} foi atualizado.`]);
 
       await client.query('COMMIT');
       res.json({ success: true, message: 'Entrega atualizada com sucesso' });
@@ -979,6 +992,49 @@ router.get('/relatorios/validade', async (req, res) => {
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Erro no relatório de validade:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+
+// ===== NOTIFICAÇÕES (RF7 - Extra) =====
+
+// GET /api/notificacoes - Listar notificações do utilizador
+router.get('/notificacoes', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, titulo, mensagem, lida, data_criacao, entrega_id
+      FROM notificacoes
+      WHERE beneficiario_id = $1 OR colaborador_id = $1
+      ORDER BY data_criacao DESC
+    `, [req.user.id]);
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Erro ao listar notificações:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// PUT /api/notificacoes/:id/lida - Marcar como lida
+router.put('/notificacoes/:id/lida', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Garante que a notificação pertence ao user antes de marcar
+    const result = await pool.query(`
+      UPDATE notificacoes 
+      SET lida = true 
+      WHERE id = $1 AND (beneficiario_id = $2 OR colaborador_id = $2)
+      RETURNING id, lida
+    `, [id, req.user.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Notificação não encontrada' });
+    }
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Erro ao marcar notificação:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });

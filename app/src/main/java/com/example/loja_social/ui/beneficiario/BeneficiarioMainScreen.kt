@@ -33,10 +33,9 @@ fun BeneficiarioMainScreen(
                 title = { Text("Área do Beneficiário") },
                 actions = {
                     // Notificações - Tarefa 2
-                    IconButton(onClick = { 
-                        // Simular teste de notificações
-                        com.example.loja_social.ui.main.testBackgroundWorkNow(context)
-                    }) {
+                    // Notificações - Tarefa 2
+                    // TODO: Implementar navegação para ecrã de notificações
+                    IconButton(onClick = { /* Navegar para notificações */ }) {
                         Icon(Icons.Default.Notifications, contentDescription = "Notificações")
                     }
                     IconButton(onClick = onLogoutClick) {

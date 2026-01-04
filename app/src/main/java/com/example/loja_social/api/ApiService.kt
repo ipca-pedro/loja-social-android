@@ -239,4 +239,12 @@ interface ApiService {
 
     @GET("api/admin/relatorios/validade")
     suspend fun getRelatorioValidade(): RelatorioValidadeResponse
+
+    // ===== NOTIFICAÇÕES =====
+
+    @GET("api/admin/notificacoes")
+    suspend fun getNotificacoes(): ApiResponse<List<Notificacao>>
+
+    @PUT("api/admin/notificacoes/{id}/lida")
+    suspend fun marcarNotificacaoLida(@Path("id") id: String): ApiResponse<Notificacao>
 }

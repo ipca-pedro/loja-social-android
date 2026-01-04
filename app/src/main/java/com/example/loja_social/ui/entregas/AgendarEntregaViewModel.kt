@@ -26,7 +26,8 @@ data class AgendarEntregaUiState(
     val dataAgendamento: String = "",
     val editingDeliveryId: String? = null,
     val errorMessage: String? = null,
-    val schedulingSuccess: Boolean = false
+    val schedulingSuccess: Boolean = false,
+    val isDirty: Boolean = false
 )
 
 class AgendarEntregaViewModel(

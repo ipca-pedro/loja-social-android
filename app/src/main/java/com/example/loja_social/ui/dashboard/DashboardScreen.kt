@@ -58,11 +58,6 @@ fun DashboardScreen(
                     IconButton(onClick = onNavigateToReports) {
                         Icon(Icons.Default.Description, contentDescription = "Relatórios")
                     }
-                    // TODO: Remover em produção
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    IconButton(onClick = { com.example.loja_social.ui.main.testBackgroundWorkNow(context) }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Testar Notificação")
-                    }
                 }
             )
         }

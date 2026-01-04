@@ -25,7 +25,7 @@ class EntregaDetailViewModel(private val entregaId: String, private val reposito
         fetchEntregaDetails()
     }
 
-    private fun fetchEntregaDetails() {
+    fun fetchEntregaDetails() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {

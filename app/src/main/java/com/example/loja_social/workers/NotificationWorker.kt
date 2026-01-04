@@ -29,68 +29,38 @@ class NotificationWorker(
         try {
             // Ensure Retrofit is initialized
             com.example.loja_social.api.RetrofitHelper.ensureInitialized(context)
+            
+            val prefs: SharedPreferences = context.getSharedPreferences("loja_social_prefs", Context.MODE_PRIVATE)
+            val lastKnownId = prefs.getString("last_notification_id", "") ?: ""
 
-            // 1. Check Stock Expiry (Only if user has permission/is admin? API might restrict, but let's try)
-            // Ideally we should check role, but SessionManager is needed.
-            // For now, we wrap in try-catch in case of 403
-            try {
-                val stockResponse = RetrofitInstance.api.getAlertasValidade()
-                if (stockResponse.success) {
-                    val expiringItems = stockResponse.data
-                    val nearbyExpiry = expiringItems.filter { it.diasRestantes <= 7 }
-                    
-                    if (nearbyExpiry.isNotEmpty()) {
-                        showNotification(
-                            1,
-                            "Atenção: Validade de Stock",
-                            "${nearbyExpiry.size} produtos expiram em breve! Verifique o stock."
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                // Ignore stock errors (likely not admin)
-            }
-
-            // 2. Check NEW Deliveries (For Beneficiaries)
-            try {
-                val entregasResponse = RetrofitInstance.api.getMinhasEntregas() // Use specialized endpoint or generic
-                // Note: getEntregas() filters by role server-side.
+            // 1. Fetch Notifications from API
+            val response = RetrofitInstance.api.getNotificacoes()
+            
+            if (response.success && !response.data.isNullOrEmpty()) {
+                val notifications = response.data
                 
-                if (entregasResponse.success) {
-                    val allDeliveries = entregasResponse.data
-                    val prefs: SharedPreferences = context.getSharedPreferences("loja_social_prefs", Context.MODE_PRIVATE)
-                    val knownIds = prefs.getStringSet("known_delivery_ids", emptySet()) ?: emptySet()
-                    
-                    val currentIds = allDeliveries.map { it.id }.toSet()
-                    val newIds = currentIds - knownIds
-                    
-                    // Filter specifically for future/agendada deliveries among the new ones
-                    val newFutureDeliveries = allDeliveries.filter { 
-                        it.id in newIds && 
-                        it.estado == "agendada" &&
-                        LocalDate.parse(it.dataAgendamento.substringBefore("T")) >= LocalDate.now()
-                    }
+                // Better strategy: Keep Set of IDs we have already alerted about.
+                val alertedIds = prefs.getStringSet("alerted_notification_ids", emptySet()) ?: emptySet()
+                
+                val toAlert = notifications.filter { !it.lida && it.id !in alertedIds }
 
-                    if (newFutureDeliveries.isNotEmpty()) {
-                        val firstNew = newFutureDeliveries.first()
-                        val date = firstNew.dataAgendamento.substringBefore("T")
-                        
-                        showNotification(
-                            2,
-                            "Nova Entrega Agendada",
-                            "Tens uma nova entrega agendada para o dia $date." + 
-                            if (newFutureDeliveries.size > 1) " (+${newFutureDeliveries.size - 1} outras)" else ""
-                        )
-                    }
-
-                    // Update known IDs (save ALL current IDs to handle deletions/updates correctly? 
-                    // No, just save current state so next time we diff against it)
-                    prefs.edit().putStringSet("known_delivery_ids", currentIds).apply()
+                if (toAlert.isNotEmpty()) {
+                    val count = toAlert.size
+                    val first = toAlert.first()
+                    
+                    showNotification(
+                        100, // Fixed ID for summary, or use unique IDs
+                        if (count == 1) first.titulo else "Novas Notificações ($count)",
+                        if (count == 1) first.mensagem else "Tens $count novas notificações por ler."
+                    )
+                    
+                    // Update alerted list
+                    val newAlertedSet = alertedIds.toMutableSet()
+                    newAlertedSet.addAll(toAlert.map { it.id })
+                    prefs.edit().putStringSet("alerted_notification_ids", newAlertedSet).apply()
                 }
-            } catch (e: Exception) {
-               Log.e("NotificationWorker", "Deliveries Check Failed: ${e.message}")
             }
-
+            
             return Result.success()
         } catch (e: Exception) {
             Log.e("NotificationWorker", "Error in background work", e)

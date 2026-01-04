@@ -570,6 +570,7 @@ data class RelatorioValidadeResponse(
     @SerializedName("message") val message: String?
 )
 
+
 data class RelatorioValidadeItem(
     @SerializedName("id") val id: String,
     @SerializedName("produto_nome") val produtoNome: String,
@@ -579,3 +580,15 @@ data class RelatorioValidadeItem(
     @SerializedName("data_validade") val dataValidade: String?,
     @SerializedName("estado_item") val estadoItem: String
 )
+
+// ===== MODELOS DE NOTIFICAÇÕES =====
+
+data class Notificacao(
+    @SerializedName("id") val id: String,
+    @SerializedName("titulo") val titulo: String,
+    @SerializedName("mensagem") val mensagem: String,
+    @SerializedName("lida") val lida: Boolean,
+    @SerializedName("data_criacao") val dataCriacao: String,
+    @SerializedName("entrega_id") val entregaId: String?
+)
+
