@@ -8,11 +8,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 data class BeneficiarioMainUiState(
     val isLoading: Boolean = false,
-    val minhasEntregas: List<Entrega> = emptyList(),
+    val minhasEntregas: List<Entrega> = emptyList(), // Todas as entregas
     val campanhasAtivas: List<Campanha> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val selectedDate: LocalDate = LocalDate.now(),
+    val datasComEntregas: Set<LocalDate> = emptySet(),
+    val entregasDoDia: List<Entrega> = emptyList() // Entregas apenas do dia selecionado
 )
 
 class BeneficiarioMainViewModel(
@@ -31,17 +37,29 @@ class BeneficiarioMainViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             
             try {
-                // Carregar entregas do beneficiário (todas as entregas - API vai filtrar)
+                // Carregar entregas do beneficiário
                 val entregasResponse = apiService.getMinhasEntregas()
                 
-                // Carregar campanhas ativas (rota pública)
+                // Carregar campanhas ativas
                 val campanhasResponse = apiService.getCampanhas()
-                
+
+                // Processar datas
+                val entregas = entregasResponse.data
+                val datas = entregas.mapNotNull { 
+                    try {
+                        LocalDate.parse(it.dataAgendamento.substringBefore("T"))
+                    } catch (e: Exception) { null }
+                }.toSet()
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    minhasEntregas = entregasResponse.data,
-                    campanhasAtivas = campanhasResponse.data
+                    minhasEntregas = entregas,
+                    campanhasAtivas = campanhasResponse.data,
+                    datasComEntregas = datas
                 )
+                // Filtrar para o dia atual inicialmente
+                selectDate(_uiState.value.selectedDate)
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -49,6 +67,17 @@ class BeneficiarioMainViewModel(
                 )
             }
         }
+    }
+
+    fun selectDate(date: LocalDate) {
+        val dateString = date.format(DateTimeFormatter.ISO_LOCAL_DATE) // yyyy-MM-dd
+        val filtered = _uiState.value.minhasEntregas.filter { 
+            it.dataAgendamento.startsWith(dateString) 
+        }
+        _uiState.value = _uiState.value.copy(
+            selectedDate = date,
+            entregasDoDia = filtered
+        )
     }
 
     fun refresh() {

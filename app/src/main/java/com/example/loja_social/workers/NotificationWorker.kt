@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
@@ -23,65 +24,76 @@ class NotificationWorker(
 
     override suspend fun doWork(): Result {
         Log.d("NotificationWorker", "Fetching alerts in background...")
-        var hasAlerts = false
+        val context = applicationContext
         
         try {
             // Ensure Retrofit is initialized
-            com.example.loja_social.api.RetrofitHelper.ensureInitialized(applicationContext)
+            com.example.loja_social.api.RetrofitHelper.ensureInitialized(context)
 
-            // 1. Check Stock Expiry
-            val stockResponse = RetrofitInstance.api.getAlertasValidade()
-            if (stockResponse.success) {
-                val expiringItems = stockResponse.data
-                val nearbyExpiry = expiringItems.filter { it.diasRestantes <= 7 }
+            // 1. Check Stock Expiry (Only if user has permission/is admin? API might restrict, but let's try)
+            // Ideally we should check role, but SessionManager is needed.
+            // For now, we wrap in try-catch in case of 403
+            try {
+                val stockResponse = RetrofitInstance.api.getAlertasValidade()
+                if (stockResponse.success) {
+                    val expiringItems = stockResponse.data
+                    val nearbyExpiry = expiringItems.filter { it.diasRestantes <= 7 }
+                    
+                    if (nearbyExpiry.isNotEmpty()) {
+                        showNotification(
+                            1,
+                            "Atenção: Validade de Stock",
+                            "${nearbyExpiry.size} produtos expiram em breve! Verifique o stock."
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore stock errors (likely not admin)
+            }
+
+            // 2. Check NEW Deliveries (For Beneficiaries)
+            try {
+                val entregasResponse = RetrofitInstance.api.getMinhasEntregas() // Use specialized endpoint or generic
+                // Note: getEntregas() filters by role server-side.
                 
-                if (nearbyExpiry.isNotEmpty()) {
-                    hasAlerts = true
-                    showNotification(
-                        1,
-                        "Atenção: Validade de Stock",
-                        "${nearbyExpiry.size} produtos expiram em breve! Verifique o stock."
-                    )
-                }
-            } else {
-                 Log.e("NotificationWorker", "Stock API Failed: ${stockResponse.message}")
-            }
+                if (entregasResponse.success) {
+                    val allDeliveries = entregasResponse.data
+                    val prefs: SharedPreferences = context.getSharedPreferences("loja_social_prefs", Context.MODE_PRIVATE)
+                    val knownIds = prefs.getStringSet("known_delivery_ids", emptySet()) ?: emptySet()
+                    
+                    val currentIds = allDeliveries.map { it.id }.toSet()
+                    val newIds = currentIds - knownIds
+                    
+                    // Filter specifically for future/agendada deliveries among the new ones
+                    val newFutureDeliveries = allDeliveries.filter { 
+                        it.id in newIds && 
+                        it.estado == "agendada" &&
+                        LocalDate.parse(it.dataAgendamento.substringBefore("T")) >= LocalDate.now()
+                    }
 
-            // 2. Check Deliveries for Today
-            val entregasResponse = RetrofitInstance.api.getEntregas()
-            if (entregasResponse.success) {
-                val today = LocalDate.now().toString()
-                val todaysDeliveries = entregasResponse.data.filter { 
-                    it.dataAgendamento.startsWith(today) && it.estado == "agendada"
-                }
+                    if (newFutureDeliveries.isNotEmpty()) {
+                        val firstNew = newFutureDeliveries.first()
+                        val date = firstNew.dataAgendamento.substringBefore("T")
+                        
+                        showNotification(
+                            2,
+                            "Nova Entrega Agendada",
+                            "Tens uma nova entrega agendada para o dia $date." + 
+                            if (newFutureDeliveries.size > 1) " (+${newFutureDeliveries.size - 1} outras)" else ""
+                        )
+                    }
 
-                if (todaysDeliveries.isNotEmpty()) {
-                    hasAlerts = true
-                    showNotification(
-                        2,
-                        "Entregas Agendadas Hoje",
-                        "Existem ${todaysDeliveries.size} entregas agendadas para hoje."
-                    )
+                    // Update known IDs (save ALL current IDs to handle deletions/updates correctly? 
+                    // No, just save current state so next time we diff against it)
+                    prefs.edit().putStringSet("known_delivery_ids", currentIds).apply()
                 }
-            }
-
-             // DEBUG only: Se não encontrou nada real, manda notificação de teste para confirmar que o Worker correu
-            if (!hasAlerts) {
-                 showNotification(
-                    3,
-                    "Teste de Notificação",
-                    "Sistema operacional. Nenhum alerta urgente encontrado."
-                )
+            } catch (e: Exception) {
+               Log.e("NotificationWorker", "Deliveries Check Failed: ${e.message}")
             }
 
             return Result.success()
         } catch (e: Exception) {
             Log.e("NotificationWorker", "Error in background work", e)
-             showNotification(
-                4,
-                "Erro na Verificação",
-                "Falha ao verificar alertas: ${e.message}"
-            )
             return Result.retry()
         }
     }

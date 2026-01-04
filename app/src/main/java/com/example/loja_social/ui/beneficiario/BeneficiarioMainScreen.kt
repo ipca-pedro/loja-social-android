@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -24,12 +25,20 @@ fun BeneficiarioMainScreen(
     onLogoutClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Minhas Entregas") },
+                title = { Text("Área do Beneficiário") },
                 actions = {
+                    // Notificações - Tarefa 2
+                    IconButton(onClick = { 
+                        // Simular teste de notificações
+                        com.example.loja_social.ui.main.testBackgroundWorkNow(context)
+                    }) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                    }
                     IconButton(onClick = onLogoutClick) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sair")
                     }
@@ -57,12 +66,20 @@ fun BeneficiarioMainScreen(
                 )
             }
             
-            // Minhas Entregas
+            // Tarefa 1: Calendário Personalizado
             item {
                 Text(
                     text = "Minhas Entregas",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
+                )
+            }
+
+            item {
+                com.example.loja_social.ui.components.EntregasCalendarCard(
+                    datasComEntregas = uiState.datasComEntregas,
+                    selectedDate = uiState.selectedDate,
+                    onDateSelected = { viewModel.selectDate(it) }
                 )
             }
             
@@ -79,17 +96,24 @@ fun BeneficiarioMainScreen(
                         )
                     }
                 }
-                uiState.minhasEntregas.isEmpty() -> {
+                uiState.entregasDoDia.isEmpty() -> {
                     item {
                         EmptyState(
-                            title = "Nenhuma entrega encontrada",
-                            subtitle = "Não tem entregas agendadas no momento",
+                            title = "Sem entregas neste dia",
+                            subtitle = "Selecione outro dia no calendário",
                             icon = Icons.AutoMirrored.Filled.Assignment
                         )
                     }
                 }
                 else -> {
-                    items(uiState.minhasEntregas) { entrega ->
+                    item {
+                         Text(
+                            "Entregas para ${uiState.selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
+                            style = MaterialTheme.typography.titleMedium,
+                             modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                    items(uiState.entregasDoDia) { entrega ->
                         BeneficiarioEntregaItem(entrega = entrega)
                     }
                 }
