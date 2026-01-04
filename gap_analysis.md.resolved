@@ -4,50 +4,44 @@ Com base nos requisitos fornecidos e no estado atual do código (backend e mobil
 
 ## ✅ Implementado
 
-*   **Autenticação:** O sistema permite login (email/password). Embora o requisito mencione "Código de Acesso", a autenticação por credenciais cumpre o propósito de identificar o técnico.
-*   **Gestão de Beneficiários:** Listagem, Criação e Edição com todos os campos solicitados (incluindo notas adicionais).
-*   **Gestão de Stock (Básico):** Inserção de produtos, categorias e lotes com validade e associação a campanhas.
-*   **Gestão de Campanhas:** CRUD de campanhas funcional.
-*   **Agendamento de Entregas:** É possível agendar entregas para beneficiários.
-*   **Listas e Filtros:** Listagens de stock e beneficiários funcionais.
+*   **Autenticação:** O sistema permite login (email/password).
+*   **Gestão de Beneficiários:** Listagem, Criação e Edição completas.
+*   **Gestão de Stock (Avançado):**
+    *   Inserção de produtos e categorias.
+    *   **Controlo de Validade:** Alertas de produtos a expirar.
+    *   **Lógica de Reserva (ATP):** O stock é cativado no agendamento e abatido na conclusão.
+    *   **Atualização Automática:** Trigger na BD garante integridade ao concluir entrega.
+*   **Gestão de Entregas:**
+    *   Agendamento com validação de stock.
+    *   **Cancelamento:** Possibilidade de anular entrega e repor stock.
+    *   **Conclusão:** Baixa automática de stock físico e reserva.
+*   **Sistema de Notificações (WorkManager):**
+    *   Alertas locais a cada 4h.
+    *   Notifica entregas do dia e validades críticas (7 dias).
+*   **Relatórios e Exportação:**
+    *   Relatórios de Entregas, Stock e Validade/Quebras.
+    *   Geração de **PDF** diretamente no servidor (backend) e download na App.
+    *   Inclusão de estados "Crítico", "Atenção" e "Expirado".
 
 ## ⚠️ Em Falta Crítica (Gaps Principais)
 
-### 1. Atualização Automática de Stock (Critical)
-*   **Requisito:** *"após atualização do estado da entrega... deverá ocorrer a atualização automática do stock existente"*
-*   **Estado Atual:** O backend apenas marca a entrega como "entregue". **Não existe lógica para desconta a quantidade entregue do stock.**
-*   **Impacto:** O stock físico deixará de coincidir com o digital rapidamente.
-*   **Solução:** Alterar o endpoint [concluirEntrega](file:///c:/Projetos/loja-social-android/app/src/main/java/com/example/loja_social/api/ApiService.kt#191-199) para subtrair as quantidades dos itens de stock associados.
-
-### 2. Sistema de Notificações
-*   **Requisito:** *"receber notificações de lembretes"* (entregas) e *"alertas de validade"* (push/local notifications).
-*   **Estado Atual:** ✅ **Implementado** (WorkManager).
-    *   Verifica a cada 4 horas.
-    *   Avisa de: Entregas agendadas para o dia e produtos a expirar (próximos 7 dias).
-*   **Ação:** Testar em dispositivo real (emuladores podem não mostrar notificações sem configuração extra).
-
-
-### 3. Exportação de Relatórios
-*   **Requisito:** *"Exportação de relatórios... possibilidade de gerar e extrair relatórios"*
-*   **Estado Atual:** ✅ **Implementado** (Android + Backend).
-    *   Backend: Rotas `/relatorios/entregas`, `/stock`, `/validade`.
-    *   Mobile: Ecrã `RelatoriosScreen` gera PDF.
-*   **Ação:** Validar funcionamento no dispositivo.
-
-### 4. Gestão de Quebras/Produtos Estragados
-*   **Requisito:** *"O produto caiu e estragou-se, o técnico pode eliminar o produto, indicando que foi para o lixo"*
-*   **Estado Atual:** Existe apenas a opção de "Apagar Lote" (Hard Delete). Não há registo histórico de "perda" vs "consumo".
-*   **Solução:** Ao apagar/editar stock, perguntar o motivo e, idealmente, mover para uma tabela de histórico de "Saídas de Stock" em vez de apagar o registo.
+### 1. Gestão de Quebras (Histórico Detalhado)
+*   **Requisito:** *"O produto caiu e estragou-se... indicar que foi para o lixo"*
+*   **Estado Atual:**
+    *   ✅ Adicionámos coluna `quantidade_danificada` e estado "Danificado" nos relatórios.
+    *   ⚠️ Falta: Uma interface dedicada na App para "Registar Quebra" (atualmente faz-se via edição manual ou "Apagar" direto).
+    *   **Solução:** Criar botão "Registar Quebra" no detalhe do lote que move stock de `atual` para `danificada`.
 
 ## 💡 Sugestões (Opcionais / Nice to have)
 
-*   **Leitura de Código de Barras:** Sugerido nos requisitos para agilizar entradas/saídas. Atualmente é tudo manual.
-*   **Login com Código Pin:** O requisito falava em código de acesso visual. O sistema atual usa Email/Password clássico.
+*   **Leitura de Código de Barras:** Sugerido nos requisitos para agilizar entradas/saídas.
+*   **Login com Código Pin:** O sistema atual usa Email/Password.
+*   **Website Público:** A API já suporta (`public.txt`), mas o frontend web ainda carece de integração visual (botões de PDF adicionados na documentação).
 
 ---
 
 ## Próximos Passos Recomendados
 
-1.  **Resolver a Lógica de Stock:** É o ponto mais crítico para a integridade dos dados.
-2.  **Notificações Locais:** Para dar vida aos alertas de validade e entregas.
-3.  **Relatórios:** Implementar pelo menos um relatório básico (PDF).
+1.  **Feedback Visual:** Adicionar indicadores visuais (cores) nas listas para produtos a expirar.
+2.  **App Web:** Integrar os botões de relatório no frontend do site.
+3.  **Testes de Campo:** Validar o ciclo completo (Agendar -> Notificação -> Concluir) em ambiente real.
