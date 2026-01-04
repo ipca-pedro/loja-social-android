@@ -235,7 +235,9 @@ interface ApiService {
     ): RelatorioEntregasResponse
 
     @GET("api/admin/relatorios/stock")
-    suspend fun getRelatorioStock(): RelatorioStockResponse
+    suspend fun getRelatorioStock(
+        @retrofit2.http.Query("campanha_id") campanhaId: String? = null
+    ): RelatorioStockResponse
 
     @GET("api/admin/relatorios/validade")
     suspend fun getRelatorioValidade(): RelatorioValidadeResponse

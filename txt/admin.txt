@@ -931,8 +931,9 @@ router.get('/relatorios/entregas', async (req, res) => {
 // GET /api/admin/relatorios/stock - Relatório de Stock vs Campanhas
 router.get('/relatorios/stock', async (req, res) => {
   try {
-    // Agrupar stock por campanha e produto
-    const query = `
+    const { campanha_id } = req.query;
+    
+    let query = `
       SELECT 
         COALESCE(camp.nome, 'Sem Campanha (Stock Regular)') as campanha_nome,
         p.nome as produto_nome,
@@ -943,11 +944,20 @@ router.get('/relatorios/stock', async (req, res) => {
       JOIN produtos p ON si.produto_id = p.id
       LEFT JOIN categorias cat ON p.categoria_id = cat.id
       LEFT JOIN campanhas camp ON si.campanha_id = camp.id
+    `;
+    
+    const params = [];
+    if (campanha_id && campanha_id !== 'null' && campanha_id !== '') {
+        query += ` WHERE si.campanha_id = $1 `;
+        params.push(campanha_id);
+    }
+
+    query += `
       GROUP BY camp.nome, p.nome, cat.nome
       ORDER BY camp.nome, cat.nome, p.nome
     `;
     
-    const result = await pool.query(query);
+    const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Erro no relatório de stock:', error);

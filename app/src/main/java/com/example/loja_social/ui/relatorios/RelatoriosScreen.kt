@@ -43,6 +43,16 @@ fun RelatoriosScreen(
     // Dates for Entregas Report
     var dataInicio by remember { mutableStateOf("") }
     var dataFim by remember { mutableStateOf("") }
+    
+    // State for Stock Report
+    var selectedCampanhaId by remember { mutableStateOf<String?>(null) }
+    var campanhasExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedReport) {
+        if (selectedReport == "STOCK") {
+            viewModel.fetchCampanhas()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -119,6 +129,46 @@ fun RelatoriosScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("2024-12-31") }
             )
+        } else if (selectedReport == "STOCK") {
+             // Campaign Dropdown
+             val options = uiState.campanhas
+             val selectedName = options.find { it.id == selectedCampanhaId }?.nome ?: "Todas as Campanhas"
+
+             ExposedDropdownMenuBox(
+                 expanded = campanhasExpanded,
+                 onExpandedChange = { campanhasExpanded = !campanhasExpanded },
+                 modifier = Modifier.fillMaxWidth()
+             ) {
+                 OutlinedTextField(
+                     value = selectedName,
+                     onValueChange = {},
+                     readOnly = true,
+                     label = { Text("Filtrar por Campanha") },
+                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campanhasExpanded) },
+                     modifier = Modifier.fillMaxWidth().menuAnchor()
+                 )
+                 ExposedDropdownMenu(
+                     expanded = campanhasExpanded,
+                     onDismissRequest = { campanhasExpanded = false }
+                 ) {
+                     DropdownMenuItem(
+                         text = { Text("Todas as Campanhas") },
+                         onClick = {
+                             selectedCampanhaId = null
+                             campanhasExpanded = false
+                         }
+                     )
+                     options.forEach { campanha ->
+                         DropdownMenuItem(
+                             text = { Text(campanha.nome) },
+                             onClick = {
+                                 selectedCampanhaId = campanha.id
+                                 campanhasExpanded = false
+                             }
+                         )
+                     }
+                 }
+             }
         }
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -134,7 +184,7 @@ fun RelatoriosScreen(
                                 if (dataFim.isBlank()) null else dataFim
                             )
                         }
-                        "STOCK" -> viewModel.fetchRelatorioStock()
+                        "STOCK" -> viewModel.fetchRelatorioStock(selectedCampanhaId)
                         "VALIDADE" -> viewModel.fetchRelatorioValidade()
                     }
                 }

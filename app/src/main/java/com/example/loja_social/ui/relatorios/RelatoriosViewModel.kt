@@ -18,7 +18,8 @@ data class RelatoriosUiState(
     val successMessage: String? = null,
     val entregas: List<RelatorioEntregaItem> = emptyList(),
     val stock: List<RelatorioStockItem> = emptyList(),
-    val validade: List<RelatorioValidadeItem> = emptyList()
+    val validade: List<RelatorioValidadeItem> = emptyList(),
+    val campanhas: List<com.example.loja_social.api.Campanha> = emptyList()
 )
 
 class RelatoriosViewModel : ViewModel() {
@@ -55,12 +56,12 @@ class RelatoriosViewModel : ViewModel() {
         }
     }
 
-    fun fetchRelatorioStock() {
+    fun fetchRelatorioStock(campanhaId: String? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
                 if (RetrofitInstance.isInitialized()) {
-                    val response = RetrofitInstance.api.getRelatorioStock()
+                    val response = RetrofitInstance.api.getRelatorioStock(campanhaId)
                     if (response.success) {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
@@ -111,5 +112,20 @@ class RelatoriosViewModel : ViewModel() {
 
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(errorMessage = null, successMessage = null)
+    }
+
+    fun fetchCampanhas() {
+        viewModelScope.launch {
+            try {
+                if (RetrofitInstance.isInitialized()) {
+                    val response = RetrofitInstance.api.getCampanhas()
+                    if (response.success) {
+                        _uiState.value = _uiState.value.copy(campanhas = response.data)
+                    }
+                }
+            } catch (e: Exception) {
+               // Ignore or log
+            }
+        }
     }
 }
