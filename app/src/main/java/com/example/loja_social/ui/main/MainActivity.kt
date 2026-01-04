@@ -14,6 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -74,7 +77,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Notificacoes : Screen("notificacoes", "Notificações", Icons.Default.Notifications)
 }
 
-val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas, Screen.Logout)
+val bottomNavItems = listOf(Screen.Dashboard, Screen.Entregas, Screen.Beneficiarios, Screen.Stock, Screen.Campanhas)
 
 class MainActivity : ComponentActivity() {
 
@@ -119,19 +122,22 @@ class MainActivity : ComponentActivity() {
                     bottomNavItems.forEach { screen ->
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.label) },
-                            label = { Text(screen.label) },
+                            label = { 
+                                Text(
+                                    screen.label,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontSize = if (screen.route == Screen.Beneficiarios.route) 11.sp else TextUnit.Unspecified
+                                )
+                            },
                             selected = currentRoute?.startsWith(screen.route.substringBefore("?")) ?: false,
                             onClick = {
-                                if (screen.route == Screen.Logout.route) {
-                                    showLogoutDialog = true
-                                } else {
-                                    navController.navigate(screen.route.substringBefore("?")) { 
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
+                                navController.navigate(screen.route.substringBefore("?")) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
                                     }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
                             }
                         )
@@ -139,13 +145,15 @@ class MainActivity : ComponentActivity() {
                 }
             },
             topBar = {
-                // Global Top Bar (Optional, but good for Notifications)
                 @OptIn(ExperimentalMaterial3Api::class)
                 CenterAlignedTopAppBar(
                     title = { Text("Loja Social") },
                     actions = {
                         IconButton(onClick = { navController.navigate(Screen.Notificacoes.route) }) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                        }
+                        IconButton(onClick = { showLogoutDialog = true }) {
+                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                         }
                     }
                 )
@@ -434,10 +442,6 @@ class MainActivity : ComponentActivity() {
             composable(Screen.Notificacoes.route) {
                 com.example.loja_social.ui.notificacoes.NotificacoesScreen(
                     onNavigateBack = { 
-                        // Ao voltar, podemos querer dar refresh ao badge.
-                        // O ViewModel do Main deve recarregar se o ecrã for recomposto ou se usarmos um shared ViewModel/Event.
-                        // Por simplicidade, ao navegar de volta, o `fetchNotificacoes` do MainViewModel será chamado se o Composable for recriado ou via refresh manual.
-                        // Para forçar, podemos invalidar. Mas vamos manter simples.
                         navController.popBackStack() 
                     }
                 )
