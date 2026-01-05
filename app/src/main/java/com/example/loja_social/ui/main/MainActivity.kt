@@ -158,11 +158,36 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     actions = {
+                        val notificationRepository = remember { com.example.loja_social.repository.NotificationRepository(com.example.loja_social.api.RetrofitInstance.api) }
+                        var unreadCount by remember { mutableStateOf(0) }
+                        
+                        LaunchedEffect(Unit) {
+                            while(true) {
+                                 try {
+                                     if (com.example.loja_social.api.RetrofitInstance.isInitialized()) {
+                                         val response = notificationRepository.getNotificacoes()
+                                         if (response.success && response.data != null) {
+                                             unreadCount = response.data.count { !it.lida }
+                                         }
+                                     }
+                                 } catch (e: Exception) {
+                                     // ignore
+                                 }
+                                 kotlinx.coroutines.delay(15000) // Poll every 15s
+                            }
+                        }
+
                         IconButton(onClick = { navController.navigate(Screen.Relatorios.route) }) {
                             Icon(Icons.Default.Description, contentDescription = "Relatórios")
                         }
                         IconButton(onClick = { navController.navigate(Screen.Notificacoes.route) }) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                             if (unreadCount > 0) {
+                                BadgedBox(badge = { Badge { Text("$unreadCount") } }) {
+                                    Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                                }
+                            } else {
+                                Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                            }
                         }
                         IconButton(onClick = { showLogoutDialog = true }) {
                             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
