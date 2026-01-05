@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,9 +15,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -26,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.compose.AsyncImage
 import com.example.loja_social.SessionManager
 import com.example.loja_social.api.RetrofitHelper
 import com.example.loja_social.api.RetrofitInstance
@@ -125,9 +128,8 @@ class MainActivity : ComponentActivity() {
                             label = { 
                                 Text(
                                     screen.label,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    fontSize = if (screen.route == Screen.Beneficiarios.route) 11.sp else TextUnit.Unspecified
+                                    softWrap = false,
+                                    fontSize = 10.sp
                                 )
                             },
                             selected = currentRoute?.startsWith(screen.route.substringBefore("?")) ?: false,
@@ -146,9 +148,19 @@ class MainActivity : ComponentActivity() {
             },
             topBar = {
                 @OptIn(ExperimentalMaterial3Api::class)
-                CenterAlignedTopAppBar(
-                    title = { Text("Loja Social") },
+                TopAppBar(
+                    title = { 
+                        AsyncImage(
+                            model = "https://lojasocial.duckdns.org/logo-navbar.png",
+                            contentDescription = "Loja Social Logo",
+                            modifier = Modifier.height(46.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    },
                     actions = {
+                        IconButton(onClick = { navController.navigate(Screen.Relatorios.route) }) {
+                            Icon(Icons.Default.Description, contentDescription = "Relatórios")
+                        }
                         IconButton(onClick = { navController.navigate(Screen.Notificacoes.route) }) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notificações")
                         }
@@ -204,8 +216,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onNavigateToEntregaDetail = { entregaId, estado ->
                         navController.navigate(Screen.EntregaDetail.createRoute(entregaId, estado))
-                    },
-                    onNavigateToReports = { navController.navigate(Screen.Relatorios.route) }
+                    }
                 )
             }
             
@@ -304,12 +315,19 @@ class MainActivity : ComponentActivity() {
                 )
             }
             
-            composable(Screen.Beneficiarios.route) {
+            composable(Screen.Beneficiarios.route) { backStackEntry ->
                 val viewModel: BeneficiariosViewModel = viewModel(factory = BeneficiariosViewModelFactory(BeneficiarioRepository(apiService)))
-                BeneficiariosScreen(viewModel) { beneficiarioId ->
-                    val title = if(beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
-                    navController.navigate(Screen.BeneficiarioDetail.createRoute(beneficiarioId, title))
-                }
+                val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_beneficiarios") ?: false
+                
+                BeneficiariosScreen(
+                    viewModel = viewModel,
+                    onNavigateToDetail = { beneficiarioId ->
+                        val title = if(beneficiarioId == null) "Novo Beneficiário" else "Editar Beneficiário"
+                        navController.navigate(Screen.BeneficiarioDetail.createRoute(beneficiarioId, title))
+                    },
+                    shouldRefresh = shouldRefresh,
+                    onRefreshDone = { backStackEntry.savedStateHandle.set("should_refresh_beneficiarios", false) }
+                )
             }
             
             composable(
@@ -322,10 +340,16 @@ class MainActivity : ComponentActivity() {
                 val beneficiarioId = backStackEntry.arguments?.getString("beneficiarioId")
                 val title = backStackEntry.arguments?.getString("title") ?: "Detalhes"
                 val viewModel: BeneficiarioDetailViewModel = viewModel(factory = BeneficiarioDetailViewModelFactory(BeneficiarioRepository(apiService), beneficiarioId))
+                
                 BeneficiarioDetailScreen(
                     viewModel = viewModel,
                     title = title,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { 
+                        if (viewModel.uiState.value.beneficiaryDataChanged) {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("should_refresh_beneficiarios", true)
+                        }
+                        navController.popBackStack()
+                    }
                 )
             }
             

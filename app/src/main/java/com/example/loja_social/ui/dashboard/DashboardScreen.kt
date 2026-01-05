@@ -41,8 +41,7 @@ import java.util.*
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onNavigateToAlerts: (alerta: AlertaValidade) -> Unit,
-    onNavigateToEntregaDetail: (entregaId: String, estado: String) -> Unit,
-    onNavigateToReports: () -> Unit
+    onNavigateToEntregaDetail: (entregaId: String, estado: String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -53,12 +52,7 @@ fun DashboardScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                actions = {
-                    IconButton(onClick = onNavigateToReports) {
-                        Icon(Icons.Default.Description, contentDescription = "Relatórios")
-                    }
-                }
+                )
             )
         }
     ) { padding ->

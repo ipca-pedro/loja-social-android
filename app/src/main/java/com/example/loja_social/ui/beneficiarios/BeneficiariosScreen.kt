@@ -15,10 +15,22 @@ import com.example.loja_social.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BeneficiariosScreen(viewModel: BeneficiariosViewModel, onNavigateToDetail: (String?) -> Unit) {
+fun BeneficiariosScreen(
+    viewModel: BeneficiariosViewModel, 
+    onNavigateToDetail: (String?) -> Unit,
+    shouldRefresh: Boolean,
+    onRefreshDone: () -> Unit
+) {
     val uiState by viewModel.uiState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
+    LaunchedEffect(shouldRefresh) {
+        if (shouldRefresh) {
+            viewModel.fetchBeneficiarios()
+            onRefreshDone()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -126,6 +138,3 @@ fun SearchAndFilter(viewModel: BeneficiariosViewModel) {
         }
     }
 }
-
-
-
