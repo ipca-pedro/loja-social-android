@@ -388,18 +388,35 @@ router.post('/stock/:id/danificar', async (req, res) => {
   }
 });
 
-// DELETE /api/stock/:id - Remover lote de stock
+// DELETE /api/stock/:id - Remover lote de stock (CORRIGIDO: Limpeza em cascata para evitar erro 500/400)
 router.delete('/stock/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const result = await pool.query('DELETE FROM stock_items WHERE id = $1 RETURNING id', [id]);
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Apagar detalhes de entrega que referenciam este lote (Cascata manual)
+        await client.query('DELETE FROM detalhes_entrega WHERE stock_item_id = $1', [id]);
+        
+        // 2. Apagar o lote de stock
+        const result = await client.query('DELETE FROM stock_items WHERE id = $1 RETURNING id', [id]);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Lote não encontrado' });
+        if (result.rows.length === 0) {
+            throw new Error('Lote não encontrado');
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Lote removido com sucesso' });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        res.status(e.message === 'Lote não encontrado' ? 404 : 400).json({ 
+            success: false, 
+            message: e.message 
+        });
+    } finally {
+        client.release();
     }
-
-    res.json({ success: true, message: 'Lote removido com sucesso' });
   } catch (error) {
     console.error('Erro ao remover stock:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
@@ -504,11 +521,11 @@ router.post('/entregas', async (req, res) => {
       }
       
       
-      // 4. Criar Notificação
+      // 4. Criar Notificação - CORRIGIDO: Incluído colaborador_id
       await client.query(`
-        INSERT INTO notificacoes (beneficiario_id, entrega_id, titulo, mensagem)
-        VALUES ($1, $2, $3, $4)
-      `, [beneficiario_id, entrega_id, 'Nova Entrega Agendada', `Tens uma entrega agendada para ${data_agendamento}.`]);
+        INSERT INTO notificacoes (beneficiario_id, entrega_id, colaborador_id, titulo, mensagem)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [beneficiario_id, entrega_id, colaborador_id, 'Nova Entrega Agendada', `Tens uma entrega agendada para ${data_agendamento}.`]);
       
       await client.query('COMMIT');
       
@@ -746,11 +763,11 @@ router.put('/entregas/:id', async (req, res) => {
           );
       }
 
-      // 6. Criar Notificação de Atualização
+      // 6. Criar Notificação de Atualização - CORRIGIDO: Incluído colaborador_id (req.user.id)
       await client.query(`
-        INSERT INTO notificacoes (beneficiario_id, entrega_id, titulo, mensagem)
-        VALUES ($1, $2, $3, $4)
-      `, [beneficiario_id, id, 'Entrega Atualizada', `O teu agendamento para ${data_agendamento} foi atualizado.`]);
+        INSERT INTO notificacoes (beneficiario_id, entrega_id, colaborador_id, titulo, mensagem)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [beneficiario_id, id, req.user.id, 'Entrega Atualizada', `O teu agendamento para ${data_agendamento} foi atualizado.`]);
 
       await client.query('COMMIT');
       res.json({ success: true, message: 'Entrega atualizada com sucesso' });
@@ -1009,11 +1026,11 @@ router.get('/relatorios/validade', async (req, res) => {
 
 // ===== NOTIFICAÇÕES (RF7 - Extra) =====
 
-// RESTORED: GET /api/notificacoes - Suporte a Colaboradores
+// RESTORED: GET /api/notificacoes - Suporte a Colaboradores - CORRIGIDO: Incluído colaborador_id no SELECT
 router.get('/notificacoes', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, titulo, mensagem, lida, data_criacao, entrega_id
+      SELECT id, titulo, mensagem, lida, data_criacao, entrega_id, colaborador_id
       FROM notificacoes
       WHERE beneficiario_id = $1 OR colaborador_id = $1
       ORDER BY data_criacao DESC
@@ -1053,16 +1070,22 @@ const checkStockValidity = async () => {
             SELECT si.id, si.produto_id, si.quantidade_atual, si.data_validade, si.ultimo_escalao_notificado, p.nome as produto_nome 
             FROM stock_items si
             JOIN produtos p ON si.produto_id = p.id
-            WHERE si.quantidade_atual > 0
+            WHERE si.quantidade_atual > 0 AND si.data_validade IS NOT NULL
         `);
 
-        const admins = await pool.query(`SELECT id FROM users WHERE role IN ('admin', 'colaborador')`);
+        // CORRIGIDO: Seleciona todos os colaboradores (removido filtro de role)
+        const admins = await pool.query(`SELECT id FROM colaboradores`);
 
         for (const item of items.rows) {
+            // Comparação de datas usando UTC
             const validade = new Date(item.data_validade);
+            validade.setUTCHours(0, 0, 0, 0);
+            
             const hoje = new Date();
-            const diffTime = validade - hoje;
-            const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            hoje.setUTCHours(0, 0, 0, 0);
+            
+            const diffTime = validade.getTime() - hoje.getTime();
+            const diasRestantes = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
             let novoEscalao = 'OK';
             if (diasRestantes < 0) novoEscalao = 'Expirado';
@@ -1070,16 +1093,19 @@ const checkStockValidity = async () => {
             else if (diasRestantes <= 14) novoEscalao = 'Atenção';
             else if (diasRestantes <= 30) novoEscalao = 'Brevemente';
 
-            if (novoEscalao !== 'OK' && novoEscalao !== item.ultimo_escalao_notificado) {
+            const ultimoEscalao = item.ultimo_escalao_notificado || 'OK';
+
+            if (novoEscalao !== 'OK' && novoEscalao !== ultimoEscalao) {
                 // Estado mudou, notificar admins
-                const mensagem = `O lote ${item.id} do produto ${item.produto_nome} entrou no estado ${novoEscalao}. Restam ${diasRestantes} dias.`;
+                const mensagem = `O lote do produto ${item.produto_nome} entrou no estado ${novoEscalao}. Restam ${diasRestantes} dias.`;
                 const titulo = `Alerta de Validade: ${item.produto_nome}`;
 
                 for (const admin of admins.rows) {
+                    // CORRIGIDO: Incluídos campos beneficiario_id e entrega_id como NULL
                     await pool.query(`
-                        INSERT INTO notificacoes (titulo, mensagem, colaborador_id, data_criacao, lida)
-                        VALUES ($1, $2, $3, NOW(), false)
-                    `, [titulo, mensagem, admin.id]);
+                        INSERT INTO notificacoes (beneficiario_id, entrega_id, colaborador_id, titulo, mensagem, data_criacao, lida)
+                        VALUES (NULL, NULL, $1, $2, $3, NOW(), false)
+                    `, [admin.id, titulo, mensagem]);
                 }
 
                 // Atualizar ultimo_escalao_notificado

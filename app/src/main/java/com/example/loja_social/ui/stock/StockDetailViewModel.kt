@@ -69,7 +69,9 @@ class StockDetailViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isOperationInProgress = true, errorMessage = null, successMessage = null) }
             try {
+                Log.d("StockDetailVM", "A tentar apagar lote: $loteId")
                 val response = repository.deleteLote(loteId)
+                
                 if (response.success) {
                     val updatedLotes = _uiState.value.lotes.filterNot { it.id == loteId }
                     _uiState.update {
@@ -80,13 +82,26 @@ class StockDetailViewModel(
                             isOperationInProgress = false
                         )
                     }
+                    // Atualiza os dados totais do produto após remoção
                     fetchStockItemData()
                 } else {
-                    _uiState.update { it.copy(isOperationInProgress = false, errorMessage = response.message ?: "Erro ao remover lote") }
+                    val errorMsg = response.message ?: "O servidor recusou a remoção do lote."
+                    Log.w("StockDetailVM", "Erro ao apagar lote: $errorMsg")
+                    _uiState.update { 
+                        it.copy(
+                            isOperationInProgress = false, 
+                            errorMessage = errorMsg 
+                        ) 
+                    }
                 }
             } catch (e: Exception) {
-                Log.e("StockDetailVM", "Erro ao remover lote", e)
-                _uiState.update { it.copy(isOperationInProgress = false, errorMessage = "Falha de ligação: ${e.message}") }
+                Log.e("StockDetailVM", "Exceção ao remover lote: ${e.message}", e)
+                _uiState.update { 
+                    it.copy(
+                        isOperationInProgress = false, 
+                        errorMessage = "Falha de ligação ao servidor. Verifique a sua rede." 
+                    ) 
+                }
             }
         }
     }

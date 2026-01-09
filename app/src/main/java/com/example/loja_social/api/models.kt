@@ -589,6 +589,7 @@ data class Notificacao(
     @SerializedName("mensagem") val mensagem: String,
     @SerializedName("lida") val lida: Boolean,
     @SerializedName("data_criacao") val dataCriacao: String,
-    @SerializedName("entrega_id") val entregaId: String?
+    @SerializedName("entrega_id") val entregaId: String?,
+    @SerializedName("colaborador_id") val colaboradorId: String?
 )
 

@@ -161,7 +161,7 @@ interface ApiService {
      * Remove um lote de stock.
      * @param id ID do lote a remover
      */
-    @DELETE("api/stock/{id}")
+    @DELETE("api/admin/stock/{id}")
     suspend fun deleteLote(@Path("id") id: String): ApiResponse<Any>
 
     /**
