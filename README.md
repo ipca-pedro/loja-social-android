@@ -62,8 +62,7 @@ A fidelidade dos dados é garantida através de modelos fortemente tipados. O us
 | `Beneficiario` | `id`, `nome_completo` | Gestão de utilizadores com apoio social. |
 | `Entrega` | `id`, `estado` | Auditoria de transações de saída de bens. |
 
-<details>
-<summary>Ver Implementação da ApiService (Retrofit)</summary>
+### Implementação da ApiService (Retrofit)
 
 ```kotlin
 interface ApiService {
@@ -74,7 +73,6 @@ interface ApiService {
     suspend fun login(@Body request: LoginRequest): LoginResponse
 }
 ```
-</details>
 
 ---
 
@@ -92,8 +90,7 @@ A aplicação utiliza o padrão **Unidirectional Data Flow (UDF)** para garantir
 *   **ViewModel Layer**: Responsável por transformar dados brutos em ecrãs prontos para consumo. Utiliza `StateFlow` para emitir novos estados de UI baseados em ações do utilizador ou eventos externos.
 *   **Presentation (Compose)**: Uma camada puramente reativa onde a UI é uma função direta do estado atual, eliminando estados inconsistentes comuns em sistemas baseados em Views tradicionais.
 
-<details>
-<summary>Ver Segurança (AuthInterceptor)</summary>
+### Segurança (AuthInterceptor)
 
 ```kotlin
 class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor {
@@ -107,10 +104,8 @@ class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor 
 ```
 
 ![Diagrama de Sequência de Autenticação](images/Diagrama_de_Sequência_Autenticação_com_Interceptor.png)
-</details>
 
-<details>
-<summary>Ver Injeção de Dependências (ViewModelFactory)</summary>
+### Injeção de Dependências (ViewModelFactory)
 
 ```kotlin
 class StockListViewModelFactory(private val repository: StockRepository) : ViewModelProvider.Factory {
@@ -121,7 +116,6 @@ class StockListViewModelFactory(private val repository: StockRepository) : ViewM
 ```
 
 ![Diagrama de Classes da Camada de Dados](images/Diagrama_de_classe_CamadadeDados_(Repository_API)%20.png)
-</details>
 
 ---
 
