@@ -7,7 +7,7 @@
 
 ## Summary
 
-Este repositório contém a implementação da aplicação móvel **Loja Social**, desenvolvida nativamente em Kotlin. Adotamos padrões de **Clean Architecture** e **MVVM**, garantindo escalabilidade e separação rigorosa de responsabilidades. Como Arquiteto Sénior, este guia detalha como a solução gere recursos sociais de forma eficiente e segura.
+Este repositório contém a implementação da aplicação móvel **Loja Social**, desenvolvida nativamente em Kotlin. A solução adota o padrão de arquitetura **MVVM (Model-View-ViewModel)**, garantindo uma separação clara entre a lógica de persistência e a camada de apresentação. Este guia detalha a engenharia por trás da gestão de recursos sociais.
 
 ---
 
@@ -17,7 +17,7 @@ Este repositório contém a implementação da aplicação móvel **Loja Social*
 3. [Arquitetura de Dados (API)](#arquitetura-de-dados-api)
 4. [Android Architecture (Flow)](#android-architecture-flow)
 5. [Processamento em Segundo Plano](#processamento-em-segundo-plano)
-6. [Discussão Estratégica](#discussão-estatégica)
+6. [Decisões de Engenharia](#decisões-de-engenharia)
 7. [Equipa](#equipa)
 
 ---
@@ -37,11 +37,15 @@ A Loja Social é uma plataforma para a gestão de bens doados. Abaixo, a matriz 
 
 ## Interface do Utilizador
 
-Esta secção demonstra a experiência visual da aplicação para os diferentes perfis.
+Esta secção apresenta a interface visual da aplicação, demonstrando a implementação dos requisitos de gestão e interação para os diferentes perfis.
 
-| Dashboard do Funcionário | Agendamento de Entrega | Área do Beneficiário |
+| Autenticação | Dashboard Beneficiário | Notificações |
 | :---: | :---: | :---: |
-| ![Dashboard](images/screenshot_dashboard.png) | ![Agendamento](images/screenshot_agendamento.png) | ![Perfil](images/screenshot_perfil.png) |
+| ![Login](images/login.png) | ![Dashboard](images/dashboard_beneficiario.png) | ![Notificações](images/notificacoes.png) |
+
+| Gestão de Stock | Gestão de Entregas | Gestão de Campanhas |
+| :---: | :---: | :---: |
+| ![Stock](images/gestao_stock.png) | ![Entregas](images/gestao_entregas.png) | ![Campanhas](images/gestao_campanhas.png) |
 
 ---
 
@@ -49,13 +53,14 @@ Esta secção demonstra a experiência visual da aplicação para os diferentes 
 
 A comunicação é estruturada via **REST API**, garantindo consistência entre o cliente Android e o backend.
 
-### DTOs (Data Transfer Objects)
+### DTOs (Data Transfer Objects) e Mapeamento
+A fidelidade dos dados é garantida através de modelos fortemente tipados. O uso de DTOs isola a aplicação móvel de mudanças estruturais diretas no banco de dados do servidor.
 
 | Modelo | Campos Chave | Propósito |
 | :--- | :--- | :--- |
-| `StockItem` | `produto`, `quantidadeTotal` | Visão consolidada do inventário. |
-| `Beneficiario` | `id`, `nome_completo` | Entidade para gestão de suporte social. |
-| `Entrega` | `id`, `estado` | Transação de distribuição de bens. |
+| `StockItem` | `produto`, `quantidadeTotal` | Visão consolidada do inventário disponível. |
+| `Beneficiario` | `id`, `nome_completo` | Gestão de utilizadores com apoio social. |
+| `Entrega` | `id`, `estado` | Auditoria de transações de saída de bens. |
 
 <details>
 <summary>Ver Implementação da ApiService (Retrofit)</summary>
@@ -75,17 +80,17 @@ interface ApiService {
 
 ## Android Architecture (Flow)
 
-Adotamos a **Unidirectional Data Flow (UDF)** para garantir que a UI é uma função purista do estado.
+A aplicação utiliza o padrão **Unidirectional Data Flow (UDF)** para garantir previsibilidade de estado e facilitar a depuração.
 
 ### Visualização do Fluxo de Dados
 
 ![Arquitetura MVVM](images/Diagrama_de_Arquitetura_MVVM.png)
 
-### Detalhes técnicos das camadas
+### O Racional das Camadas
 
-*   **Data Layer**: Segurança centralizada via `AuthInterceptor`.
-*   **Domain (Mediator)**: Repositórios que abstraem a origem dos dados.
-*   **Presentation**: ViewModels stateless e reativos.
+*   **Repository Layer (Single Source of Truth)**: O repositório atua como o mediador central de dados. A sua responsabilidade é abstrair a origem da informação, permitindo que os ViewModels consumam dados de forma agnóstica à rede ou persistência local.
+*   **ViewModel Layer**: Responsável por transformar dados brutos em ecrãs prontos para consumo. Utiliza `StateFlow` para emitir novos estados de UI baseados em ações do utilizador ou eventos externos.
+*   **Presentation (Compose)**: Uma camada puramente reativa onde a UI é uma função direta do estado atual, eliminando estados inconsistentes comuns em sistemas baseados em Views tradicionais.
 
 <details>
 <summary>Ver Segurança (AuthInterceptor)</summary>
@@ -122,23 +127,17 @@ class StockListViewModelFactory(private val repository: StockRepository) : ViewM
 
 ## Processamento em Segundo Plano
 
-Para garantir a fiabilidade operacional, o **WorkManager** gere tarefas assíncronas persistentes, como o `NotificationWorker`.
-
-```mermaid
-graph LR
-    System[Android System] -->|Trigger| WM[WorkManager]
-    WM -->|Execute| Worker[NotificationWorker]
-    Worker -->|Push| UI[User Notification]
-```
+Tarefas que não podem sofrer interrupções pelo ciclo de vida da UI — como lembretes de agendamento ou alertas de rutura de stock — são delegadas ao **WorkManager**. Esta escolha técnica garante a execução fiável das tarefas, respeitando as restrições de sistema e otimizando o consumo de bateria.
 
 ---
 
-## Discussão Estratégica
+## Decisões de Engenharia
 
-A fusão de **MVVM** e **Jetpack Compose** resulta num sistema:
-1.  **Imune a inconsistências de UI**: Graças ao estado reativo único.
-2.  **Altamente Testável**: Lógica de negócio isolada do framework Android.
-3.  **Moderno e Elegante**: Redução drástica de código boilerplate e ficheiros XML.
+Para além dos padrões de arquitetura, foram adotadas decisões estratégicas para garantir a longevidade do projeto:
+
+1.  **Reatividade com Flow**: O uso de `Flow` e `StateFlow` permite um processamento assíncrono fluido, reduzindo o acoplamento entre os repositórios e a UI.
+2.  **Segurança Abstrata**: A centralização do token JWT no `AuthInterceptor` garante que a segurança é uma regra de infraestrutura e não uma preocupação recorrente em cada nova funcionalidade.
+3.  **Modularidade Funcional**: Embora a app seja um monólito, a separação por domínios (Stock, Entregas, Utilizadores) facilita uma futura transição para módulos ou micro-features caso a escala do projeto o exija.
 
 ---
 
@@ -146,11 +145,8 @@ A fusão de **MVVM** e **Jetpack Compose** resulta num sistema:
 
 Projeto desenvolvido no âmbito académico no **IPCA** (Engenharia de Sistemas Informáticos).
 
-### Grupo de Trabalho
 - **25447** - Ricardo Marques
 - **25446** - Vitor Leite
 - **25453** - Pedro Vilas Boas
 - **25275** - Filipe Ferreira
 - **25457** - Danilo Castro
-
-
