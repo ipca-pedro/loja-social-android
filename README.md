@@ -1,214 +1,156 @@
-# 🛍️ Integração API Loja Social (Kotlin)
+# Loja Social Android: Guia de Arquitetura Técnica
 
-Este documento descreve como integrar a **API da Loja Social** num cliente **Kotlin/Android**, utilizando **Retrofit** e **data classes** para representar os modelos de dados.
+![Kotlin](https://img.shields.io/badge/Kotlin-2.0-purple?style=flat-square&logo=kotlin)
+![Compose](https://img.shields.io/badge/UI-Jetpack_Compose-green?style=flat-square&logo=jetpackcompose)
+![Architecture](https://img.shields.io/badge/Pattern-MVVM-blue?style=flat-square)
+![Retrofit](https://img.shields.io/badge/Networking-Retrofit-orange?style=flat-square)
+
+## Summary
+
+Este repositório contém a implementação da aplicação móvel **Loja Social**, desenvolvida nativamente em Kotlin. Adotamos padrões de **Clean Architecture** e **MVVM**, garantindo escalabilidade e separação rigorosa de responsabilidades. Como Arquiteto Sénior, este guia detalha como a solução gere recursos sociais de forma eficiente e segura.
 
 ---
 
-## 🌍 1. Configuração Base
+## Índice
+1. [Cenário da Loja Social](#cenário-da-loja-social)
+2. [Interface do Utilizador](#interface-do-utilizador)
+3. [Arquitetura de Dados (API)](#arquitetura-de-dados-api)
+4. [Android Architecture (Flow)](#android-architecture-flow)
+5. [Processamento em Segundo Plano](#processamento-em-segundo-plano)
+6. [Discussão Estratégica](#discussão-estatégica)
+7. [Equipa](#equipa)
 
-O cliente Retrofit deve ser inicializado com o URL base do servidor.
+---
 
-```kotlin
-const val BASE_URL = "https://url-da-sua-api.com/"
-```
+## Cenário da Loja Social
 
-## 🔐 2. Autenticação
+A Loja Social é uma plataforma para a gestão de bens doados. Abaixo, a matriz de responsabilidades por perfil:
 
-A API utiliza autenticação por Token (JWT) para rotas administrativas.
+| Perfil | Responsabilidades Principais |
+| :--- | :--- |
+| **Funcionário** | Gestão de stock e campanhas, registo de bens e execução de entregas. |
+| **Beneficiário** | Consulta de stock e agendamento autónomo de recolhas. |
 
-### 🔄 Fluxo de Autenticação
+![Casos de Uso](images/casos_de_uso_perfis.png)
 
-1. O utilizador faz POST para `/api/auth/login` com email e password.
-2. A API retorna um Token.
-3. O Token deve ser guardado (ex: DataStore ou SharedPreferences).
-4. Para chamadas administrativas, o header deve incluir:
+---
 
-```
-Authorization: Bearer <seu_token>
-```
+## Interface do Utilizador
 
-### 🧩 Modelos de Autenticação
+Esta secção demonstra a experiência visual da aplicação para os diferentes perfis.
 
-```kotlin
-// Objeto enviado no body do POST /api/auth/login
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
+| Dashboard do Funcionário | Agendamento de Entrega | Área do Beneficiário |
+| :---: | :---: | :---: |
+| ![Dashboard](images/screenshot_dashboard.png) | ![Agendamento](images/screenshot_agendamento.png) | ![Perfil](images/screenshot_perfil.png) |
 
-// Resposta esperada do /api/auth/login
-data class LoginResponse(
-    val token: String
-    // Pode incluir outros dados: nome, role, etc.
-)
-```
+---
 
-## 📦 3. Modelos de Dados (Data Classes)
+## Arquitetura de Dados (API)
 
-Os nomes dos campos devem corresponder exatamente ao JSON da API.
-Se diferirem, use `@SerializedName("nome_no_json")`.
+A comunicação é estruturada via **REST API**, garantindo consistência entre o cliente Android e o backend.
 
-### 🗓️ Campanhas
+### DTOs (Data Transfer Objects)
 
-```kotlin
-/**
- * GET /api/public/campanhas
- */
-data class Campanha(
-    val id: Int,
-    val nome: String,
-    val descricao: String?,
-    val data_inicio: String,
-    val data_fim: String,
-    val ativa: Boolean
-)
-```
+| Modelo | Campos Chave | Propósito |
+| :--- | :--- | :--- |
+| `StockItem` | `produto`, `quantidadeTotal` | Visão consolidada do inventário. |
+| `Beneficiario` | `id`, `nome_completo` | Entidade para gestão de suporte social. |
+| `Entrega` | `id`, `estado` | Transação de distribuição de bens. |
 
-### 📊 Resumo de Stock
-
-```kotlin
-/**
- * GET /api/public/stock-summary
- */
-data class StockSummaryItem(
-    val categoria: String,
-    val status: String, // Ex: "Disponível", "Baixo"
-    val percentagem: Double? // Exemplo
-)
-```
-
-### 👥 Beneficiários
-
-```kotlin
-/**
- * GET /api/beneficiarios (Admin)
- */
-data class Beneficiario(
-    val id: Int,
-    val nome: String,
-    val email: String,
-    val numero_aluno: String?
-)
-```
-
-### ➕ Adicionar Stock
-
-```kotlin
-/**
- * POST /api/stock (Admin)
- */
-data class AddStockRequest(
-    val nome_produto: String,
-    val quantidade: Int,
-    val categoria_id: Int
-)
-```
-
-### 📩 Formulário de Contacto
-
-```kotlin
-/**
- * POST /api/public/contacto
- */
-data class ContactoRequest(
-    val nome: String,
-    val email: String,
-    val mensagem: String
-)
-```
-
-## 🚀 4. Definição da API (Retrofit)
+<details>
+<summary>Ver Implementação da ApiService (Retrofit)</summary>
 
 ```kotlin
 interface ApiService {
-
-    // --- Rotas Públicas ---
-
-    @GET("api/public/campanhas")
-    suspend fun getCampanhas(): List<Campanha>
-
-    @GET("api/public/stock-summary")
-    suspend fun getStockSummary(): List<StockSummaryItem>
-
-    @POST("api/public/contacto")
-    suspend fun enviarFormularioContacto(
-        @Body request: ContactoRequest
-    ): Response<Unit>
-
-    // --- Autenticação ---
+    @GET("api/admin/stock")
+    suspend fun getStock(): StockResponse
 
     @POST("api/auth/login")
-    suspend fun login(
-        @Body request: LoginRequest
-    ): Response<LoginResponse>
-
-    // --- Rotas Administrativas (Protegidas) ---
-
-    @GET("api/beneficiarios")
-    suspend fun getBeneficiarios(): List<Beneficiario>
-
-    @POST("api/stock")
-    suspend fun addStockItem(
-        @Body request: AddStockRequest
-    ): Response<Unit>
-
-    @PUT("api/entregas/{id}/concluir")
-    suspend fun concluirEntrega(
-        @Path("id") entregaId: Int
-    ): Response<Unit>
-
-    // --- Utilitários ---
-
-    @GET("health")
-    suspend fun checkHealth(): Response<Unit>
+    suspend fun login(@Body request: LoginRequest): LoginResponse
 }
 ```
+</details>
 
-## 💡 Boa Prática: Interceptor de Autenticação
+---
 
-Para evitar repetir o header Authorization em todas as funções,
-crie um Interceptor no OkHttpClient que o adiciona automaticamente.
+## Android Architecture (Flow)
+
+Adotamos a **Unidirectional Data Flow (UDF)** para garantir que a UI é uma função purista do estado.
+
+### Visualização do Fluxo de Dados
+
+![Arquitetura MVVM](images/Diagrama_de_Arquitetura_MVVM.png)
+
+### Detalhes técnicos das camadas
+
+*   **Data Layer**: Segurança centralizada via `AuthInterceptor`.
+*   **Domain (Mediator)**: Repositórios que abstraem a origem dos dados.
+*   **Presentation**: ViewModels stateless e reativos.
+
+<details>
+<summary>Ver Segurança (AuthInterceptor)</summary>
 
 ```kotlin
-class AuthInterceptor(private val tokenProvider: () -> String?) : Interceptor {
+class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = tokenProvider()
         val request = chain.request().newBuilder().apply {
-            if (!token.isNullOrEmpty()) {
-                addHeader("Authorization", "Bearer $token")
-            }
+            sessionManager.fetchAuthToken()?.let { addHeader("Authorization", "Bearer $it") }
         }.build()
         return chain.proceed(request)
     }
 }
 ```
 
-Depois, adicione o interceptor ao Retrofit:
+![Diagrama de Sequência de Autenticação](images/Diagrama_de_Sequência_Autenticação_com_Interceptor.png)
+</details>
+
+<details>
+<summary>Ver Injeção de Dependências (ViewModelFactory)</summary>
 
 ```kotlin
-val client = OkHttpClient.Builder()
-    .addInterceptor(AuthInterceptor { getTokenFromStorage() })
-    .build()
-
-val retrofit = Retrofit.Builder()
-    .baseUrl(BASE_URL)
-    .client(client)
-    .addConverterFactory(GsonConverterFactory.create())
-    .build()
-
-val apiService = retrofit.create(ApiService::class.java)
+class StockListViewModelFactory(private val repository: StockRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return StockListViewModel(repository) as T
+    }
+}
 ```
 
-Assim, o seu ApiService fica mais limpo:
+![Diagrama de Classes da Camada de Dados](images/Diagrama_de_classe_CamadadeDados_(Repository_API)%20.png)
+</details>
 
-```kotlin
-@GET("api/beneficiarios")
-suspend fun getBeneficiarios(): List<Beneficiario>
+---
+
+## Processamento em Segundo Plano
+
+Para garantir a fiabilidade operacional, o **WorkManager** gere tarefas assíncronas persistentes, como o `NotificationWorker`.
+
+```mermaid
+graph LR
+    System[Android System] -->|Trigger| WM[WorkManager]
+    WM -->|Execute| Worker[NotificationWorker]
+    Worker -->|Push| UI[User Notification]
 ```
 
-## 🧭 Resumo:
+---
 
-- Use **Retrofit + OkHttp** para comunicação HTTP.
-- Guarde o token em **DataStore/SharedPreferences**.
-- Use um **Interceptor** para adicionar o header de autenticação.
-- Crie **data classes** que correspondam aos modelos JSON da API.
+## Discussão Estratégica
+
+A fusão de **MVVM** e **Jetpack Compose** resulta num sistema:
+1.  **Imune a inconsistências de UI**: Graças ao estado reativo único.
+2.  **Altamente Testável**: Lógica de negócio isolada do framework Android.
+3.  **Moderno e Elegante**: Redução drástica de código boilerplate e ficheiros XML.
+
+---
+
+## Equipa
+
+Projeto desenvolvido no âmbito académico no **IPCA** (Engenharia de Sistemas Informáticos).
+
+### Grupo de Trabalho
+- **25447** - Ricardo Marques
+- **25446** - Vitor Leite
+- **25453** - Pedro Vilas Boas
+- **25275** - Filipe Ferreira
+- **25457** - Danilo Castro
+
+
