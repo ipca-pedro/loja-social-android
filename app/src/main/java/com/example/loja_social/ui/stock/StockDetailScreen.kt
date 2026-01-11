@@ -2,7 +2,7 @@ package com.example.loja_social.ui.stock
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -114,7 +114,7 @@ fun StockDetailScreen(
                         )
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(uiState.lotes) { lote ->
+                                    itemsIndexed(uiState.lotes) { index, lote ->
                                         // Regra de Segurança: Só permitir eliminar se estiver expirado
                                         // Se dataValidade for null, assumimos que não expira, logo não se deve apagar por "validade" (ou permitir sempre? User diz "se data atual > prazo").
                                         // Vamos assumir: Se tem data, aplica regra. Se não tem, safe to delete? Ou unsafe? 
@@ -128,7 +128,7 @@ fun StockDetailScreen(
                                         } catch (e: Exception) { false }
 
                                         LojaSocialListItem(
-                                            title = "Lote #${lote.id}",
+                                            title = "Lote ${index + 1}", // Usar numeração sequencial
                                             subtitle = "Qtd: ${lote.quantidadeAtual} | Res: ${lote.quantidadeReservada} | Dan: ${lote.quantidadeDanificada}",
                                             trailing = lote.dataValidade?.substringBefore("T") ?: "Sem validade",
                                             onClick = { /* Pode ser usado para editar no futuro */ },

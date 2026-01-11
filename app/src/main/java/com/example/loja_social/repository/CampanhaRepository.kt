@@ -21,9 +21,9 @@ class CampanhaRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun createCampanha(nome: String, descricao: String, dataInicio: String, dataFim: String): Result<Campanha> {
+    suspend fun createCampanha(nome: String, descricao: String, dataInicio: String, dataFim: String, tipo: String): Result<Campanha> {
         return try {
-            val request = CampanhaRequest(nome, descricao, dataInicio, dataFim, true)
+            val request = CampanhaRequest(nome, descricao, dataInicio, dataFim, true, tipo)
             val response = apiService.createCampanha(request)
             if (response.success && response.data != null) {
                 Result.success(response.data)
@@ -35,9 +35,9 @@ class CampanhaRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun updateCampanha(id: String, nome: String, descricao: String, dataInicio: String, dataFim: String, ativo: Boolean): Result<Campanha> {
+    suspend fun updateCampanha(id: String, nome: String, descricao: String, dataInicio: String, dataFim: String, ativo: Boolean, tipo: String): Result<Campanha> {
         return try {
-            val request = CampanhaRequest(nome, descricao, dataInicio, dataFim, ativo)
+            val request = CampanhaRequest(nome, descricao, dataInicio, dataFim, ativo, tipo)
             val response = apiService.updateCampanha(id, request)
             if (response.success && response.data != null) {
                 Result.success(response.data)

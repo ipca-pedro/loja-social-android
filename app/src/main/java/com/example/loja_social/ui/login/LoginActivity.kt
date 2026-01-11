@@ -109,7 +109,7 @@ fun LoginScreen(
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var email by remember { mutableStateOf(if (userType == "admin") "admin@lojasocial.pt" else "a25005@ipca.pt") }
+    var email by remember { mutableStateOf(if (userType == "admin") "admin@lojasocial.pt" else "a25005@alunos.ipca.pt") }
     var password by remember { mutableStateOf("") }
     
     // Atualizar placeholder para beneficiário
@@ -122,25 +122,20 @@ fun LoginScreen(
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.padding(32.dp),
+            modifier = Modifier.padding(32.dp).fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
-            TextButton(onClick = onBackClick) {
-                Text("← Voltar")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.logo_ipca),
                 contentDescription = "Logo IPCA",
                 modifier = Modifier
-                    .height(80.dp)
+                    .height(120.dp)
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp)
             )
+            Spacer(modifier = Modifier.height(120.dp))
             
             Text(
                 text = if (userType == "admin") "Login Colaborador" else "Login Beneficiário",
@@ -184,6 +179,11 @@ fun LoginScreen(
                 ) {
                     Text("LOGIN")
                 }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            TextButton(onClick = onBackClick) {
+                Text("← Voltar")
             }
         }
     }

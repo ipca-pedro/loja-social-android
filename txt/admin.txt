@@ -796,10 +796,13 @@ router.delete('/entregas/:id', async (req, res) => {
     try {
         await client.query('BEGIN');
         
-        // 1. Verificar se entrega pode ser cancelada
-        const check = await client.query('SELECT estado FROM entregas WHERE id = $1', [id]);
+        // 1. Verificar se entrega pode ser cancelada e obter dados para notificação
+        const check = await client.query('SELECT estado, beneficiario_id, data_agendamento FROM entregas WHERE id = $1', [id]);
         if (check.rows.length === 0) throw new Error('Entrega não encontrada');
         if (check.rows[0].estado !== 'agendada') throw new Error('Apenas entregas agendadas podem ser canceladas');
+        
+        const { beneficiario_id, data_agendamento } = check.rows[0];
+
         // 2. Obter itens para devolver a reserva
         const itensResult = await client.query('SELECT stock_item_id, quantidade_entregue FROM detalhes_entrega WHERE entrega_id = $1', [id]);
         
@@ -811,7 +814,21 @@ router.delete('/entregas/:id', async (req, res) => {
             );
         }
         
-        // 4. Apagar entrega
+        // 3.1. Obter nome do colaborador
+        const colabResult = await client.query('SELECT nome FROM colaboradores WHERE id = $1', [req.user.id]);
+        const nomeColaborador = colabResult.rows[0]?.nome || 'Desconhecido';
+        
+        // Formatar data para YYYY-MM-DD
+        const dataObj = new Date(data_agendamento);
+        const dataFormatada = dataObj.toISOString().split('T')[0];
+
+        // 4. Criar Notificação de Cancelamento
+        await client.query(`
+            INSERT INTO notificacoes (beneficiario_id, entrega_id, colaborador_id, titulo, mensagem)
+            VALUES ($1, NULL, $2, $3, $4)
+        `, [beneficiario_id, req.user.id, 'Entrega Cancelada', `A entrega agendada para ${dataFormatada} foi cancelada pelo colaborador ${nomeColaborador}.`]);
+
+        // 5. Apagar entrega
         await client.query('DELETE FROM entregas WHERE id = $1', [id]);
         await client.query('COMMIT');
         res.json({ success: true, message: 'Entrega cancelada e reservas revertidas' });
@@ -835,17 +852,17 @@ router.delete('/entregas/:id', async (req, res) => {
 // POST /api/admin/campanhas - Criar nova campanha
 router.post('/campanhas', async (req, res) => {
   try {
-    const { nome, descricao, data_inicio, data_fim, ativo } = req.body;
+    const { nome, descricao, data_inicio, data_fim, ativo, tipo } = req.body;
     
     if (!nome || !data_inicio || !data_fim) {
       return res.status(400).json({ success: false, message: 'Nome e datas são obrigatórios' });
     }
 
     const result = await pool.query(`
-      INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, ativo)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO campanhas (nome, descricao, data_inicio, data_fim, ativo, tipo)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [nome, descricao, data_inicio, data_fim, ativo !== undefined ? ativo : true]);
+    `, [nome, descricao, data_inicio, data_fim, ativo !== undefined ? ativo : true, tipo || 'Interna']);
 
     res.status(201).json({
       success: true,
@@ -862,14 +879,14 @@ router.post('/campanhas', async (req, res) => {
 router.put('/campanhas/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, descricao, data_inicio, data_fim, ativo } = req.body;
+    const { nome, descricao, data_inicio, data_fim, ativo, tipo } = req.body;
     
     const result = await pool.query(`
       UPDATE campanhas 
-      SET nome = $1, descricao = $2, data_inicio = $3, data_fim = $4, ativo = $5
-      WHERE id = $6
+      SET nome = $1, descricao = $2, data_inicio = $3, data_fim = $4, ativo = $5, tipo = $6
+      WHERE id = $7
       RETURNING *
-    `, [nome, descricao, data_inicio, data_fim, ativo, id]);
+    `, [nome, descricao, data_inicio, data_fim, ativo, tipo, id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Campanha não encontrada' });

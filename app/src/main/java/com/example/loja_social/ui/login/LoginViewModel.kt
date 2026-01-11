@@ -48,8 +48,9 @@ class LoginViewModel(
                 
                 if (response.success && response.token != null) {
                     val role = response.user?.role
-                    sessionManager.saveAuthToken(response.token, role)
-                    Log.d("LoginViewModel", "Token guardado! Role guardado: ${sessionManager.fetchUserRole()}")
+                    val name = response.user?.nome
+                    sessionManager.saveAuthToken(response.token, role, name)
+                    Log.d("LoginViewModel", "Token guardado! Role: ${sessionManager.fetchUserRole()}, Nome: ${sessionManager.fetchUserName()}")
                     _uiState.value = LoginUiState.Success
                 } else {
                     Log.d("LoginViewModel", "Login falhou: ${response.message}")

@@ -28,7 +28,8 @@ data class Campanha(
     @SerializedName("descricao") val descricao: String?,
     @SerializedName("data_inicio") val dataInicio: String,
     @SerializedName("data_fim") val dataFim: String,
-    @SerializedName("ativo") val ativo: Boolean? = true
+    @SerializedName("ativo") val ativo: Boolean? = true,
+    @SerializedName("tipo") val tipo: String = "Interna"
 )
 
 /**
@@ -39,7 +40,8 @@ data class CampanhaRequest(
     @SerializedName("descricao") val descricao: String?,
     @SerializedName("data_inicio") val dataInicio: String,
     @SerializedName("data_fim") val dataFim: String,
-    @SerializedName("ativo") val ativo: Boolean?
+    @SerializedName("ativo") val ativo: Boolean?,
+    @SerializedName("tipo") val tipo: String
 )
 
 /**

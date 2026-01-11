@@ -39,8 +39,8 @@ A Loja Social é uma plataforma para a gestão de bens doados. Abaixo, a matriz 
 
 Esta secção apresenta a interface visual da aplicação, demonstrando a implementação dos requisitos de gestão e interação para os diferentes perfis.
 
-| Autenticação | Dashboard Beneficiário | Notificações |
-| :---: | :---: | :---: |
+|        Autenticação         | Dashboard Beneficiário | Notificações |
+|:---------------------------:| :---: | :---: |
 | ![Login](images/login.png) | ![Dashboard](images/dashboard_beneficiario.png) | ![Notificações](images/notificacoes.png) |
 
 | Gestão de Stock | Gestão de Entregas | Gestão de Campanhas |
@@ -103,7 +103,7 @@ class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor 
 }
 ```
 
-![Diagrama de Sequência de Autenticação](images/Diagrama_de_Sequência_Autenticação_com_Interceptor.png)
+![Diagrama de Sequência de Autenticação](images/Diagrama_de_Sequencia_Auth_com_Interceptor.png)
 
 ### Injeção de Dependências (ViewModelFactory)
 
