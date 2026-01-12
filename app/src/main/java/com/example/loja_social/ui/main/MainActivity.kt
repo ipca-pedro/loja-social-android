@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.Description
+import kotlinx.coroutines.launch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -54,6 +55,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.filled.AccountCircle
+import com.example.loja_social.ui.components.ChangePasswordDialog
+import com.example.loja_social.api.ChangePasswordRequest
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -123,6 +128,7 @@ class MainActivity : ComponentActivity() {
     fun MainAppScreen(userName: String) {
         val navController = rememberNavController()
         var showLogoutDialog by remember { mutableStateOf(false) }
+        var showChangePasswordDialog by remember { mutableStateOf(false) }
 
         Scaffold(
             bottomBar = {
@@ -172,7 +178,9 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 12.dp)
+                                modifier = Modifier
+                                    .padding(top = 12.dp)
+                                    .clickable { showChangePasswordDialog = true }
                             ) {
                                 Icon(Icons.Default.AccountCircle, contentDescription = "Perfil") 
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -230,6 +238,32 @@ class MainActivity : ComponentActivity() {
                     showLogoutDialog = false
                 },
                 onDismiss = { showLogoutDialog = false }
+            )
+        }
+
+        if (showChangePasswordDialog) {
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
+            val apiService = RetrofitInstance.api // Already available via import/singleton
+
+            ChangePasswordDialog(
+                onDismiss = { showChangePasswordDialog = false },
+                onConfirm = { oldPass, newPass ->
+                    scope.launch {
+                        try {
+                            val request = ChangePasswordRequest(oldPass, newPass)
+                            val response = apiService.changePassword(request)
+                            if (response.success) {
+                                Toast.makeText(context, "Senha alterada com sucesso", Toast.LENGTH_SHORT).show()
+                                showChangePasswordDialog = false
+                            } else {
+                                Toast.makeText(context, response.message ?: "Erro ao alterar senha", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             )
         }
     }
@@ -514,6 +548,7 @@ class MainActivity : ComponentActivity() {
         val navController = rememberNavController()
         val apiService = RetrofitInstance.api
         var showLogoutDialog by remember { mutableStateOf(false) } // Adicionado para Logout
+        var showChangePasswordDialog by remember { mutableStateOf(false) }
 
         Scaffold(
             topBar = {
@@ -534,11 +569,13 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 12.dp)
+                                modifier = Modifier
+                                    .padding(top = 12.dp)
+                                    .clickable { showLogoutDialog = false; /* Hack to force recompose/focus */ showChangePasswordDialog = true }
                             ) {
                                 Icon(Icons.Default.AccountCircle, contentDescription = "Perfil")
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = userName, style = MaterialTheme.typography.bodySmall)
+                                Text(text = userName, style = MaterialTheme.typography.bodySmall, color = androidx.compose.ui.graphics.Color(0xFF2E7D32))
                             }
                             Row {
                                 val notificationRepository = remember { com.example.loja_social.repository.NotificationRepository(com.example.loja_social.api.RetrofitInstance.api) }
@@ -617,6 +654,31 @@ class MainActivity : ComponentActivity() {
                     showLogoutDialog = false
                 },
                 onDismiss = { showLogoutDialog = false }
+            )
+        }
+        
+        if (showChangePasswordDialog) {
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
+            
+            ChangePasswordDialog(
+                onDismiss = { showChangePasswordDialog = false },
+                onConfirm = { oldPass, newPass ->
+                    scope.launch {
+                        try {
+                            val request = ChangePasswordRequest(oldPass, newPass)
+                            val response = apiService.changePassword(request)
+                            if (response.success) {
+                                Toast.makeText(context, "Senha alterada com sucesso", Toast.LENGTH_SHORT).show()
+                                showChangePasswordDialog = false
+                            } else {
+                                Toast.makeText(context, response.message ?: "Erro ao alterar senha", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             )
         }
     }

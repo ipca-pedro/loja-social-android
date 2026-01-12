@@ -25,8 +25,10 @@ fun UserTypeSelectionScreen(
             .fillMaxSize()
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
+        Spacer(modifier = Modifier.height(60.dp))
+
         Image(
             painter = painterResource(id = R.drawable.logo_ipca),
             contentDescription = "Logo IPCA",
@@ -35,6 +37,9 @@ fun UserTypeSelectionScreen(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         )
+
+        Spacer(modifier = Modifier.height(66.dp))
+
         Text(
             text = "Loja Social",
             style = MaterialTheme.typography.headlineLarge,

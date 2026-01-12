@@ -80,7 +80,7 @@ fun DashboardTabs(
     onNavigateToEntregaDetail: (String, String) -> Unit
 ) {
     val tabs = DashboardTab.values()
-    Column {
+    Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = uiState.selectedTab.ordinal) {
             tabs.forEach { tab ->
                 Tab(
@@ -91,9 +91,11 @@ fun DashboardTabs(
             }
         }
 
-        when (uiState.selectedTab) {
-            DashboardTab.ENTREGAS -> EntregasContent(uiState, { viewModel.selectDate(it) }, onNavigateToEntregaDetail)
-            DashboardTab.ALERTAS -> AlertasContent(uiState, onNavigateToAlerts)
+        Box(modifier = Modifier.weight(1f)) {
+            when (uiState.selectedTab) {
+                DashboardTab.ENTREGAS -> EntregasContent(uiState, { viewModel.selectDate(it) }, onNavigateToEntregaDetail)
+                DashboardTab.ALERTAS -> AlertasContent(uiState, onNavigateToAlerts)
+            }
         }
     }
 }
@@ -106,7 +108,9 @@ fun EntregasContent(
     onNavigateToEntregaDetail: (String, String) -> Unit
 ) {
      LazyColumn(
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {

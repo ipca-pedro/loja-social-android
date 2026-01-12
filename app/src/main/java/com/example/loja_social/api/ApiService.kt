@@ -57,6 +57,11 @@ interface ApiService {
         @Body request: LoginRequest
     ): LoginResponse
 
+    @POST("api/auth/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
+    ): ApiResponse<Any>
+
     // ===== ROTAS DE ADMIN (PROTEGIDAS) =====
 
     // --- Gestão de Beneficiários (RF2) ---

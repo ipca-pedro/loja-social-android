@@ -8,6 +8,8 @@ router.use(authenticateToken);
 
 // ===== GESTÃO DE BENEFICIÁRIOS (RF2) =====
 
+
+
 // GET /api/beneficiarios - Listar todos os beneficiários
 router.get('/beneficiarios', async (req, res) => {
   try {

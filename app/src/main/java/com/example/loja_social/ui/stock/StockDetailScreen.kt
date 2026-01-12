@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.loja_social.api.LoteIndividual
 import com.example.loja_social.ui.components.*
@@ -61,7 +63,7 @@ fun StockDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.stockItem?.produto ?: "Detalhes do Stock") },
+                title = { Text("Detalhe do Stock") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
@@ -92,12 +94,40 @@ fun StockDetailScreen(
                 uiState.stockItem != null -> {
                     val item = uiState.stockItem!!
                     
-                    LojaSocialCard(
-                        title = item.produto,
-                        subtitle = "Quantidade Total",
-                        value = uiState.lotes.sumOf { it.quantidadeAtual }.toString(), // Calcula a soma em tempo real
-                        icon = Icons.Default.Inventory
-                    )
+                    // Card Compacto com Quantidade à Direita
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.produto,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Quantidade Total",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            Text(
+                                text = uiState.lotes.sumOf { it.quantidadeAtual }.toString(),
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
 
                     Text(
                         "Lotes Disponíveis",

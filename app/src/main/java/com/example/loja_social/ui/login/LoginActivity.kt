@@ -19,6 +19,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -151,15 +154,29 @@ fun LoginScreen(
                 singleLine = true
             )
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text(passwordLabel) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                visualTransformation = if (userType == "beneficiario") VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = if (userType == "beneficiario") KeyboardType.Number else KeyboardType.Password)
-            )
+                var passwordVisible by remember { mutableStateOf(false) }
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(passwordLabel) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = if (userType == "beneficiario") KeyboardType.Number else KeyboardType.Password),
+                    trailingIcon = {
+                        val image = if (passwordVisible)
+                            androidx.compose.material.icons.Icons.Filled.Visibility
+                        else
+                            androidx.compose.material.icons.Icons.Filled.VisibilityOff
+
+                        val description = if (passwordVisible) "Hide password" else "Show password"
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = description)
+                        }
+                    }
+                )
             Spacer(modifier = Modifier.height(16.dp))
 
             if (uiState is LoginUiState.Error) {

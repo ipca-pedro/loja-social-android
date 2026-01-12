@@ -1,49 +1,142 @@
-// Ficheiro: routes/auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
+const authenticateToken = require('../middleware/authMiddleware'); // Importante!
 const router = express.Router();
 
-// Chave secreta (deve estar no .env!)
-const JWT_SECRET = 'a-minha-chave-secreta-para-a-loja-social-12345';
+const JWT_SECRET = process.env.JWT_SECRET || 'a-minha-chave-secreta-para-a-loja-social-12345';
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, userType } = req.body;
+    
+    //console.log('📱 Login Request:', { email, userType }); 
     
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email e password são obrigatórios' });
     }
 
-    const result = await pool.query('SELECT * FROM colaboradores WHERE email = $1', [email]);
+    let user, passwordMatch, role;
 
-    if (result.rows.length === 0) {
+    // --- Lógica Beneficiário ---
+    if (userType === 'beneficiario') {
+      const result = await pool.query(
+        'SELECT * FROM beneficiarios WHERE email = $1 AND estado = $2',
+        [email, 'ativo']
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(401).json({ success: false, message: 'Beneficiário não encontrado ou inativo' });
+      }
+
+      user = result.rows[0];
+      role = 'beneficiario';
+
+      // Validação: Password (Hash) OU NIF (Inicial)
+      if (user.password_hash) {
+          passwordMatch = await bcrypt.compare(password, user.password_hash);
+      } else {
+          passwordMatch = (password === user.nif);
+      }
+    
+    // --- Lógica Colaborador ---
+    } else {
+      const result = await pool.query('SELECT * FROM colaboradores WHERE email = $1', [email]);
+
+      if (result.rows.length === 0) {
+        return res.status(401).json({ success: false, message: 'Colaborador não encontrado' });
+      }
+
+      user = result.rows[0];
+      role = 'admin'; // Android espera 'admin'
+
+      if (user.password_hash && user.password_hash.startsWith('$2')) {
+          passwordMatch = await bcrypt.compare(password, user.password_hash);
+      } else {
+          passwordMatch = (password === user.password_hash);
+      }
+    }
+    
+    if (!passwordMatch) {
       return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
 
-    const colaborador = result.rows[0];
-    
-    // Comparar a password com bcryptjs
-    const validPassword = await bcrypt.compare(password, colaborador.password_hash);
-    
-    if (!validPassword) {
-      return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
-    }
-
-    // Gerar Token JWT
-    const payload = { id: colaborador.id, email: colaborador.email, nome: colaborador.nome };
+    // Gerar Token
+    const payload = { 
+      id: user.id, 
+      email: user.email, 
+      nome: user.nome_completo || user.nome, 
+      role: role 
+    };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
 
     res.json({
       success: true,
       message: 'Login realizado com sucesso',
-      token: token
+      token: token,
+      role: role,
+      nome: user.nome_completo || user.nome
     });
 
   } catch (error) {
     console.error('Erro no login:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// POST /api/auth/change-password
+router.post('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { password_antiga, password_nova } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role; 
+
+    if (!password_antiga || !password_nova) {
+      return res.status(400).json({ success: false, message: 'Preencha todos os campos' });
+    }
+
+    // Identificar tabela correta
+    // Nota: O token pode trazer 'admin' ou 'beneficiario'
+    const table = (userRole === 'beneficiario') ? 'beneficiarios' : 'colaboradores';
+
+    // 1. Buscar utilizador atual
+    const userResult = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Utilizador não encontrado' });
+    }
+    const user = userResult.rows[0];
+
+    // 2. Validar password antiga
+    let validOld = false;
+    // Se for beneficiário sem hash definida, a password antiga é o NIF
+    if (userRole === 'beneficiario' && !user.password_hash) {
+         validOld = (password_antiga === user.nif);
+    } else {
+         // Validação normal (com hash ou plain text falllback)
+         if (user.password_hash && user.password_hash.startsWith('$2')) {
+            validOld = await bcrypt.compare(password_antiga, user.password_hash);
+         } else {
+            validOld = (password_antiga === user.password_hash);
+         }
+    }
+
+    if (!validOld) {
+         return res.status(401).json({ success: false, message: 'A palavra-passe antiga está incorreta' });
+    }
+    
+    // 3. Gerar Hash da Nova Password
+    const salt = await bcrypt.genSalt(10);
+    const newHash = await bcrypt.hash(password_nova, salt);
+    
+    // 4. Atualizar na Base de Dados
+    await pool.query(`UPDATE ${table} SET password_hash = $1 WHERE id = $2`, [newHash, userId]);
+
+    res.json({ success: true, message: 'Palavra-passe alterada com sucesso' });
+
+  } catch (error) {
+    console.error('Erro ao alterar password:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
