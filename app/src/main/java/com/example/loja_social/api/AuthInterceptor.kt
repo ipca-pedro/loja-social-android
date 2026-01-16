@@ -15,8 +15,10 @@ class AuthInterceptor(private val sessionManager: SessionManager) : Interceptor 
         val originalRequest = chain.request()
 
         // Verificar se é uma rota que precisa de autenticação
+        // /api/auth/login é pública, mas /api/auth/change-password precisa de token!
         val path = originalRequest.url.encodedPath
-        val isPublicRoute = path.startsWith("/api/public/") || path.startsWith("/api/auth/") || path == "/health"
+        val isChangePassword = path.contains("change-password")
+        val isPublicRoute = !isChangePassword && (path.startsWith("/api/public/") || path.startsWith("/api/auth/") || path == "/health")
         
         Log.d("AuthInterceptor", "Request para: $path, É pública: $isPublicRoute")
         

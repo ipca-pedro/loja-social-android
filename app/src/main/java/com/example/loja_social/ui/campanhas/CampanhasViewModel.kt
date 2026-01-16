@@ -44,10 +44,10 @@ class CampanhasViewModel(private val repository: CampanhaRepository) : ViewModel
         }
     }
 
-    fun createCampanha(nome: String, descricao: String, dataInicio: String, dataFim: String) {
+    fun createCampanha(nome: String, descricao: String, dataInicio: String, dataFim: String, tipo: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null)
-            val result = repository.createCampanha(nome, descricao, dataInicio, dataFim)
+            val result = repository.createCampanha(nome, descricao, dataInicio, dataFim, tipo)
             result.onSuccess {
                 loadCampanhas() // Reload list
                 _uiState.value = _uiState.value.copy(successMessage = "Campanha criada com sucesso!")
@@ -60,10 +60,10 @@ class CampanhasViewModel(private val repository: CampanhaRepository) : ViewModel
         }
     }
 
-    fun updateCampanha(id: String, nome: String, descricao: String, dataInicio: String, dataFim: String, ativo: Boolean) {
+    fun updateCampanha(id: String, nome: String, descricao: String, dataInicio: String, dataFim: String, ativo: Boolean, tipo: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null)
-            val result = repository.updateCampanha(id, nome, descricao, dataInicio, dataFim, ativo)
+            val result = repository.updateCampanha(id, nome, descricao, dataInicio, dataFim, ativo, tipo)
             result.onSuccess {
                 loadCampanhas()
                 _uiState.value = _uiState.value.copy(successMessage = "Campanha atualizada com sucesso!")

@@ -2,7 +2,7 @@ package com.example.loja_social.ui.stock
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.loja_social.api.LoteIndividual
 import com.example.loja_social.ui.components.*
@@ -61,7 +63,7 @@ fun StockDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.stockItem?.produto ?: "Detalhes do Stock") },
+                title = { Text("Detalhe do Stock") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
@@ -92,12 +94,40 @@ fun StockDetailScreen(
                 uiState.stockItem != null -> {
                     val item = uiState.stockItem!!
                     
-                    LojaSocialCard(
-                        title = item.produto,
-                        subtitle = "Quantidade Total",
-                        value = uiState.lotes.sumOf { it.quantidadeAtual }.toString(), // Calcula a soma em tempo real
-                        icon = Icons.Default.Inventory
-                    )
+                    // Card Compacto com Quantidade à Direita
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.produto,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Quantidade Total",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            Text(
+                                text = uiState.lotes.sumOf { it.quantidadeAtual }.toString(),
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
 
                     Text(
                         "Lotes Disponíveis",
@@ -114,7 +144,7 @@ fun StockDetailScreen(
                         )
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(uiState.lotes) { lote ->
+                                    itemsIndexed(uiState.lotes) { index, lote ->
                                         // Regra de Segurança: Só permitir eliminar se estiver expirado
                                         // Se dataValidade for null, assumimos que não expira, logo não se deve apagar por "validade" (ou permitir sempre? User diz "se data atual > prazo").
                                         // Vamos assumir: Se tem data, aplica regra. Se não tem, safe to delete? Ou unsafe? 
@@ -128,7 +158,7 @@ fun StockDetailScreen(
                                         } catch (e: Exception) { false }
 
                                         LojaSocialListItem(
-                                            title = "Lote #${lote.id}",
+                                            title = "Lote ${index + 1}", // Usar numeração sequencial
                                             subtitle = "Qtd: ${lote.quantidadeAtual} | Res: ${lote.quantidadeReservada} | Dan: ${lote.quantidadeDanificada}",
                                             trailing = lote.dataValidade?.substringBefore("T") ?: "Sem validade",
                                             onClick = { /* Pode ser usado para editar no futuro */ },

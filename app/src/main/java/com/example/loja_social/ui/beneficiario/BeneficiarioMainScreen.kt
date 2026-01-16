@@ -21,9 +21,7 @@ import com.example.loja_social.ui.components.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeneficiarioMainScreen(
-    viewModel: BeneficiarioMainViewModel,
-    onLogoutClick: () -> Unit,
-    onNavigateToNotifications: () -> Unit
+    viewModel: BeneficiarioMainViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -31,22 +29,7 @@ fun BeneficiarioMainScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Área do Beneficiário") },
-                actions = {
-                    IconButton(onClick = onNavigateToNotifications) {
-                        BadgedBox(
-                            badge = {
-                                if (uiState.unreadCount > 0) {
-                                    Badge { Text("${uiState.unreadCount}") }
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notificações")
-                        }
-                    }
-                    IconButton(onClick = onLogoutClick) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Sair")
-                    }
-                },
+
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -54,44 +37,66 @@ fun BeneficiarioMainScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Campanhas Ativas
-            item {
-                LojaSocialCard(
-                    title = "Campanhas Ativas",
-                    subtitle = "campanhas disponíveis",
-                    value = "${uiState.campanhasAtivas.size}",
-                    icon = Icons.Default.Campaign
-                )
-            }
-            
-            // Tarefa 1: Calendário Personalizado
-            item {
-                Text(
-                    text = "Minhas Entregas",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            item {
-                com.example.loja_social.ui.components.EntregasCalendarCard(
-                    datasComEntregas = uiState.datasComEntregas,
-                    selectedDate = uiState.selectedDate,
-                    onDateSelected = { viewModel.selectDate(it) }
-                )
-            }
-            
-            when {
-                uiState.isLoading -> {
-                    item { LoadingState() }
+        Box(modifier = Modifier.padding(padding)) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Campanhas Ativas
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Campanhas Ativas",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "campanhas disponíveis",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = "${uiState.campanhasAtivas.size}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
-                uiState.errorMessage != null -> {
+                
+                // Tarefa 1: Calendário Personalizado
+                item {
+                    Text(
+                        text = "Minhas Entregas",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                item {
+                    com.example.loja_social.ui.components.EntregasCalendarCard(
+                        datasComEntregas = uiState.datasComEntregas,
+                        selectedDate = uiState.selectedDate,
+                        onDateSelected = { viewModel.selectDate(it) }
+                    )
+                }
+                
+                if (uiState.errorMessage != null) {
                     item {
                         Text(
                             uiState.errorMessage!!,
@@ -100,27 +105,36 @@ fun BeneficiarioMainScreen(
                         )
                     }
                 }
-                uiState.entregasDoDia.isEmpty() -> {
-                    item {
-                        EmptyState(
-                            title = "Sem entregas neste dia",
-                            subtitle = "Selecione outro dia no calendário",
-                            icon = Icons.AutoMirrored.Filled.Assignment
-                        )
+                
+                if (!uiState.isLoading) {
+                    if (uiState.entregasDoDia.isEmpty()) {
+                        item {
+                            // Fixed height for EmptyState inside LazyColumn
+                            Box(modifier = Modifier.height(300.dp)) {
+                                EmptyState(
+                                    title = "Sem entregas neste dia",
+                                    subtitle = "Selecione outro dia no calendário",
+                                    icon = Icons.AutoMirrored.Filled.Assignment
+                                )
+                            }
+                        }
+                    } else {
+                        item {
+                            Text(
+                                "Entregas para ${uiState.selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                        items(uiState.entregasDoDia) { entrega ->
+                            BeneficiarioEntregaItem(entrega = entrega)
+                        }
                     }
                 }
-                else -> {
-                    item {
-                         Text(
-                            "Entregas para ${uiState.selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
-                            style = MaterialTheme.typography.titleMedium,
-                             modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                    items(uiState.entregasDoDia) { entrega ->
-                        BeneficiarioEntregaItem(entrega = entrega)
-                    }
-                }
+            }
+            
+            if (uiState.isLoading) {
+                LoadingState()
             }
         }
     }
@@ -143,12 +157,28 @@ fun BeneficiarioEntregaItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Entrega #${entrega.id.substring(0, 8)}",
+                        text = "Entrega Agendada",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
+                    val formattedDate = remember(entrega.dataAgendamento) {
+                        try {
+                            val inputFormatter = java.time.format.DateTimeFormatter.ISO_DATE_TIME
+                            val outputFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                            java.time.LocalDateTime.parse(entrega.dataAgendamento, inputFormatter).format(outputFormatter)
+                        } catch (e: Exception) {
+                            try {
+                                val inputFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                val outputFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                                java.time.LocalDateTime.parse(entrega.dataAgendamento, inputFormatter).format(outputFormatter)
+                            } catch (e2: Exception) {
+                                entrega.dataAgendamento.split("T").firstOrNull()?.split(" ")?.firstOrNull() ?: entrega.dataAgendamento
+                            }
+                        }
+                    }
+
                     Text(
-                        text = entrega.dataAgendamento,
+                        text = formattedDate,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

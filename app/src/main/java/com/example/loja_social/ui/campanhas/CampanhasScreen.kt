@@ -4,8 +4,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
@@ -125,11 +128,11 @@ fun CampanhasScreen(
         CampanhaDialog(
             campanha = campanhaToEdit,
             onDismiss = { showDialog = false },
-            onConfirm = { nome, descricao, inicio, fim, ativo ->
+            onConfirm = { nome, descricao, inicio, fim, ativo, tipo ->
                 if (campanhaToEdit != null) {
-                    viewModel.updateCampanha(campanhaToEdit!!.id, nome, descricao, inicio, fim, ativo)
+                    viewModel.updateCampanha(campanhaToEdit!!.id, nome, descricao, inicio, fim, ativo, tipo)
                 } else {
-                    viewModel.createCampanha(nome, descricao, inicio, fim)
+                    viewModel.createCampanha(nome, descricao, inicio, fim, tipo)
                 }
                 showDialog = false
             }
@@ -179,8 +182,24 @@ fun CampanhaItem(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                StatusChip(status = if (campanha.ativo != false) "Ativo" else "Inativo")
             }
+             
+             Spacer(modifier = Modifier.height(4.dp))
+             
+             Row(
+                verticalAlignment = Alignment.CenterVertically
+             ) {
+                 StatusChip(status = if (campanha.ativo != false) "Ativo" else "Inativo")
+                 Spacer(modifier = Modifier.width(8.dp))
+                 SuggestionChip(
+                    onClick = { },
+                    label = { Text(campanha.tipo) },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                 )
+             }
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -219,17 +238,21 @@ fun CampanhaItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampanhaDialog(
     campanha: Campanha?,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String, Boolean) -> Unit
+    onConfirm: (String, String, String, String, Boolean, String) -> Unit
 ) {
     var nome by remember { mutableStateOf(campanha?.nome ?: "") }
     var descricao by remember { mutableStateOf(campanha?.descricao ?: "") }
-    var dataInicio by remember { mutableStateOf(campanha?.dataInicio?.take(10) ?: "") } // Simple date text
+    var dataInicio by remember { mutableStateOf(campanha?.dataInicio?.take(10) ?: "") }
     var dataFim by remember { mutableStateOf(campanha?.dataFim?.take(10) ?: "") }
     var ativo by remember { mutableStateOf(campanha?.ativo ?: true) }
+    var tipo by remember { mutableStateOf(campanha?.tipo ?: "Interna") }
+    var expanded by remember { mutableStateOf(false) }
+    val tipos = listOf("Interna", "Parceria Externa", "Doação Privada")
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -239,7 +262,9 @@ fun CampanhaDialog(
             shape = MaterialTheme.shapes.large
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
@@ -254,6 +279,46 @@ fun CampanhaDialog(
                     label = { Text("Nome da Campanha") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = tipo,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Tipo de Campanha") },
+                        trailingIcon = { 
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Selecionar Tipo"
+                            ) 
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // Invisible interaction source to trigger dropdown
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { expanded = true }
+                    )
+                    
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        tipos.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = { Text(selectionOption) },
+                                onClick = {
+                                    tipo = selectionOption
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 OutlinedTextField(
                     value = descricao,
@@ -298,7 +363,7 @@ fun CampanhaDialog(
                         Text("Cancelar")
                     }
                     Button(
-                        onClick = { onConfirm(nome, descricao, dataInicio, dataFim, ativo) },
+                        onClick = { onConfirm(nome, descricao, dataInicio, dataFim, ativo, tipo) },
                         enabled = nome.isNotEmpty() && dataInicio.isNotEmpty() && dataFim.isNotEmpty()
                     ) {
                         Text("Guardar")

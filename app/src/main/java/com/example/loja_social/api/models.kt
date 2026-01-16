@@ -28,7 +28,8 @@ data class Campanha(
     @SerializedName("descricao") val descricao: String?,
     @SerializedName("data_inicio") val dataInicio: String,
     @SerializedName("data_fim") val dataFim: String,
-    @SerializedName("ativo") val ativo: Boolean? = true
+    @SerializedName("ativo") val ativo: Boolean? = true,
+    @SerializedName("tipo") val tipo: String = "Interna"
 )
 
 /**
@@ -39,7 +40,8 @@ data class CampanhaRequest(
     @SerializedName("descricao") val descricao: String?,
     @SerializedName("data_inicio") val dataInicio: String,
     @SerializedName("data_fim") val dataFim: String,
-    @SerializedName("ativo") val ativo: Boolean?
+    @SerializedName("ativo") val ativo: Boolean?,
+    @SerializedName("tipo") val tipo: String
 )
 
 /**
@@ -70,7 +72,9 @@ data class LoginResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
     @SerializedName("token") val token: String?,
-    @SerializedName("user") val user: LoginUser?
+    @SerializedName("role") val role: String?, // Backend envia na raiz
+    @SerializedName("nome") val nome: String?,  // Backend envia na raiz
+    @SerializedName("user") val user: LoginUser? // Mantemos caso o backend mude
 )
 
 /**
@@ -593,3 +597,11 @@ data class Notificacao(
     @SerializedName("colaborador_id") val colaboradorId: String?
 )
 
+
+/**
+ * Request for changing password.
+ */
+data class ChangePasswordRequest(
+    @SerializedName("password_antiga") val passwordAntiga: String,
+    @SerializedName("password_nova") val passwordNova: String
+)

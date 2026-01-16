@@ -5,12 +5,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.Description
+import kotlinx.coroutines.launch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -48,6 +50,16 @@ import com.example.loja_social.ui.campanhas.CampanhasViewModel
 import com.example.loja_social.ui.campanhas.CampanhasViewModelFactory
 import com.example.loja_social.repository.CampanhaRepository
 import android.util.Log
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.filled.AccountCircle
+import com.example.loja_social.ui.components.ChangePasswordDialog
+import com.example.loja_social.api.ChangePasswordRequest
+import android.widget.Toast
+import androidx.compose.foundation.clickable
+
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Home)
@@ -90,6 +102,7 @@ class MainActivity : ComponentActivity() {
         val sessionManager = SessionManager(applicationContext)
         val token = sessionManager.fetchAuthToken()
         val role = sessionManager.fetchUserRole()
+        val name = sessionManager.fetchUserName()
         
         if (token == null) {
             startActivity(Intent(this, LoginActivity::class.java))
@@ -100,8 +113,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             LojaSocialTheme {
                 when (role) {
-                    "admin" -> MainAppScreen()
-                    "beneficiario" -> BeneficiarioAppScreen()
+                    "admin" -> MainAppScreen(userName = name ?: "Colaborador")
+                    "beneficiario" -> BeneficiarioAppScreen(userName = name ?: "Beneficiário")
                     else -> {
                         startActivity(Intent(this, LoginActivity::class.java))
                         finish()
@@ -112,9 +125,10 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun MainAppScreen() {
+    fun MainAppScreen(userName: String) {
         val navController = rememberNavController()
         var showLogoutDialog by remember { mutableStateOf(false) }
+        var showChangePasswordDialog by remember { mutableStateOf(false) }
 
         Scaffold(
             bottomBar = {
@@ -150,47 +164,65 @@ class MainActivity : ComponentActivity() {
                 @OptIn(ExperimentalMaterial3Api::class)
                 TopAppBar(
                     title = { 
-                        AsyncImage(
-                            model = "https://lojasocial.duckdns.org/logo-navbar.png",
+                        Image(
+                            painter = androidx.compose.ui.res.painterResource(id = com.example.loja_social.R.drawable.sas_loja_social_preto),
                             contentDescription = "Loja Social Logo",
-                            modifier = Modifier.height(46.dp),
+                            modifier = Modifier.height(60.dp),
                             contentScale = ContentScale.Fit
                         )
                     },
                     actions = {
-                        val notificationRepository = remember { com.example.loja_social.repository.NotificationRepository(com.example.loja_social.api.RetrofitInstance.api) }
-                        var unreadCount by remember { mutableStateOf(0) }
-                        
-                        LaunchedEffect(Unit) {
-                            while(true) {
-                                 try {
-                                     if (com.example.loja_social.api.RetrofitInstance.isInitialized()) {
-                                         val response = notificationRepository.getNotificacoes()
-                                         if (response.success && response.data != null) {
-                                             unreadCount = response.data.count { !it.lida }
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .padding(top = 12.dp)
+                                    .clickable { showChangePasswordDialog = true }
+                            ) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Perfil") 
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = userName, style = MaterialTheme.typography.bodySmall, color = androidx.compose.ui.graphics.Color(0xFF2E7D32)) 
+                            }
+                            
+                            val notificationRepository = remember { com.example.loja_social.repository.NotificationRepository(com.example.loja_social.api.RetrofitInstance.api) }
+                            var unreadCount by remember { mutableStateOf(0) }
+                            
+                            LaunchedEffect(Unit) {
+                                while(true) {
+                                     try {
+                                         if (com.example.loja_social.api.RetrofitInstance.isInitialized()) {
+                                             val response = notificationRepository.getNotificacoes()
+                                             if (response.success && response.data != null) {
+                                                 unreadCount = response.data.count { !it.lida }
+                                             }
                                          }
+                                     } catch (e: Exception) {
+                                         // ignore
                                      }
-                                 } catch (e: Exception) {
-                                     // ignore
-                                 }
-                                 kotlinx.coroutines.delay(15000) // Poll every 15s
-                            }
-                        }
-
-                        IconButton(onClick = { navController.navigate(Screen.Relatorios.route) }) {
-                            Icon(Icons.Default.Description, contentDescription = "Relatórios")
-                        }
-                        IconButton(onClick = { navController.navigate(Screen.Notificacoes.route) }) {
-                             if (unreadCount > 0) {
-                                BadgedBox(badge = { Badge { Text("$unreadCount") } }) {
-                                    Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                                     kotlinx.coroutines.delay(15000) // Poll every 15s
                                 }
-                            } else {
-                                Icon(Icons.Default.Notifications, contentDescription = "Notificações")
                             }
-                        }
-                        IconButton(onClick = { showLogoutDialog = true }) {
-                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
+
+                            Row {
+                                IconButton(onClick = { navController.navigate(Screen.Relatorios.route) }) {
+                                    Icon(Icons.Default.Description, contentDescription = "Relatórios")
+                                }
+                                IconButton(onClick = { navController.navigate(Screen.Notificacoes.route) }) {
+                                     if (unreadCount > 0) {
+                                        BadgedBox(badge = { Badge { Text("$unreadCount") } }) {
+                                            Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                                        }
+                                    } else {
+                                        Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                                    }
+                                }
+                                IconButton(onClick = { showLogoutDialog = true }) {
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
+                                }
+                            }
                         }
                     }
                 )
@@ -208,6 +240,32 @@ class MainActivity : ComponentActivity() {
                 onDismiss = { showLogoutDialog = false }
             )
         }
+
+        if (showChangePasswordDialog) {
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
+            val apiService = RetrofitInstance.api // Already available via import/singleton
+
+            ChangePasswordDialog(
+                onDismiss = { showChangePasswordDialog = false },
+                onConfirm = { oldPass, newPass ->
+                    scope.launch {
+                        try {
+                            val request = ChangePasswordRequest(oldPass, newPass)
+                            val response = apiService.changePassword(request)
+                            if (response.success) {
+                                Toast.makeText(context, "Senha alterada com sucesso", Toast.LENGTH_SHORT).show()
+                                showChangePasswordDialog = false
+                            } else {
+                                Toast.makeText(context, response.message ?: "Erro ao alterar senha", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            )
+        }
     }
 
     @Composable
@@ -221,11 +279,23 @@ class MainActivity : ComponentActivity() {
             composable(Screen.Dashboard.route) { backStackEntry ->
                 val shouldRefresh = backStackEntry.savedStateHandle.get<Boolean>("should_refresh_dashboard")
                 val viewModel: DashboardViewModel = viewModel(factory = DashboardViewModelFactory(DashboardRepository(apiService), StockRepository(apiService)))
-
                 LaunchedEffect(shouldRefresh) {
                     if (shouldRefresh == true) {
                         viewModel.fetchDashboardData()
                         backStackEntry.savedStateHandle.remove<Boolean>("should_refresh_dashboard")
+                    }
+                }
+
+                val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                            viewModel.fetchDashboardData()
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
                     }
                 }
 
@@ -404,7 +474,7 @@ class MainActivity : ComponentActivity() {
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            
+
             composable(Screen.AddStock.route) {
                 val viewModel: StockViewModel = viewModel(factory = StockViewModelFactory(StockRepository(apiService)))
                 StockScreen(
@@ -474,27 +544,142 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun BeneficiarioAppScreen() {
+    fun BeneficiarioAppScreen(userName: String) {
         val navController = rememberNavController()
         val apiService = RetrofitInstance.api
-        
-        NavHost(navController = navController, startDestination = "beneficiarioHome") {
-            composable("beneficiarioHome") {
-                val viewModel: BeneficiarioMainViewModel = viewModel(factory = BeneficiarioMainViewModelFactory(apiService))
-                com.example.loja_social.ui.beneficiario.BeneficiarioMainScreen(
-                    viewModel = viewModel,
-                    onLogoutClick = { performLogout() },
-                    onNavigateToNotifications = { navController.navigate(Screen.Notificacoes.route) }
-                )
-            }
-            
-            composable(Screen.Notificacoes.route) {
-                com.example.loja_social.ui.notificacoes.NotificacoesScreen(
-                    onNavigateBack = { 
-                        navController.popBackStack() 
+        var showLogoutDialog by remember { mutableStateOf(false) } // Adicionado para Logout
+        var showChangePasswordDialog by remember { mutableStateOf(false) }
+
+        Scaffold(
+            topBar = {
+                @OptIn(ExperimentalMaterial3Api::class)
+                TopAppBar(
+                    title = {
+                        Image(
+                        painter = androidx.compose.ui.res.painterResource(id = com.example.loja_social.R.drawable.sas_loja_social_preto),
+                        contentDescription = "Loja Social Logo",
+                        modifier = Modifier.height(60.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                    },
+                    actions = {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .padding(top = 12.dp)
+                                    .clickable { showLogoutDialog = false; /* Hack to force recompose/focus */ showChangePasswordDialog = true }
+                            ) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Perfil")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = userName, style = MaterialTheme.typography.bodySmall, color = androidx.compose.ui.graphics.Color(0xFF2E7D32))
+                            }
+                            Row {
+                                val notificationRepository = remember { com.example.loja_social.repository.NotificationRepository(com.example.loja_social.api.RetrofitInstance.api) }
+                                var unreadCount by remember { mutableStateOf(0) }
+
+                                LaunchedEffect(Unit) {
+                                    while(true) {
+                                         try {
+                                             if (com.example.loja_social.api.RetrofitInstance.isInitialized()) {
+                                                 val response = notificationRepository.getNotificacoes()
+                                                 if (response.success && response.data != null) {
+                                                     unreadCount = response.data.count { !it.lida }
+                                                 }
+                                             }
+                                         } catch (e: Exception) {
+                                             // ignore
+                                         }
+                                         kotlinx.coroutines.delay(15000) // Poll every 15s
+                                    }
+                                }
+
+                                IconButton(onClick = { navController.navigate(Screen.Notificacoes.route) }) {
+                                     if (unreadCount > 0) {
+                                        BadgedBox(badge = { Badge { Text("$unreadCount") } }) {
+                                            Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                                        }
+                                    } else {
+                                        Icon(Icons.Default.Notifications, contentDescription = "Notificações")
+                                    }
+                                }
+                                IconButton(onClick = { showLogoutDialog = true }) {
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
+                                }
+                            }
+                        }
                     }
                 )
             }
+        ) { innerPadding ->
+            NavHost(navController = navController, startDestination = "beneficiarioHome", modifier = Modifier.padding(innerPadding)) {
+                composable("beneficiarioHome") {
+                    val viewModel: BeneficiarioMainViewModel = viewModel(factory = BeneficiarioMainViewModelFactory(apiService))
+
+                    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+                    DisposableEffect(lifecycleOwner) {
+                        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                viewModel.refresh()
+                            }
+                        }
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
+
+                    com.example.loja_social.ui.beneficiario.BeneficiarioMainScreen(
+                        viewModel = viewModel,
+                    )
+                }
+                
+                composable(Screen.Notificacoes.route) {
+                    com.example.loja_social.ui.notificacoes.NotificacoesScreen(
+                        onNavigateBack = { 
+                            navController.popBackStack() 
+                        }
+                    )
+                }
+            }
+        }
+
+        if (showLogoutDialog) {
+            LogoutConfirmationDialog(
+                onConfirm = { 
+                    performLogout()
+                    showLogoutDialog = false
+                },
+                onDismiss = { showLogoutDialog = false }
+            )
+        }
+        
+        if (showChangePasswordDialog) {
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
+            
+            ChangePasswordDialog(
+                onDismiss = { showChangePasswordDialog = false },
+                onConfirm = { oldPass, newPass ->
+                    scope.launch {
+                        try {
+                            val request = ChangePasswordRequest(oldPass, newPass)
+                            val response = apiService.changePassword(request)
+                            if (response.success) {
+                                Toast.makeText(context, "Senha alterada com sucesso", Toast.LENGTH_SHORT).show()
+                                showChangePasswordDialog = false
+                            } else {
+                                Toast.makeText(context, response.message ?: "Erro ao alterar senha", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            )
         }
     }
     
