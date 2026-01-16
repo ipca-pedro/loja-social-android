@@ -9,6 +9,8 @@
 
 Este repositório contém a implementação da aplicação móvel **Loja Social**, desenvolvida nativamente em Kotlin. A solução adota o padrão de arquitetura **MVVM (Model-View-ViewModel)**, garantindo uma separação clara entre a lógica de persistência e a camada de apresentação. Este guia detalha a engenharia por trás da gestão de recursos sociais.
 
+**Repositório Git**: [https://github.com/ipca-pedro/loja-social-android](https://github.com/ipca-pedro/loja-social-android)
+
 ---
 
 ## Índice
